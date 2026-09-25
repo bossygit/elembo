@@ -16,21 +16,21 @@ export const PRODUCTS: ProductDef[] = [
   {
     id: 'tshirt',
     label: 'T-shirt',
-    mockup: '/mockups/tshirt-blanc.png',
+    mockup: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/mockups/tshirt-blanc.png`,
     zone: { x: 0.36, y: 0.28, w: 0.28, h: 0.28 }, // poitrine, face
     accent: '#E85F00',
   },
   {
     id: 'casquette',
     label: 'Casquette',
-    mockup: '/mockups/casquette-blanche.png',
+    mockup: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/mockups/casquette-blanche.png`,
     zone: { x: 0.4, y: 0.35, w: 0.2, h: 0.16 }, // panneau avant
     accent: '#200233',
   },
   {
     id: 'tableau',
     label: 'Tableau',
-    mockup: '/mockups/tableau-mural.png',
+    mockup: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/mockups/tableau-mural.png`,
     zone: { x: 0.3, y: 0.18, w: 0.4, h: 0.55 }, // cadre vertical
     accent: '#0E7C66',
   },

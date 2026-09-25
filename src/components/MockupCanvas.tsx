@@ -18,6 +18,9 @@ type Props = {
   offset: { x: number; y: number }; // décalage en fraction de la taille de zone
   showZones: boolean;
   canvasRef: RefObject<HTMLCanvasElement | null>;
+  onPointerDown?: (e: React.PointerEvent<HTMLCanvasElement>) => void;
+  onPointerMove?: (e: React.PointerEvent<HTMLCanvasElement>) => void;
+  onPointerUp?: (e: React.PointerEvent<HTMLCanvasElement>) => void;
 };
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -37,6 +40,9 @@ export default function MockupCanvas({
   offset,
   showZones,
   canvasRef,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
 }: Props) {
   useEffect(() => {
     let cancelled = false;
@@ -65,12 +71,16 @@ export default function MockupCanvas({
           const rect = computePrintRect(des.width, des.height, W, H, product.zone, fitMode);
           const w = rect.w * scale;
           const h = rect.h * scale;
-          let x = rect.x + (rect.w - w) / 2 + offset.x * zw;
-          let y = rect.y + (rect.h - h) / 2 + offset.y * zh;
-          // clamp DANS la zone quand le design y tient encore
-          if (w <= zw) x = Math.min(Math.max(x, zx), zx + zw - w);
-          if (h <= zh) y = Math.min(Math.max(y, zy), zy + zh - h);
+          const x = rect.x + (rect.w - w) / 2 + offset.x * zw;
+          const y = rect.y + (rect.h - h) / 2 + offset.y * zh;
+          // Mouvement libre, clip à la zone : ce qui dépasse la zone ne s'imprime pas
+          // (sémantique Printful — la zone d'impression définit ce qui est imprimé)
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(zx, zy, zw, zh);
+          ctx.clip();
           ctx.drawImage(des, x, y, w, h);
+          ctx.restore();
         }
 
         if (showZones) {
@@ -95,6 +105,9 @@ export default function MockupCanvas({
     <div className="relative">
       <canvas
         ref={canvasRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
         aria-label={`Mockup ${product.label} avec votre design`}
         className="w-full rounded-xl border border-neutral-200 bg-neutral-100"
       />

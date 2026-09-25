@@ -23,7 +23,11 @@ export default function Studio() {
 
   function onPointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!design) return;
-    (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
+    try {
+      (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
+    } catch {
+      // capture optionnelle : ne doit pas empêcher le glisser
+    }
     dragRef.current = { id: e.pointerId, lastX: e.clientX, lastY: e.clientY };
   }
 
@@ -38,16 +42,21 @@ export default function Studio() {
     drag.lastY = e.clientY;
     const zoneW = product.zone.w * canvas.width;
     const zoneH = product.zone.h * canvas.height;
-    const displayW = canvas.clientWidth || canvas.width;
+    const zoneScale = canvas.width / (canvas.clientWidth || canvas.width); // px canvas par px CSS
     setOffset((o) => ({
-      x: o.x + dx / (zoneW / (canvas.width / displayW) || 1) / (zoneW / (canvas.width / displayW) || 1),
-      y: o.y + dy / (zoneH / (canvas.width / displayW) || 1) / (zoneW / (canvas.width / displayW) || 1),
+      // offset en fraction de zone, borné pour ne jamais perdre le design
+      x: Math.min(1.5, Math.max(-1.5, o.x + (dx * zoneScale) / zoneW)),
+      y: Math.min(1.5, Math.max(-1.5, o.y + (dy * zoneScale) / zoneH)),
     }));
   }
 
   function onPointerUp(e: React.PointerEvent<HTMLCanvasElement>) {
     if (dragRef.current?.id === e.pointerId) {
-      (e.target as HTMLCanvasElement).releasePointerCapture(e.pointerId);
+      try {
+        (e.target as HTMLCanvasElement).releasePointerCapture(e.pointerId);
+      } catch {
+        // capture optionnelle
+      }
       dragRef.current = null;
     }
   }
@@ -108,6 +117,9 @@ export default function Studio() {
             offset={offset}
             showZones={showZones}
             canvasRef={canvasRef}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
           />
           <label className="mt-3 flex w-fit items-center gap-2 text-xs text-neutral-500">
             <input

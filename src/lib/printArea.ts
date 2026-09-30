@@ -48,3 +48,30 @@ export function computePrintRect(
     h,
   };
 }
+
+/**
+ * Placement final du design à l'écran : part du rect de référence (contain/cover/
+ * stretch) et applique l'échelle utilisateur puis le décalage, exprimé en fraction
+ * de la zone (1 = une largeur/hauteur de zone, donc indépendant de la résolution
+ * du canvas). Le design reste centré sur le rect de référence quand scale = 1 et
+ * que le décalage est nul.
+ */
+export function computePlacement(
+  rect: Rect,
+  zone: Zone,
+  canvasW: number,
+  canvasH: number,
+  scale: number,
+  offset: { x: number; y: number },
+): Rect {
+  const zw = zone.w * canvasW;
+  const zh = zone.h * canvasH;
+  const w = rect.w * scale;
+  const h = rect.h * scale;
+  return {
+    x: rect.x + (rect.w - w) / 2 + offset.x * zw,
+    y: rect.y + (rect.h - h) / 2 + offset.y * zh,
+    w,
+    h,
+  };
+}

@@ -113,7 +113,7 @@ export default function UploadZone({
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-neutral-800">{preview.name}</p>
             <p className="text-xs text-neutral-500">
-              {preview.width}×{preview.height} px — en mémoire, rien n'est stocké
+              {preview.width}×{preview.height} px — en mémoire, rien n&apos;est stocké
             </p>
           </div>
         </div>

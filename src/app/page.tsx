@@ -23,7 +23,7 @@ export default function Home() {
       <section className="border-t border-neutral-200 bg-neutral-50">
         <div className="mx-auto w-full max-w-5xl px-4 py-10">
           <p className="text-sm text-neutral-500">
-            MVP de démonstration — votre design reste dans votre navigateur, rien n'est
+            MVP de démonstration — votre design reste dans votre navigateur, rien n&apos;est
             stocké ni envoyé. Les photos de mockups sont des placeholders à remplacer
             par les visuels réels (presse VEVOR).
           </p>

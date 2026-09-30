@@ -1,12 +1,17 @@
 'use client';
 
 // MockupCanvas : composition canvas 2D — photo de mockup en fond, design dessiné
-// dans la zone d'impression prédéfinie (computePrintRect), échelle + décalage,
-// rectangle de zone en mode debug. Re-render sur chaque changement d'état.
+// dans la zone d'impression prédéfinie (computePrintRect + computePlacement), avec
+// échelle, décalage en fraction de zone, ROTATION autour du centre du design, et
+// clippage à la zone (ce qui dépasse ne s'imprime pas, sémantique Printful).
+// Affiche aussi la qualité d'impression réelle (dpi) pour éviter les tirages flous.
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { RefObject } from 'react';
-import { computePrintRect } from '../lib/printArea';
+import { computePrintRect, computePlacement } from '../lib/printArea';
+import type { FitMode } from '../lib/printArea';
+import { printedSizeCm, computeDpi, assessPrintQuality } from '../lib/printQuality';
+import type { PrintQuality } from '../lib/printQuality';
 import type { ProductDef } from '../lib/products';
 import type { Design } from './UploadZone';
 
@@ -14,8 +19,9 @@ type Props = {
   product: ProductDef;
   design: Design | null;
   scale: number; // 0.5..1.5 (multiplicateur du rect fit)
-  fitMode: 'contain' | 'stretch';
+  fitMode: FitMode;
   offset: { x: number; y: number }; // décalage en fraction de la taille de zone
+  rotation: number; // degrés, -180..180
   showZones: boolean;
   canvasRef: RefObject<HTMLCanvasElement | null>;
   onPointerDown?: (e: React.PointerEvent<HTMLCanvasElement>) => void;
@@ -32,18 +38,35 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+const BADGE: Record<PrintQuality['level'], string> = {
+  photo: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+  bonne: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  faible: 'bg-amber-50 text-amber-800 border-amber-200',
+  insuffisant: 'bg-red-50 text-red-700 border-red-200',
+};
+
+const BADGE_LABEL: Record<PrintQuality['level'], string> = {
+  photo: 'Qualité photo',
+  bonne: 'Bonne qualité',
+  faible: 'Qualité faible',
+  insuffisant: 'Rendu flou',
+};
+
 export default function MockupCanvas({
   product,
   design,
   scale,
   fitMode,
   offset,
+  rotation,
   showZones,
   canvasRef,
   onPointerDown,
   onPointerMove,
   onPointerUp,
 }: Props) {
+  const [quality, setQuality] = useState<PrintQuality | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     const canvas = canvasRef.current;
@@ -69,18 +92,23 @@ export default function MockupCanvas({
 
         if (des) {
           const rect = computePrintRect(des.width, des.height, W, H, product.zone, fitMode);
-          const w = rect.w * scale;
-          const h = rect.h * scale;
-          const x = rect.x + (rect.w - w) / 2 + offset.x * zw;
-          const y = rect.y + (rect.h - h) / 2 + offset.y * zh;
+          const p = computePlacement(rect, product.zone, W, H, scale, offset);
+
           // Mouvement libre, clip à la zone : ce qui dépasse la zone ne s'imprime pas
-          // (sémantique Printful — la zone d'impression définit ce qui est imprimé)
           ctx.save();
           ctx.beginPath();
           ctx.rect(zx, zy, zw, zh);
           ctx.clip();
-          ctx.drawImage(des, x, y, w, h);
+          ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
+          if (rotation !== 0) ctx.rotate((rotation * Math.PI) / 180);
+          ctx.drawImage(des, -p.w / 2, -p.h / 2, p.w, p.h);
           ctx.restore();
+
+          // Qualité réelle : densité du visuel sur la surface imprimée
+          const cm = printedSizeCm(p, { w: zw, h: zh }, product.zoneCm, 1);
+          setQuality(assessPrintQuality(computeDpi(des.width, des.height, cm.w, cm.h)));
+        } else {
+          setQuality(null);
         }
 
         if (showZones) {
@@ -99,7 +127,7 @@ export default function MockupCanvas({
     return () => {
       cancelled = true;
     };
-  }, [product, design, scale, fitMode, offset, showZones, canvasRef]);
+  }, [product, design, scale, fitMode, offset, rotation, showZones, canvasRef]);
 
   return (
     <div className="relative">
@@ -108,14 +136,28 @@ export default function MockupCanvas({
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
         aria-label={`Mockup ${product.label} avec votre design`}
-        className="w-full rounded-xl border border-neutral-200 bg-neutral-100"
+        className="w-full cursor-grab touch-none rounded-xl border border-neutral-200 bg-neutral-100 active:cursor-grabbing"
       />
       {!design && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <p className="rounded-lg bg-white/90 px-4 py-2 text-sm text-neutral-600">
             Uploadez un design pour le voir apparaître sur le {product.label.toLowerCase()}
           </p>
+        </div>
+      )}
+
+      {design && quality && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`mt-3 rounded-lg border px-3 py-2 text-xs ${BADGE[quality.level]}`}
+        >
+          <span className="font-semibold">
+            {BADGE_LABEL[quality.level]} — {Math.round(quality.dpi)} dpi
+          </span>{' '}
+          <span className="opacity-90">{quality.message}</span>
         </div>
       )}
     </div>

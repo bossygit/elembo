@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computePrintRect } from '../src/lib/printArea';
+import { computePrintRect, computePlacement } from '../src/lib/printArea';
 
 describe('computePrintRect', () => {
   it('contain : design carré dans zone carrée → remplit la zone', () => {
@@ -63,5 +63,38 @@ describe('computePrintRect', () => {
     expect(() => computePrintRect(0, 100, 400, 400, { x: 0, y: 0, w: 0.5, h: 0.5 })).toThrow(RangeError);
     expect(() => computePrintRect(100, -5, 400, 400, { x: 0, y: 0, w: 0.5, h: 0.5 })).toThrow(RangeError);
     expect(() => computePrintRect(100, 100, 0, 400, { x: 0, y: 0, w: 0.5, h: 0.5 })).toThrow(RangeError);
+  });
+});
+
+describe('computePlacement', () => {
+  const zone = { x: 0.25, y: 0.25, w: 0.5, h: 0.5 }; // canvas 400 → zonePx {100,100,200,200}
+
+  it('échelle 1 et décalage nul → le design occupe exactement le rect de référence', () => {
+    const rect = { x: 100, y: 100, w: 200, h: 200 };
+    const p = computePlacement(rect, zone, 400, 400, 1, { x: 0, y: 0 });
+    expect(p).toEqual({ x: 100, y: 100, w: 200, h: 200 });
+  });
+
+  it('échelle 0,5 → moitié de taille, recentrée sur le rect de référence', () => {
+    const rect = { x: 100, y: 100, w: 200, h: 200 };
+    const p = computePlacement(rect, zone, 400, 400, 0.5, { x: 0, y: 0 });
+    expect(p.w).toBeCloseTo(100);
+    expect(p.h).toBeCloseTo(100);
+    expect(p.x).toBeCloseTo(150); // centre conservé : 100 + (200-100)/2
+    expect(p.y).toBeCloseTo(150);
+  });
+
+  it('le décalage s’exprime en fraction de la zone (1 = toute la zone)', () => {
+    const rect = { x: 100, y: 100, w: 200, h: 200 };
+    const p = computePlacement(rect, zone, 400, 400, 1, { x: 1, y: 0.5 });
+    expect(p.x).toBeCloseTo(300); // +200 px = largeur de zone
+    expect(p.y).toBeCloseTo(200); // +100 px = demi-hauteur de zone
+  });
+
+  it('cover : rect plus grand que la zone, centré (décalage nul)', () => {
+    const rect = { x: 0, y: 100, w: 400, h: 200 }; // cover : 400 px pour une zone de 200
+    const p = computePlacement(rect, zone, 400, 400, 1, { x: 0, y: 0 });
+    expect(p.w).toBeCloseTo(400);
+    expect(p.x).toBeCloseTo(0);
   });
 });

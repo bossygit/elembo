@@ -6,6 +6,7 @@
 import { useRef, useState } from 'react';
 import { PRODUCTS } from '../lib/products';
 import type { ProductDef } from '../lib/products';
+import type { FitMode } from '../lib/printArea';
 import UploadZone, { type Design } from './UploadZone';
 import MockupCanvas from './MockupCanvas';
 import DesignControls from './DesignControls';
@@ -15,7 +16,8 @@ export default function Studio() {
   const [product, setProduct] = useState<ProductDef>(PRODUCTS[0]);
   const [design, setDesign] = useState<Design | null>(null);
   const [scale, setScale] = useState(1);
-  const [fitMode, setFitMode] = useState<'contain' | 'stretch'>('contain');
+  const [fitMode, setFitMode] = useState<FitMode>('contain');
+  const [rotation, setRotation] = useState(0);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [showZones, setShowZones] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -115,12 +117,18 @@ export default function Studio() {
             scale={scale}
             fitMode={fitMode}
             offset={offset}
+            rotation={rotation}
             showZones={showZones}
             canvasRef={canvasRef}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
           />
+          {design && (
+            <p className="mt-2 text-xs text-neutral-500">
+              Glissez le visuel directement sur le produit pour le déplacer.
+            </p>
+          )}
           <label className="mt-3 flex w-fit items-center gap-2 text-xs text-neutral-500">
             <input
               type="checkbox"
@@ -128,7 +136,7 @@ export default function Studio() {
               onChange={(e) => setShowZones(e.target.checked)}
               className="accent-[#E85F00]"
             />
-            Afficher la zone d'impression (calage)
+            Afficher la zone d&apos;impression (calage)
           </label>
         </div>
 
@@ -143,7 +151,13 @@ export default function Studio() {
               onScale={setScale}
               fitMode={fitMode}
               onFitMode={setFitMode}
-              onReset={() => setOffset({ x: 0, y: 0 })}
+              rotation={rotation}
+              onRotation={setRotation}
+              onReset={() => {
+                setOffset({ x: 0, y: 0 });
+                setRotation(0);
+                setScale(1);
+              }}
               disabled={!design}
             />
           </div>

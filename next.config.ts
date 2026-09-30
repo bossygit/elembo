@@ -10,6 +10,9 @@ const nextConfig: NextConfig = isProd
   ? {
       output: "export",
       basePath: "/elembo",
+      // Export statique : sans trailingSlash, Next écrit « configurator.html » et
+      // « /elembo/configurator/ » (barre oblique finale) tombe en 404 sur GitHub Pages.
+      trailingSlash: true,
       images: { unoptimized: true },
       env: { NEXT_PUBLIC_BASE_PATH: "/elembo" },
     }

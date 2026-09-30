@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import Studio from '../components/Studio';
 
 export default function Home() {
@@ -15,6 +16,18 @@ export default function Home() {
             La plateforme Print-on-Demand locale : t-shirts, casquettes et tableaux
             personnalisés, livrés sous 24h-48h à Brazzaville et Pointe-Noire.
           </p>
+          <div className="mt-8 flex flex-wrap items-center gap-4">
+            <Link
+              href="/configurator"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#200233] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#E85F00]"
+            >
+              Ouvrir le configurateur 3D
+              <span aria-hidden>→</span>
+            </Link>
+            <span className="max-w-xs text-sm text-neutral-500">
+              Produit en 3D : rotation, zoom, couleur et visuel imprimé en direct.
+            </span>
+          </div>
         </div>
       </section>
 

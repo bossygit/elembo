@@ -5,6 +5,7 @@
 // passent en colonne à droite et l'aperçu de zone + la configuration en bas.
 
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useConfiguratorStore, serializeConfig } from '../../stores/configurator-store';
 import { getProductById } from '../../lib/products/catalog';
@@ -134,7 +135,10 @@ export default function Configurator() {
     <div className="mx-auto w-full max-w-7xl px-4 py-6">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-[#E85F00]">
+          <Link href="/" className="text-xs font-medium text-neutral-500 hover:text-[#E85F00]">
+            ← Studio 2D (photo de mockup)
+          </Link>
+          <p className="mt-2 text-xs font-semibold uppercase tracking-widest text-[#E85F00]">
             Elembo — configurateur 3D
           </p>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">

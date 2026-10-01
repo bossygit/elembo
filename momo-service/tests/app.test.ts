@@ -115,7 +115,10 @@ describe('POST /api/momo/payer', () => {
     expect(pointeNoire.status).toBe(422);
     expect(String(((await pointeNoire.json()) as { erreur: string }).erreur)).toMatch(/frais de livraison/);
 
-    const mauvaisTel = await poster('/api/momo/payer', { ...COMMANDE, telephone: '070000000' });
+    // En sandbox, un numéro ordinaire est accepté (tout numéro réussit chez MTN) : pour obtenir un
+    // 422 il faut un numéro manifestement inexploitable. La règle congolaise stricte, elle, est
+    // testée sur normaliserMsisdn en environnement de production.
+    const mauvaisTel = await poster('/api/momo/payer', { ...COMMANDE, telephone: '12' });
     expect(mauvaisTel.status).toBe(422);
     expect(String(((await mauvaisTel.json()) as { erreur: string }).erreur)).toMatch(/Numéro invalide/);
   });

@@ -44,12 +44,15 @@ export type ConfigClient = {
 };
 
 export class ErreurMomo extends Error {
-  constructor(
-    message: string,
-    readonly statutHttp?: number,
-    readonly corps?: string,
-  ) {
+  // Champs explicites plutôt que propriétés de paramètre : Node exécute le TypeScript en mode
+  // « strip-only », qui refuse `constructor(readonly x: T)`.
+  readonly statutHttp?: number;
+  readonly corps?: string;
+
+  constructor(message: string, statutHttp?: number, corps?: string) {
     super(message);
+    this.statutHttp = statutHttp;
+    this.corps = corps;
   }
 }
 

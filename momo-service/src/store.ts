@@ -33,11 +33,15 @@ export type Transaction = {
 
 export class StoreTransactions {
   private transactions = new Map<string, Transaction>();
+  private readonly fichier: string;
+  private readonly maintenant: () => Date;
 
-  constructor(
-    private readonly fichier: string,
-    private readonly maintenant: () => Date = () => new Date(),
-  ) {}
+  // Champs explicites (pas de propriété de paramètre) : Node exécute le TypeScript en mode
+  // « strip-only », qui refuse `constructor(private readonly x: T)`.
+  constructor(fichier: string, maintenant: () => Date = () => new Date()) {
+    this.fichier = fichier;
+    this.maintenant = maintenant;
+  }
 
   static async ouvrir(fichier: string, maintenant?: () => Date): Promise<StoreTransactions> {
     const store = new StoreTransactions(fichier, maintenant);

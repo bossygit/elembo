@@ -6,7 +6,7 @@
  * ici produit un 400 opaque côté MTN : d'où la normalisation explicite et testée.
  */
 
-import { MSISDN_SANDBOX_TEST, type EnvironnementMomo } from './config.ts';
+import { type EnvironnementMomo } from './config.ts';
 
 export const PREFIXE_CONGO = '242';
 
@@ -22,8 +22,15 @@ export function normaliserMsisdn(brut: string, env: EnvironnementMomo = 'mtncong
     throw new ErreurTelephone('Numéro de téléphone manquant.');
   }
 
-  // Les numéros de test du sandbox MTN ne suivent pas la numérotation congolaise.
-  if (env === 'sandbox' && (MSISDN_SANDBOX_TEST as readonly string[]).includes(chiffres)) {
+  // Sandbox : « Any other number results in Success ». Toute numérotation plausible y est
+  // acceptée (les numéros de test documentés comme les numéros ordinaires), pour ne pas bloquer
+  // un test sur une règle de forme. On normalise quand même les numéros congolais.
+  if (env === 'sandbox') {
+    if (chiffres.length < 8 || chiffres.length > 15) {
+      throw new ErreurTelephone(`Numéro invalide pour le sandbox : « ${brut} » (8 à 15 chiffres attendus).`);
+    }
+    const local = chiffres.replace(/^(00)?242/, '');
+    if (/^0[456]\d{7}$/.test(local)) return `${PREFIXE_CONGO}${local}`;
     return chiffres;
   }
 

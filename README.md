@@ -79,12 +79,21 @@ Le tunnel de commande transforme un design validé en **dossier de production** 
   **position du centre en centimètres depuis le coin haut-gauche de la zone**, dimensions en cm,
   rotation, et l'avertissement si l'élément déborde (donc rogné). Un imprimeur peut travailler
   directement avec ça.
-- **Paiement** : montant en FCFA à encaisser par **MTN Mobile Money** ; l'intégration MoMo
-  (clés Collections déjà obtenues, 3 routes serveur à mettre en place) est décrite dans
-  `docs/momo-mtn-integration.md`.
+- **Paiement** : après validation de l'aperçu, le client paie le montant par **MTN Mobile Money**
+  (bouton « Payer … par MTN MoMo »). Le navigateur appelle le service `momo-service/`
+  (`POST /api/momo/payer`), puis **sonde le statut** ; les fichiers d'impression et la fiche de
+  production ne sont générés **qu'après un `PAYE` confirmé**. Un échec ou un dépassement du délai
+  de 5 minutes ne produit aucun fichier.
+- **Atelier** : un repli explicite « générer les fichiers sans paiement » reste disponible
+  (replié sous le bouton de paiement) pour les essais d'impression.
 
-Le champ `priceFcfa` du catalogue est vide : la validation est bloquée tant que le prix
-unitaire n'est pas défini, avec le motif affiché au client.
+Adresse du service : variable `NEXT_PUBLIC_MOMO_API_URL` (défaut `http://localhost:8787`). Le
+service tourne séparément (voir `momo-service/README.md`) : sans lui, le bouton de paiement
+affiche « service injoignable » et le repli atelier reste utilisable.
+
+Le champ `priceFcfa` du catalogue porte un **prix de test (5 000 FCFA)**, en attendant le tableau
+de bord qui le rendra configurable ; si un prix ou des frais de livraison manquent, la commande
+est refusée avec le motif affiché plutôt que de facturer un montant inventé.
 
 ### Polices
 

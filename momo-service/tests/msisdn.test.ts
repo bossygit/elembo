@@ -41,6 +41,14 @@ describe('normalisation des numéros congolais', () => {
     expect(() => normaliserMsisdn('46733123450', 'mtncongo')).toThrow(ErreurTelephone);
   });
 
+  it('en sandbox, accepte aussi un numéro ordinaire (tout numéro réussit chez MTN)', () => {
+    expect(normaliserMsisdn('46733123499', 'sandbox')).toBe('46733123499');
+    expect(normaliserMsisdn('123456789012', 'sandbox')).toBe('123456789012');
+    // Un numéro congolais reste normalisé au format international, même en sandbox.
+    expect(normaliserMsisdn('061234567', 'sandbox')).toBe('242061234567');
+    expect(() => normaliserMsisdn('123', 'sandbox')).toThrow(/8 à 15 chiffres/);
+  });
+
   it('masque les numéros destinés aux journaux', () => {
     expect(masquerMsisdn('242061234567')).toBe('24206••••67');
     expect(masquerMsisdn('')).toBe('••••');

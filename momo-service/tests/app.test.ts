@@ -152,14 +152,30 @@ describe('GET /api/momo/statut', () => {
     expect(corps.commande).toBe(COMMANDE.commande);
   });
 
-  it('passe à ECHEC quand le client refuse (…51)', async () => {
+  it('passe à ECHEC selon le scénario officiel du sandbox (…51 = rejeté)', async () => {
     await demarrer();
-    const creation = await poster('/api/momo/payer', { ...COMMANDE, telephone: '061234551' });
+    const creation = await poster('/api/momo/payer', { ...COMMANDE, telephone: '46733123451' });
     const { referenceId } = (await creation.json()) as { referenceId: string };
     const r = await fetch(`${base}/api/momo/statut?referenceId=${referenceId}`);
     const corps = (await r.json()) as { statut: string; raison: string };
     expect(corps.statut).toBe('ECHEC');
-    expect(corps.raison).toBe('PAYER_NOT_FOUND');
+    expect(corps.raison).toBe('REJECTED');
+  });
+
+  it('suit la table MTN : …55 = payeur introuvable, …53 reste en attente', async () => {
+    await demarrer();
+    for (const [numero, raison] of [['46733123455', 'PAYER_NOT_FOUND']] as const) {
+      const creation = await poster('/api/momo/payer', { ...COMMANDE, telephone: numero });
+      const { referenceId } = (await creation.json()) as { referenceId: string };
+      const r = await fetch(`${base}/api/momo/statut?referenceId=${referenceId}`);
+      expect(await r.json()).toMatchObject({ statut: 'ECHEC', raison });
+    }
+
+    const ongoing = await poster('/api/momo/payer', { ...COMMANDE, telephone: '46733123453' });
+    const { referenceId } = (await ongoing.json()) as { referenceId: string };
+    horloge += 600_000; // même très longtemps après, « en cours » ne se dénoue pas
+    const r = await fetch(`${base}/api/momo/statut?referenceId=${referenceId}`);
+    expect(((await r.json()) as { statut: string }).statut).toBe('PENDING');
   });
 
   it('répond 404 sur une référence inconnue et 422 sans paramètre', async () => {
@@ -224,12 +240,26 @@ describe('POST /api/momo/callback', () => {
     expect(await statut.json()).toMatchObject({ statut: 'ANOMALIE' });
   });
 
-  it('accepte la référence passée dans l’URL', async () => {
+  it('accepte la référence passée dans le chemin (les paramètres de requête sont proscrits)', async () => {
     await demarrer({ delaiMockMs: 0 });
     const creation = await poster('/api/momo/payer', COMMANDE);
     const { referenceId } = (await creation.json()) as { referenceId: string };
-    const r = await poster(`/api/momo/callback?referenceId=${referenceId}`, {});
+    const r = await poster(`/api/momo/callback/${referenceId}`, {});
     expect(await r.json()).toMatchObject({ traite: true, statut: 'PAYE' });
+  });
+
+  it('accepte aussi un callback en PUT (MTN demande PUT et POST)', async () => {
+    await demarrer({ delaiMockMs: 0 });
+    const creation = await poster('/api/momo/payer', COMMANDE);
+    const { referenceId } = (await creation.json()) as { referenceId: string };
+
+    const r = await fetch(`${base}/api/momo/callback`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ referenceId }),
+    });
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ recu: true, traite: true, statut: 'PAYE' });
   });
 });
 

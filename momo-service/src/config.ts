@@ -33,8 +33,25 @@ export type Config = {
 const BASE_SANDBOX = 'https://sandbox.momodeveloper.mtn.com';
 const BASE_PRODUCTION = 'https://proxy.momoapi.mtn.com';
 
-/** Numéros de test du sandbox MTN (ils ne ressemblent pas à des numéros congolais). */
-export const MSISDN_SANDBOX_TEST = ['46733123450', '46733123451', '46733123452', '46733123453'] as const;
+/** Numéros de test du sandbox MTN — ils ne ressemblent pas à des numéros congolais. */
+export const MSISDN_SANDBOX_TEST = [
+  '46733123450',
+  '46733123451',
+  '46733123452',
+  '46733123453',
+  '46733123454',
+  '46733123455',
+  '46733123456',
+  '46733123457',
+  '46733123458',
+  '46733123459',
+  '46733123460',
+  '46733123461',
+  '46733123462',
+  '46733123463',
+  '46733123464',
+  '46733123469',
+] as const;
 
 export class ErreurConfig extends Error {}
 

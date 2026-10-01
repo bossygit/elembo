@@ -18,13 +18,18 @@ Aucune dépendance à l'exécution : `fetch` natif, Node 20+.
     npm install
     MOMO_MOCK=1 npm start
 
-Les paiements sont simulés, avec la convention des numéros de test MTN :
+Les paiements sont simulés, avec la **même logique que la table officielle MTN** — le succès est le
+cas par défaut (« Any other number results in Success ») :
 
-| Numéro se terminant par | Résultat |
+| Numéro se terminant par | Scénario |
 | --- | --- |
-| …50 (ou autre) | paiement réussi après ~4 s |
-| …51 | paiement refusé (`PAYER_NOT_FOUND`) |
-| …52 | reste en attente (le client ne valide jamais) |
+| tout autre numéro | paiement réussi après ~4 s |
+| 46733123450 | échec · …51 rejeté · …52 expiré · …55 payeur introuvable |
+| 46733123453 | reste en attente (le client ne valide jamais) |
+| 46733123454 | validé tardivement, finit par réussir |
+
+Les scénarios complets (`…56` à `…64` : bénéficiaire non autorisé, hôte de callback invalide,
+devise invalide, service indisponible, transaction impossible…) sont dans `src/mock-mtn.ts`.
 
 Exemple complet :
 
@@ -42,15 +47,21 @@ Exemple complet :
    `store@smartvision.cg` (c'est celle communiquée à MTN le 22/07/2025, reprise les 16 et
    27/10/2025 avec l'URL de callback).
 2. Souscrire le produit **Collections**, puis générer :
-   - une **Subscription Key** (onglet *Profile*),
-   - un **API User** et une **API Key** (bouton *Generate*).
-3. Renseigner un fichier `.env` **non versionné** (`momo-service/.env`, déjà ignoré) :
+   - une **Subscription Key** (onglet *Profile*) → à coller dans `MOMO_SUBSCRIPTION_KEY` ;
+   - l'**API User** et l'**API Key** : ils ne se lisent nulle part sur le portail, ils se
+     **génèrent** par la Provisioning API. Le script s'en charge :
+
+         npm run provision:sandbox            # écrit MOMO_API_USER et MOMO_API_KEY dans .env
+
+     (Chemin réel : `POST /v1_0/apiuser` puis `POST /v1_0/apiuser/{id}/apikey`. La documentation
+     écrit `{baseURL}/apiuser` — ce chemin répond 404 en sandbox.)
+3. Renseigner le reste du fichier `.env` **non versionné** (`momo-service/.env`, déjà ignoré) :
 
 ```
 MOMO_ENV=sandbox
 MOMO_SUBSCRIPTION_KEY=…
-MOMO_API_USER=…
-MOMO_API_KEY=…
+MOMO_API_USER=…          # généré par npm run provision:sandbox
+MOMO_API_KEY=***         # généré, jamais affiché
 MOMO_CALLBACK_URL=https://<votre-domaine>/api/momo/callback
 APP_ORIGINS=https://bossygit.github.io,http://localhost:3000
 PORT=8787

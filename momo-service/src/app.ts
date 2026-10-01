@@ -60,7 +60,7 @@ function entetesCors(origine: string | undefined, origines: string[]): Record<st
   if (!origine || !origines.includes(origine)) return {};
   return {
     'Access-Control-Allow-Origin': origine,
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Max-Age': '600',
     Vary: 'Origin',
@@ -83,15 +83,16 @@ async function lireCorps(req: IncomingMessage): Promise<unknown> {
   }
 }
 
-/** MTN envoie la référence dans le corps ou dans l'URL selon la version de callback. */
+/** MTN envoie la référence dans le corps, ou dans le chemin (jamais en paramètre de requête). */
 function referenceDuCallback(url: URL, corps: unknown): string | null {
   const c = (corps ?? {}) as Record<string, unknown>;
+  const dansChemin = /\/api\/momo\/callback\/([^/]+)$/.exec(url.pathname)?.[1];
   const candidates = [
     c.referenceId,
     c.reference_id,
     c.externalId,
     (c as { resource?: { referenceId?: string } }).resource?.referenceId,
-    url.searchParams.get('referenceId'),
+    dansChemin ? decodeURIComponent(dansChemin) : null,
   ];
   for (const valeur of candidates) {
     if (typeof valeur === 'string' && valeur.trim()) return valeur.trim();
@@ -185,7 +186,12 @@ export function creerServeur(deps: Dependances) {
         return;
       }
 
-      if (req.method === 'POST' && url.pathname === '/api/momo/callback') {
+      if (
+        (req.method === 'POST' || req.method === 'PUT') &&
+        // Les paramètres de requête ne sont pas autorisés dans l'URL de callback (bonnes pratiques
+        // MTN) : l'identifiant voyage dans le chemin.
+        (url.pathname === '/api/momo/callback' || url.pathname.startsWith('/api/momo/callback/'))
+      ) {
         const corps = await lireCorps(req);
         const referenceId = referenceDuCallback(url, corps);
         if (!referenceId) {

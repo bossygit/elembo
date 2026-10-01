@@ -51,6 +51,9 @@ export type PrintArea = {
 
 export type ColorOption = { name: string; hex: string };
 
+/** Rendu de la surface du vêtement fournisseur — voir `Product.surface`. */
+export type SurfaceMode = 'vendor' | 'flat-albedo' | 'blank';
+
 export type Product = {
   id: string;
   name: string;
@@ -61,6 +64,17 @@ export type Product = {
   panel?: PanelDimensions;
   /** Conversion unités du modèle → centimètres — requis pour la technique 'decal'. */
   unitToCm?: number;
+  /**
+   * Rendu de la surface du vêtement.
+   *
+   * - `vendor` (défaut) : textures PBR du fournisseur, albédo neutralisé.
+   * - `flat-albedo` : albédo du fournisseur ignoré — couleur exacte (utile si l'auteur a
+   *   laissé sa teinte dans la texture), textures de relief conservées.
+   * - `blank` : aucun apport du fournisseur (ni albédo, ni normales, ni rugosité, ni
+   *   occlusion). À utiliser quand un imprimé d'auteur est aussi GRAVÉ dans les textures
+   *   de relief : sinon retirer l'albédo ne suffit pas, le motif reste visible.
+   */
+  surface?: SurfaceMode;
   colors: ColorOption[];
   printAreas: { front?: PrintArea; back?: PrintArea };
 };
@@ -105,6 +119,11 @@ export const CATALOG: Product[] = [
     modelUrl: `${MODEL_DIR}/tshirt/tshirt.glb`,
     technique: 'decal',
     unitToCm: INCH,
+    // Le modèle fournisseur porte un imprimé « RUN » gravé à la fois dans son albédo ET
+    // dans sa texture de normales : on n'utilise donc aucune de ses textures, pour un
+    // T-shirt vierge à la couleur exacte. La forme et les plis viennent de la géométrie
+    // et de l'éclairage.
+    surface: 'blank',
     colors: [
       { name: 'Blanc', hex: '#FFFFFF' },
       { name: 'Noir', hex: '#1A1A1A' },

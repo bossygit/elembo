@@ -30,6 +30,25 @@ foi pour la densité (dpi) et le fichier d'impression.
   choisie est portée par le matériau.
 - Le visuel imprimé n'est jamais teinté par la couleur du vêtement (matériau distinct).
 
+⚠️ **Un modèle acheté peut porter un imprimé de son auteur.** Sur le raglan, un logo
+« RUN » est gravé **à la fois** dans l'albédo **et** dans la texture de normales : la
+neutralisation de l'albédo le laisse donc visible (en couleur *et* en relief). Le champ
+`surface` du catalogue tranche :
+
+| `surface`     | Albédo                | Normales / rugosité / occlusion | Quand l'utiliser                                     |
+| ------------- | --------------------- | ------------------------------- | ---------------------------------------------------- |
+| `vendor`      | neutralisé            | conservées                      | modèle vierge et neutre (défaut)                     |
+| `flat-albedo` | ignoré                | conservées                      | l'auteur a laissé sa teinte dans l'albédo            |
+| `blank`       | ignoré                | ignorées                        | imprimé d'auteur gravé aussi dans le relief          |
+
+Pour savoir dans quel cas on se trouve, extraire les textures et les regarder :
+
+```bash
+node scripts/extract-glb-texture.mjs "modele.glb" albedo.png baseColor
+node scripts/extract-glb-texture.mjs "modele.glb" relief.png normal
+sips -Z 1100 albedo.png --out albedo-vue.png    # puis ouvrir l'image
+```
+
 ### 2. `uv` — panneaux dédiés dans le modèle
 
 Le modèle expose trois nœuds nommés exactement :

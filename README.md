@@ -46,9 +46,24 @@ Le catalogue contient **deux T-shirts 3D**, interchangeables depuis le sélecteu
 produit (le visuel et le réglage sont conservés d'un modèle à l'autre) :
 
 - `public/models/tshirt/tshirt.glb` — T-shirt raglan fournisseur (29 678 triangles,
-  textures PBR 4k, 1 unité = 1 pouce) ;
+  textures PBR 4k, 1 unité = 1 pouce), rendu en **surface vierge** : son auteur y a
+  gravé un imprimé « RUN » (dans l'albédo *et* dans la texture de normales), donc
+  aucune de ses textures n'est utilisée — le T-shirt est uniforme, à la couleur exacte
+  choisie (option `surface: 'blank'` du catalogue) ;
 - `public/models/tshirt-alt/tshirt.glb` — T-shirt col rond (237 940 triangles, maillages
   séparés avant/arrière, sans textures donc teinté exactement, 1 unité = 1 mètre).
+
+Le champ `surface` du catalogue décide de l'apport du fournisseur : `vendor` (textures
+PBR conservées, albédo neutralisé), `flat-albedo` (albédo ignoré, relief conservé) ou
+`blank` (aucune texture — à utiliser dès qu'un imprimé d'auteur est gravé dans le
+relief). Pour trancher : extraire les textures et les regarder.
+
+```bash
+node scripts/extract-glb-texture.mjs "modele.glb" texture.png baseColor   # albédo
+node scripts/extract-glb-texture.mjs "modele.glb" relief.png normal       # normales
+node scripts/glb-meshes.mjs  "modele.glb"        # un maillage par ligne (parent, UV, taille)
+node scripts/decal-frame.mjs "modele.glb" 100 21 30 7  # cadre d'impression (unité cm, 21×30 cm, 7 cm sous le col)
+```
 
 Les deux ont un maillage sans zone d'impression réservée : le visuel est **projeté sur la
 surface** (technique `decal`) dans un cadre exprimé en unités du modèle et déduit du

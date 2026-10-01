@@ -111,8 +111,12 @@ export default function ProductModel({ onBounds }: { onBounds?: (box: Box) => vo
       const sources = isArray ? (m.material as THREE.MeshStandardMaterial[]) : [m.material as THREE.MeshStandardMaterial];
       const tinted = sources.map((src) => {
         const image = src?.map?.image as CanvasImageSource | undefined;
-        const neutral = image ? neutralAlbedoTexture(image) : null;
-        return prepareGarmentMaterial(src, '#FFFFFF', neutral);
+        // `surface` : certains modèles fournisseurs portent un imprimé d'auteur, dans
+        // l'albédo ET dans la texture de normales. Voir Product.surface.
+        const surface = product.surface ?? 'vendor';
+        const albedo =
+          surface === 'vendor' ? (image ? neutralAlbedoTexture(image) : undefined) : null;
+        return prepareGarmentMaterial(src, '#FFFFFF', albedo, surface !== 'blank');
       });
       m.material = isArray ? tinted : tinted[0];
     }
@@ -121,7 +125,7 @@ export default function ProductModel({ onBounds }: { onBounds?: (box: Box) => vo
       panels: { front: null, back: null, body: null } as PanelMaterials,
       garmentMeshes: meshes,
     };
-  }, [scene, product.technique]);
+  }, [scene, product.technique, product.surface]);
 
   // Boîte englobante réelle du modèle : le viewer en déduit le cadrage (un modèle
   // fournisseur arrive dans ses propres unités, avec son propre décalage d'origine).

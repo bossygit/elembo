@@ -80,19 +80,35 @@ export function applyGarmentColor(panels: PanelMaterials, hex: string): void {
  * (normalMap, roughnessMap, aoMap) — la couleur du vêtement devient celle choisie par
  * l'utilisateur, appliquée au matériau.
  *
- * `map` permet de fournir un albédo NEUTRALISÉ (voir neutralAlbedoTexture) : le modèle
- * fournisseur arrive avec la couleur de son auteur, qu'il faut retirer pour que le choix
- * de couleur soit juste.
+ * `map` :
+ *  - une texture → albédo NEUTRALISÉ (voir neutralAlbedoTexture), pour retirer la couleur
+ *    de l'auteur sans perdre le grain du tissu ;
+ *  - `null` → on RETIRE l'albédo du fournisseur : la couleur choisie est alors exacte et
+ *    un imprimé intégré par l'auteur du modèle disparaît (option `flatAlbedo`) ;
+ *  - `undefined` → on garde l'albédo d'origine.
  */
 export function prepareGarmentMaterial(
   source: THREE.MeshStandardMaterial | null,
   hex: string,
   map?: THREE.Texture | null,
+  garderTexturesPbr = true,
 ): THREE.MeshStandardMaterial {
   const material = source
     ? (source.clone() as THREE.MeshStandardMaterial)
     : new THREE.MeshStandardMaterial({ roughness: 0.9, metalness: 0 });
-  if (map) material.map = map;
+  if (map === null) material.map = null;
+  else if (map) material.map = map;
+  if (!garderTexturesPbr) {
+    // Surface VIERGE : on retire aussi les textures du fournisseur. Un imprimé d'auteur
+    // n'est pas seulement dans l'albédo — la gravure est aussi dans la texture de
+    // normales (et souvent dans la rugosité), donc le motif resterait visible en relief.
+    material.normalMap = null;
+    material.roughnessMap = null;
+    material.metalnessMap = null;
+    material.aoMap = null;
+    material.roughness = 0.72;
+    material.metalness = 0;
+  }
   material.color = new THREE.Color(hex);
   material.needsUpdate = true;
   return material;

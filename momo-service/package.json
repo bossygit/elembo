@@ -1,0 +1,22 @@
+{
+  "name": "elembo-momo-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Service de paiement MTN MoMo pour Elembo : crée la demande de paiement, reçoit le callback, expose le statut.",
+  "scripts": {
+    "start": "node src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "serve": "node dist/server.js",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

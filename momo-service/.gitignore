@@ -1,0 +1,7 @@
+# Secrets MTN — ne jamais versionner.
+.env
+.env.local
+data/
+dist/
+node_modules/
+*.log

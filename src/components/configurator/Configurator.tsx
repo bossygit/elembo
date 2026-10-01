@@ -129,7 +129,7 @@ export default function Configurator() {
       </div>
 
       <div className="mt-5">
-        <Panel step="7" title="Commande">
+        <Panel step="4" title="Commande">
           <OrderPanel />
         </Panel>
       </div>

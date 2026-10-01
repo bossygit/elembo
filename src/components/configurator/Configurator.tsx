@@ -1,15 +1,16 @@
 'use client';
 
 // Configurateur : assemble la vue 3D (élément dominant) et les panneaux de contrôle.
-// Responsive : sur mobile tout s'empile sous le viewer, sur desktop les contrôles
-// passent en colonne à droite et l'aperçu de zone + la configuration en bas.
+// Responsive : sur mobile tout s'empile sous le viewer, sur desktop les contrôles passent
+// en colonne à droite et l'aperçu 2D + la configuration en bas.
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useConfiguratorStore, serializeConfig } from '../../stores/configurator-store';
 import { getProductById } from '../../lib/products/catalog';
-import UploadDesign from './UploadDesign';
+import DesignPanel from './DesignPanel';
+import ElementControls from './ElementControls';
 import DesignControls from './DesignControls';
 import DesignCanvas from './DesignCanvas';
 import ProductColorSelector from './ProductColorSelector';
@@ -41,8 +42,7 @@ function ConfigPanel() {
   const productId = useConfiguratorStore((s) => s.productId);
   const color = useConfiguratorStore((s) => s.color);
   const side = useConfiguratorStore((s) => s.side);
-  const design = useConfiguratorStore((s) => s.design);
-  const transform = useConfiguratorStore((s) => s.transform);
+  const elements = useConfiguratorStore((s) => s.elements);
   const loadConfig = useConfiguratorStore((s) => s.loadConfig);
 
   const [importText, setImportText] = useState('');
@@ -50,8 +50,8 @@ function ConfigPanel() {
 
   // La sérialisation vient du store : une seule définition de la configuration.
   const json = useMemo(
-    () => JSON.stringify(serializeConfig({ productId, color, side, design, transform }), null, 2),
-    [productId, color, side, design, transform],
+    () => JSON.stringify(serializeConfig({ productId, color, side, elements }), null, 2),
+    [productId, color, side, elements],
   );
 
   async function copy() {
@@ -67,7 +67,15 @@ function ConfigPanel() {
     try {
       const parsed = JSON.parse(importText);
       const result = loadConfig(parsed);
-      setMessage(result.ok ? 'Configuration chargée.' : `Refusée : ${result.errors.join(', ')}`);
+      if (!result.ok) {
+        setMessage(`Refusée : ${result.errors.join(', ')}`);
+        return;
+      }
+      setMessage(
+        result.warnings.length
+          ? `Configuration chargée. ${result.warnings.join(' · ')}`
+          : 'Configuration chargée.',
+      );
     } catch {
       setMessage('JSON illisible.');
     }
@@ -77,7 +85,7 @@ function ConfigPanel() {
     <div className="flex flex-col gap-3">
       <pre
         data-testid="config-json"
-        className="max-h-56 overflow-auto rounded-lg bg-neutral-950 p-3 text-[11px] leading-relaxed text-neutral-100"
+        className="max-h-64 overflow-auto rounded-lg bg-neutral-950 p-3 text-[11px] leading-relaxed text-neutral-100"
       >
         {json}
       </pre>
@@ -103,7 +111,8 @@ function ConfigPanel() {
           value={importText}
           onChange={(e) => setImportText(e.target.value)}
           rows={4}
-          placeholder='{"version":1,"productId":"tshirt-basic",…}'
+          aria-label="Configuration JSON à recharger"
+          placeholder='{"version":2,"productId":"tshirt-basic","elements":[…]}'
           className="mt-2 w-full rounded-lg border border-neutral-300 p-2 font-mono text-xs"
         />
         <button
@@ -114,7 +123,8 @@ function ConfigPanel() {
           Charger
         </button>
         <p className="mt-2 text-xs text-neutral-500">
-          Le visuel lui-même n’est pas inclus (fichier local) : rechargez-le après avoir appliqué la configuration.
+          Les images ne sont pas incluses (fichiers locaux) : rechargez-les après avoir appliqué la configuration. Le
+          texte, lui, est entièrement restauré.
         </p>
       </details>
       {message && (
@@ -148,7 +158,7 @@ export default function Configurator() {
         <ProductSelector />
       </header>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex flex-col gap-3">
           <div className="h-[46vh] min-h-[360px] lg:h-[62vh]">
             <ProductViewer cameraNonce={cameraNonce} />
@@ -160,20 +170,26 @@ export default function Configurator() {
           <Panel step="1" title="Couleur du produit">
             <ProductColorSelector />
           </Panel>
-          <Panel step="2" title="Votre visuel">
-            <UploadDesign />
+          <Panel step="2" title="Design">
+            <DesignPanel />
           </Panel>
-          <Panel step="3" title="Ajustements">
-            <DesignControls />
+          <Panel step="3" title="Élément sélectionné">
+            <ElementControls />
           </Panel>
         </aside>
       </div>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+      <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <Panel step="4" title="Zone d’impression (aperçu 2D)">
           <DesignCanvas />
         </Panel>
-        <Panel step="5" title="Configuration">
+        <Panel step="5" title="Impression">
+          <DesignControls />
+        </Panel>
+      </div>
+
+      <div className="mt-5">
+        <Panel step="6" title="Configuration">
           <ConfigPanel />
         </Panel>
       </div>

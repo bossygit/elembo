@@ -19,11 +19,18 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
+  // Polices du configurateur : fichiers locaux (public/fonts), chargés sous un chemin
+  // relatif au basePath du déploiement — le navigateur ne télécharge une police que
+  // lorsqu'elle est réellement utilisée (aucun préchargement des 17 familles).
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
   return (
     <html
       lang="fr"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="stylesheet" href={`${basePath}/fonts/fonts.css`} />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

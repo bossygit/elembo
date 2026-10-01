@@ -28,9 +28,9 @@ import {
 } from '../../lib/three/materials';
 import type { PanelMaterials } from '../../lib/three/materials';
 import { getPanelEntry, neutralAlbedoTexture, panelKey, updatePanelTexture } from '../../lib/three/textures';
-import { PREVIEW_TEXTURE_SIZE, compositionSize } from '../../lib/canvas/design-canvas';
+import { PREVIEW_TEXTURE_SIZE, compositionSize, elementsOfSide } from '../../lib/canvas/design-canvas';
 import type { Box } from '../../lib/three/framing';
-import { useDesignImage } from './useDesignImage';
+import { useElementImages } from './useElementImages';
 
 const OTHER = { front: 'back', back: 'front' } as const;
 
@@ -58,11 +58,11 @@ export default function ProductModel({ onBounds }: { onBounds?: (box: Box) => vo
   const productId = useConfiguratorStore((s) => s.productId);
   const color = useConfiguratorStore((s) => s.color);
   const side = useConfiguratorStore((s) => s.side);
-  const design = useConfiguratorStore((s) => s.design);
-  const transform = useConfiguratorStore((s) => s.transform);
+  const elements = useConfiguratorStore((s) => s.elements);
+  const measure = useConfiguratorStore((s) => s.measure);
 
   const product = getProductById(productId)!;
-  const image = useDesignImage(design);
+  const images = useElementImages(elements);
   const { scene } = useGLTF(resolveModelUrl(product));
 
   const area = getPrintArea(product, side);
@@ -163,10 +163,15 @@ export default function ProductModel({ onBounds }: { onBounds?: (box: Box) => vo
 
   // Composition Canvas 2D → texture affichée.
   useEffect(() => {
-    const assetSize = design ? { w: design.width, h: design.height } : undefined;
+    // Seuls les éléments de la face courante entrent dans la texture : jamais de mélange
+    // avant/arrière, ni dans l'aperçu ni dans la projection.
+    const dessines = elementsOfSide(elements, side).map((element) => ({
+      element,
+      image: images.get(element.id) ?? null,
+    }));
 
     if (isDecal) {
-      // Un seul calque : la texture du décalque, transparente hors du visuel. Le
+      // Un seul calque : la texture du décalque, transparente hors des éléments. Le
       // vêtement n'est pas touché (ni matériau ni texture).
       const space = area ? compositionSize(area) : null;
       if (area && space) {
@@ -174,18 +179,17 @@ export default function ProductModel({ onBounds }: { onBounds?: (box: Box) => vo
           size: space.width,
           height: space.height,
           area,
-          transform,
-          design: image,
-          assetSize,
+          elements: dessines,
           baseColor: null,
           showGuides: false,
+          measure,
         });
       }
       return;
     }
 
-    // Technique 'uv' : les deux panneaux reçoivent le fond couleur du vêtement, le
-    // visuel n'est composé que sur la face active.
+    // Technique 'uv' : les deux panneaux reçoivent le fond couleur du vêtement, les
+    // éléments ne sont composés que sur la face active.
     const inactive = OTHER[side];
     const inactiveArea = getPrintArea(product, inactive);
 
@@ -193,11 +197,10 @@ export default function ProductModel({ onBounds }: { onBounds?: (box: Box) => vo
       updatePanelTexture(panelKey(side), {
         size: PREVIEW_TEXTURE_SIZE,
         area,
-        transform,
-        design: image,
-        assetSize,
+        elements: dessines,
         baseColor: color,
         showGuides: false,
+        measure,
       });
       panels[side]!.needsUpdate = true;
     }
@@ -206,14 +209,14 @@ export default function ProductModel({ onBounds }: { onBounds?: (box: Box) => vo
       updatePanelTexture(panelKey(inactive), {
         size: PREVIEW_TEXTURE_SIZE,
         area: inactiveArea,
-        transform,
-        design: null,
+        elements: [],
         baseColor: color,
         showGuides: false,
+        measure,
       });
       panels[inactive]!.needsUpdate = true;
     }
-  }, [isDecal, product, side, transform, image, design, color, panels, area, garmentMeshes]);
+  }, [isDecal, product, side, elements, images, measure, color, panels, area, garmentMeshes]);
 
   /* eslint-enable react-hooks/immutability */
 

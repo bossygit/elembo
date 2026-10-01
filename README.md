@@ -17,28 +17,67 @@ Par Smart Vision Congo (SARLU enregistrée en République du Congo).
 
 ## Configurateur 3D — page d'accueil (`/`)
 
-Vue 3D temps réel du produit : on tourne, on zoome, on change la couleur, on dépose son
-visuel et on le place dans la zone d'impression — le tout **dans le navigateur**, sans
-service externe.
+Vue 3D temps réel du produit : on tourne, on zoome, on change la couleur, on compose son
+design (images **et textes**) et on le place dans la zone d'impression — le tout **dans le
+navigateur**, sans service externe.
 
 ```
-Canvas 2D (composition)  ─┐
-                          ├─→ Zustand (état unique) ─→ Three.js (affichage)
-édition du visuel ────────┘                    └─ texture du panneau / décalque
+Images + Textes        ─┐
+                        ├─→ Zustand (état unique) ─→ Three.js (affichage)
+Canvas 2D (composition) ┘                    └─ texture du panneau / décalque
 ```
 
-- `src/types/configurator.ts` — types partagés (`DesignTransform`, `ConfiguratorConfig`…)
-- `src/stores/configurator-store.ts` — état unique + actions + `serializeConfig()`
+Le texte est un **élément 2D du design**, pas un objet 3D : il est dessiné dans le canvas de
+composition (donc il suit le vêtement, tourne avec lui, respecte les UV, et peut être
+reconstruit en haute résolution pour l'impression). Aucun mesh supplémentaire n'est créé.
+
+- `src/types/configurator.ts` — types partagés (`DesignElement` = `ImageElement | TextElement`, `ConfiguratorConfig`)
+- `src/stores/configurator-store.ts` — état unique + actions (ajout, sélection, calques, faces…) + `serializeConfig()`
 - `src/lib/products/catalog.ts` — catalogue (modèle GLB, technique d'impression, couleurs, zones)
-- `src/lib/canvas/{design-canvas,export}.ts` — maths de placement/borne + export 300 dpi
+- `src/lib/fonts.ts` + `src/lib/fonts.generated.ts` — 17 polices (licence vérifiée) et utilitaires typographiques
+- `src/lib/canvas/{design-canvas,export}.ts` — maths de placement/borne, composition des éléments, export 300 dpi
 - `src/lib/three/{models,materials,textures}.ts` — nœuds, matériaux PBR, textures (dont l'albédo neutralisé)
 - `src/lib/three/framing.ts` — cadrage automatique de la caméra sur le modèle réel
-- `src/components/configurator/*` — viewer 3D, éditeur 2D, contrôles, configuration
+- `src/components/configurator/*` — viewer 3D, éditeur 2D, panneau Design, contrôles d'élément,
+  sélecteur de police, sélecteur de couleur
 - `src/app/page.tsx` — configurateur 3D (page d'accueil) ; `src/app/studio/page.tsx` — studio 2D ;
   `src/app/configurator/page.tsx` — redirection depuis l'ancienne URL
 
 Le studio 2D reste disponible sur `/studio` (aucune fonctionnalité supprimée) ; les deux
 partagent `src/lib/validate.ts` et `src/lib/printQuality.ts`.
+
+### Éditeur de design (images + textes)
+
+- **Ajouter** : « Ajouter une image » (upload validé) ou « Ajouter du texte ».
+- **Éléments indépendants** : chacun a sa position, son échelle, sa rotation, sa face et son
+  calque ; plusieurs textes et plusieurs images cohabitent (« LOGO » + « CONGO » + « 2026 »).
+- **Texte** : contenu multiligne, police, taille, couleur (palette + sélecteur libre + code
+  hexadécimal), graisse, italique, alignement, interlettrage, hauteur de ligne.
+- **Sélection** : clic dans l'aperçu 2D, glisser pour déplacer, poignées orange pour
+  redimensionner et pivoter, flèches du clavier pour affiner, `Suppr` pour retirer.
+- **Calques** : liste des éléments de la face courante — sélection, visibilité, ordre
+  d'empilement (`z`), suppression. Le champ `z` est déjà en place pour un futur glisser-déposer.
+- **Faces** : chaque élément porte sa face ; l'aperçu 2D et la texture 3D ne composent que la
+  face affichée, donc avant et arrière ne se mélangent jamais.
+- **Zone d'impression** : un élément trop grand est signalé et peut être ramené à la taille
+  utile en un clic (« Ajuster à la zone »), avec une marge de sécurité.
+- **Impression** : le fichier 300 dpi est **recomposé** à partir des paramètres du design
+  (le texte est redessiné à la résolution cible, les images repartent de l'original).
+
+### Polices
+
+17 familles classées par usage (sans serif, display, script, serif), **toutes sous licence
+libre permettant l'usage commercial** (16 en OFL-1.1, 1 en Apache-2.0) : la licence de chaque
+police est vérifiée sur le dépôt officiel `google/fonts` par le script de récupération et
+consignée dans `src/lib/fonts.generated.ts`.
+
+```bash
+node scripts/fetch-fonts.mjs      # télécharge public/fonts/*.woff2 + fonts.css (idempotent)
+```
+
+Les fichiers sont **locaux** (aucune requête vers Google au chargement, build reproductible
+hors ligne) et le navigateur ne télécharge une police que lorsqu'elle est réellement utilisée.
+Le CSS est référencé en chemin relatif, donc valable sous n'importe quel `basePath`.
 
 ### Modèle 3D et impression
 

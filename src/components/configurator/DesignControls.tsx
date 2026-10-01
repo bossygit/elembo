@@ -1,16 +1,23 @@
 'use client';
 
-// Réglages du visuel : échelle, rotation, recentrage, qualité d'impression et export.
+// Impression : repères d'édition, qualité estimée et export du fichier d'impression.
 // La qualité réutilise les fonctions pures déjà testées du studio 2D
 // (src/lib/printQuality.ts) : aucune formule dupliquée.
 
 import { useMemo, useState } from 'react';
 import { useConfiguratorStore } from '../../stores/configurator-store';
 import { getPrintArea, getProductById } from '../../lib/products/catalog';
-import { compositionSize, designRect, printedCm, PRINT_DPI, productionTextureSize } from '../../lib/canvas/design-canvas';
+import {
+  compositionSize,
+  elementRect,
+  elementsOfSide,
+  printedCm,
+  PRINT_DPI,
+  productionTextureSize,
+} from '../../lib/canvas/design-canvas';
 import { downloadBlob, renderPrintPng } from '../../lib/canvas/export';
 import { assessPrintQuality, computeDpi } from '../../lib/printQuality';
-import { useDesignImage } from './useDesignImage';
+import { useElementImages } from './useElementImages';
 
 const LEVEL_CLASS: Record<string, string> = {
   photo: 'border-emerald-200 bg-emerald-50 text-emerald-800',
@@ -22,31 +29,41 @@ const LEVEL_CLASS: Record<string, string> = {
 export default function DesignControls() {
   const productId = useConfiguratorStore((s) => s.productId);
   const side = useConfiguratorStore((s) => s.side);
-  const design = useConfiguratorStore((s) => s.design);
-  const transform = useConfiguratorStore((s) => s.transform);
-  const setTransform = useConfiguratorStore((s) => s.setTransform);
-  const resetTransform = useConfiguratorStore((s) => s.resetTransform);
+  const elements = useConfiguratorStore((s) => s.elements);
+  const selectedId = useConfiguratorStore((s) => s.selectedId);
+  const measure = useConfiguratorStore((s) => s.measure);
   const showGuides = useConfiguratorStore((s) => s.showGuides);
   const setShowGuides = useConfiguratorStore((s) => s.setShowGuides);
 
-  const image = useDesignImage(design);
+  const images = useElementImages(elements);
   const [exporting, setExporting] = useState(false);
 
   const area = getPrintArea(getProductById(productId), side);
+  const face = useMemo(() => elementsOfSide(elements, side), [elements, side]);
 
+  // Qualité : on évalue l'image la plus contraignante de la face (celle dont la densité
+  // effectivement imprimée est la plus faible), pas la première venue.
   const quality = useMemo(() => {
-    if (!area || !design) return null;
+    if (!area) return null;
     const space = compositionSize(area);
-    const rect = designRect(transform, area, space, { w: design.width, h: design.height });
-    const cm = printedCm(rect, area, space);
-    return assessPrintQuality(computeDpi(design.width, design.height, cm.w, cm.h));
-  }, [area, design, transform]);
+    let pire: { dpi: number; level: string; message: string } | null = null;
+    for (const el of face) {
+      if (el.type !== 'image' || el.visible === false) continue;
+      const rect = elementRect(el, area, space, measure);
+      const cm = printedCm(rect, area, space);
+      const dpi = computeDpi(el.width, el.height, cm.w, cm.h);
+      const bilan = assessPrintQuality(dpi);
+      if (!pire || bilan.dpi < pire.dpi) pire = bilan;
+    }
+    return pire;
+  }, [area, face, measure]);
 
   async function handleExport() {
-    if (!area || !image) return;
+    if (!area) return;
     setExporting(true);
     try {
-      const blob = await renderPrintPng({ area, transform, image });
+      const dessines = face.map((element) => ({ element, image: images.get(element.id) ?? null }));
+      const blob = await renderPrintPng({ area, elements: dessines, measure });
       if (blob) downloadBlob(blob, `elembo-print-${productId}-${side}.png`);
     } finally {
       setExporting(false);
@@ -54,64 +71,19 @@ export default function DesignControls() {
   }
 
   const out = area ? productionTextureSize(area) : null;
+  const aQuelqueChose = face.some((el) => el.visible !== false);
 
   return (
-    <div className={`flex flex-col gap-4 ${design ? '' : 'opacity-50'}`} aria-disabled={!design}>
-      <div>
-        <label htmlFor="cfg-scale" className="flex justify-between text-sm font-medium text-neutral-800">
-          <span>Taille</span>
-          <span className="text-neutral-500">{Math.round(transform.scale * 100)} %</span>
-        </label>
+    <div className="flex flex-col gap-4">
+      <label className="flex items-center gap-2 text-sm text-neutral-700">
         <input
-          id="cfg-scale"
-          type="range"
-          min={0.2}
-          max={2}
-          step={0.05}
-          value={transform.scale}
-          disabled={!design}
-          onChange={(e) => setTransform({ scale: Number(e.target.value) })}
-          className="mt-2 w-full accent-[#E85F00]"
+          type="checkbox"
+          checked={showGuides}
+          onChange={(e) => setShowGuides(e.target.checked)}
+          className="accent-[#E85F00]"
         />
-      </div>
-
-      <div>
-        <label htmlFor="cfg-rotation" className="flex justify-between text-sm font-medium text-neutral-800">
-          <span>Rotation</span>
-          <span className="text-neutral-500">{transform.rotation}°</span>
-        </label>
-        <input
-          id="cfg-rotation"
-          type="range"
-          min={-180}
-          max={180}
-          step={5}
-          value={transform.rotation}
-          disabled={!design}
-          onChange={(e) => setTransform({ rotation: Number(e.target.value) })}
-          className="mt-2 w-full accent-[#E85F00]"
-        />
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={!design}
-          onClick={resetTransform}
-          className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-50 disabled:opacity-40"
-        >
-          Recentrer
-        </button>
-        <label className="flex items-center gap-2 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700">
-          <input
-            type="checkbox"
-            checked={showGuides}
-            onChange={(e) => setShowGuides(e.target.checked)}
-            className="accent-[#E85F00]"
-          />
-          Repères de zone
-        </label>
-      </div>
+        Repères de zone d’impression
+      </label>
 
       {quality && (
         <div role="status" aria-live="polite" className={`rounded-lg border px-3 py-2 text-xs ${LEVEL_CLASS[quality.level]}`}>
@@ -124,16 +96,23 @@ export default function DesignControls() {
 
       <button
         type="button"
-        disabled={!design || exporting}
+        disabled={!aQuelqueChose || exporting}
         onClick={handleExport}
+        data-testid="export-print"
         className="rounded-xl bg-[#200233] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#E85F00] disabled:cursor-not-allowed disabled:opacity-40"
       >
         {exporting ? 'Préparation…' : 'Télécharger le visuel d’impression'}
       </button>
       {out && (
         <p className="text-xs text-neutral-500">
-          Fichier haute résolution recadré sur la zone ({out.w}×{out.h} px, {PRINT_DPI} dpi). L’original n’est jamais
-          réduit.
+          Fichier haute résolution recadré sur la zone ({out.w}×{out.h} px, {PRINT_DPI} dpi). Le texte est redessiné à
+          cette résolution, les images d’origine ne sont jamais réduites.
+        </p>
+      )}
+      {selectedId && (
+        <p className="text-xs text-neutral-400">
+          L’export contient toute la face {side === 'front' ? 'avant' : 'arrière'} ({face.length} élément
+          {face.length > 1 ? 's' : ''}).
         </p>
       )}
     </div>

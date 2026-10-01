@@ -14,14 +14,18 @@
 // appliqué en texture sur FrontPanel / BackPanel. Remplacer ce placeholder par un
 // modèle réel impose de respecter la même convention (voir public/models/README.md).
 //
-// Usage : node scripts/gen-tshirt-glb.mjs  →  public/models/tshirt/tshirt.glb
+// Usage : node scripts/gen-tshirt-glb.mjs  →  public/models/tshirt/tshirt-placeholder.glb
+//
+// ATTENTION : ce fichier est un PLACEHOLDER de développement. Le modèle commercial est
+// public/models/tshirt/tshirt.glb (modèle fournisseur, technique « decal ») — ne pas
+// l'écraser avec ce générateur.
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const OUT = join(ROOT, 'public', 'models', 'tshirt', 'tshirt.glb');
+const OUT = join(ROOT, 'public', 'models', 'tshirt', 'tshirt-placeholder.glb');
 
 // ---------------------------------------------------------------- géométrie
 // Repère : 1 unité ≈ 50 cm. Torse 1,0 × 1,2 × 0,3 ; manches 0,58 × 0,34 × 0,3.

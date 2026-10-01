@@ -24,37 +24,43 @@ service externe.
 ```
 Canvas 2D (composition)  ─┐
                           ├─→ Zustand (état unique) ─→ Three.js (affichage)
-édition du visuel ────────┘                                └─ texture du panneau
+édition du visuel ────────┘                    └─ texture du panneau / décalque
 ```
 
 - `src/types/configurator.ts` — types partagés (`DesignTransform`, `ConfiguratorConfig`…)
 - `src/stores/configurator-store.ts` — état unique + actions + `serializeConfig()`
-- `src/lib/products/catalog.ts` — catalogue (modèle GLB, couleurs, zones d'impression)
+- `src/lib/products/catalog.ts` — catalogue (modèle GLB, technique d'impression, couleurs, zones)
 - `src/lib/canvas/{design-canvas,export}.ts` — maths de placement/borne + export 300 dpi
-- `src/lib/three/{models,materials,textures}.ts` — accès aux nœuds, matériaux PBR, textures
+- `src/lib/three/{models,materials,textures}.ts` — nœuds, matériaux PBR, textures (dont l'albédo neutralisé)
+- `src/lib/three/framing.ts` — cadrage automatique de la caméra sur le modèle réel
 - `src/components/configurator/*` — viewer 3D, éditeur 2D, contrôles, configuration
-- `src/app/configurator/page.tsx` — route (la 3D est importée en `ssr: false`)
+- `src/app/page.tsx` — configurateur 3D (page d'accueil) ; `src/app/studio/page.tsx` — studio 2D ;
+  `src/app/configurator/page.tsx` — redirection depuis l'ancienne URL
 
-Le studio 2D historique reste sur `/` (aucune fonctionnalité supprimée) ; les deux
+Le studio 2D reste disponible sur `/studio` (aucune fonctionnalité supprimée) ; les deux
 partagent `src/lib/validate.ts` et `src/lib/printQuality.ts`.
 
-### Modèle 3D
+### Modèle 3D et impression
 
-`public/models/tshirt/tshirt.glb` est un **placeholder généré par nous** (36 triangles) :
+Le produit commercial est `public/models/tshirt/tshirt.glb` (T-shirt raglan fournisseur,
+29 678 triangles, textures PBR 4k). Son maillage est unique : le visuel est **projeté sur
+la surface** (technique `decal`) dans un cadre exprimé en unités du modèle et déduit du
+maillage avec :
 
 ```bash
-node scripts/gen-tshirt-glb.mjs   # régénère le GLB + vérifie sa conformité glTF
+node scripts/inspect-glb.mjs "chemin/vers/modele.glb"   # dimensions, UV, profondeur de surface
 ```
 
-Contrat à respecter pour le modèle réel : trois nœuds `FrontPanel`, `BackPanel`,
-`Body`, UV planes sur les panneaux (voir `public/models/README.md`). Le déposer au
-même chemin suffit — aucun code à modifier.
+La technique `uv` (nœuds `FrontPanel` / `BackPanel` / `Body`) reste supportée pour des
+modèles qui réserveraient une zone d'impression ; le placeholder
+`tshirt-placeholder.glb` (`node scripts/gen-tshirt-glb.mjs`) l'exerce et sert aux tests.
+Détails et procédure d'ajout d'un modèle : `public/models/README.md`.
 
 ## Développement
 
 ```bash
 npm install --include=dev   # cette machine omet les devDependencies par défaut (npm config omit=dev)
-npm test                    # vitest — 84 tests (zones, mapping, bornes, store, catalogue)
+npm test                    # vitest — 100 tests (zones, bornes, cadrage, store, catalogue)
 npm run lint
 npm run build
 npm run dev                 # http://localhost:3000  ·  /  (configurateur 3D)  ·  /studio  (studio 2D)

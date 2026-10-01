@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useConfiguratorStore } from '../src/stores/configurator-store';
 import { CATALOG, DEFAULT_PRODUCT_ID, getPrintArea, getProductById } from '../src/lib/products/catalog';
-import { PREVIEW_TEXTURE_SIZE, designRect, printAreaRect } from '../src/lib/canvas/design-canvas';
+import { compositionSize, designRect, printAreaRect } from '../src/lib/canvas/design-canvas';
 import type { DesignAsset } from '../src/types/configurator';
 
 const product = getProductById(DEFAULT_PRODUCT_ID)!;
@@ -59,8 +59,11 @@ describe('store du configurateur', () => {
     const t = useConfiguratorStore.getState().transform;
 
     const area = getPrintArea(product, 'front')!;
-    const zone = printAreaRect(area, PREVIEW_TEXTURE_SIZE);
-    const rect = designRect(t, area, PREVIEW_TEXTURE_SIZE, { w: DESIGN.width, h: DESIGN.height });
+    // La borne du store s'applique dans l'espace de composition de la zone (A4 portrait
+    // pour un décalque), pas dans un carré.
+    const space = compositionSize(area);
+    const zone = printAreaRect(area, space);
+    const rect = designRect(t, area, space, { w: DESIGN.width, h: DESIGN.height });
     expect(rect.x).toBeGreaterThanOrEqual(zone.x - 0.001);
     expect(rect.x + rect.w).toBeLessThanOrEqual(zone.x + zone.w + 0.001);
     expect(rect.y).toBeGreaterThanOrEqual(zone.y - 0.001);

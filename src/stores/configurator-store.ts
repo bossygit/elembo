@@ -17,7 +17,7 @@ import {
   getProductById,
 } from '../lib/products/catalog';
 import type { Product } from '../lib/products/catalog';
-import { PREVIEW_TEXTURE_SIZE, areaForSide, clampTransform } from '../lib/canvas/design-canvas';
+import { compositionSize, areaForSide, clampTransform } from '../lib/canvas/design-canvas';
 
 const IDENTITY: DesignTransform = { x: 0, y: 0, scale: 1, rotation: 0 };
 
@@ -86,7 +86,7 @@ function clamped(
 ): DesignTransform {
   const area = getPrintArea(getProductById(state.productId), state.side);
   if (!area || !state.design) return transform;
-  return clampTransform(transform, area, PREVIEW_TEXTURE_SIZE, {
+  return clampTransform(transform, area, compositionSize(area), {
     w: state.design.width,
     h: state.design.height,
   });

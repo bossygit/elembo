@@ -76,6 +76,34 @@ export function applyGarmentColor(panels: PanelMaterials, hex: string): void {
 }
 
 /**
+ * Clone le matériau d'un vêtement fournisseur en conservant ses textures PBR
+ * (normalMap, roughnessMap, aoMap) — la couleur du vêtement devient celle choisie par
+ * l'utilisateur, appliquée au matériau.
+ *
+ * `map` permet de fournir un albédo NEUTRALISÉ (voir neutralAlbedoTexture) : le modèle
+ * fournisseur arrive avec la couleur de son auteur, qu'il faut retirer pour que le choix
+ * de couleur soit juste.
+ */
+export function prepareGarmentMaterial(
+  source: THREE.MeshStandardMaterial | null,
+  hex: string,
+  map?: THREE.Texture | null,
+): THREE.MeshStandardMaterial {
+  const material = source
+    ? (source.clone() as THREE.MeshStandardMaterial)
+    : new THREE.MeshStandardMaterial({ roughness: 0.9, metalness: 0 });
+  if (map) material.map = map;
+  material.color = new THREE.Color(hex);
+  material.needsUpdate = true;
+  return material;
+}
+
+/** Teinte le vêtement (technique 'decal') sans toucher à ses textures. */
+export function applyColorToGarment(material: THREE.MeshStandardMaterial | null, hex: string): void {
+  applyColor(material, hex);
+}
+
+/**
  * Rectangle de la zone d'impression en unités de texture (0..1), utile pour
  * positionner un décalque ou un guide côté Three.js si besoin plus tard.
  */

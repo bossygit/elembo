@@ -11,11 +11,15 @@
 export type { Zone, ProductDef } from './studio';
 export { PRODUCTS, getProduct } from './studio';
 
-export type { PrintArea, ColorOption, Product, PanelDimensions } from './catalog';
+export type { PrintArea, ColorOption, Product, PanelDimensions, PrintTechnique, Side } from './catalog';
 export {
   CATALOG,
   MODEL_DIR,
   DEFAULT_PRODUCT_ID,
+  PLACEHOLDER_PRODUCT,
+  TSHIRT_FRONT,
+  TSHIRT_BACK,
+  decalFrame,
   getProductById,
   getPrintArea,
   resolveModelUrl,

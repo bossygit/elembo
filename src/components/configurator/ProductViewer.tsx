@@ -11,56 +11,95 @@
 // l'aperçu fonctionne hors ligne et sans dépendance externe. Pour passer à un vrai
 // studio HDR plus tard : déposer un .hdr dans public/hdri/ et l'utiliser via
 // <Environment files="/hdri/studio.hdr" /> — aucune autre modification nécessaire.
+//
+// Cadrage : la caméra s'adapte au modèle réel (unités et origine du fournisseur), voir
+// src/lib/three/framing.ts. Sans cela, un modèle en pouces posé haut dans son repère
+// resterait hors champ.
 
-import { Component, Suspense, useEffect, useRef } from 'react';
+import { Component, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { ContactShadows, OrbitControls, useProgress } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import * as THREE from 'three';
 import { useConfiguratorStore } from '../../stores/configurator-store';
 import { describeModel } from '../../lib/three/models';
+import { framingFor } from '../../lib/three/framing';
+import type { Box, Framing } from '../../lib/three/framing';
 import ProductModel from './ProductModel';
 
 /**
- * Oriente le produit face à la caméra — et SEULEMENT sur demande (changement de face
- * ou vue initiale).
+ * Cadre la caméra sur le modèle, puis oriente le produit face à la caméra — et SEULEMENT
+ * sur demande (changement de face ou vue initiale).
  *
- * On anime l'ANGLE AZIMUTAL via l'API d'OrbitControls, jamais la position brute :
+ * L'orientation passe par l'ANGLE AZIMUTAL d'OrbitControls, jamais par la position brute :
  * déplacer `camera.position` en ligne droite passait par le centre du modèle (distance
- * nulle) et OrbitControls recomputait ensuite la position depuis ses propres
- * coordonnées sphériques, ce qui laissait la vue dans un état incohérent.
+ * nulle) et OrbitControls recomposait ensuite sa position depuis ses coordonnées
+ * sphériques, laissant la vue incohérente.
  */
 function CameraRig({
   side,
   nonce,
+  framing,
   controls,
 }: {
   side: 'front' | 'back';
   nonce: number;
+  framing: Framing | null;
   controls: React.RefObject<OrbitControlsImpl | null>;
 }) {
+  const camera = useThree((s) => s.camera);
   const goal = useRef(0);
   const animating = useRef(false);
   const lastNonce = useRef(nonce);
+  const applied = useRef<Framing | null>(null);
 
+  // Cadrage : appliqué une fois par modèle (l'utilisateur garde ensuite la main).
+  //
+  // La caméra, les contrôles et leurs distances sont des objets three.js IMPÉRATIFS :
+  // on les configure hors de React (comme les matériaux dans ProductModel). La règle
+  // `react-hooks/immutability` du compilateur React interdit ces écritures, d'où sa
+  // désactivation ici — et uniquement sur ce composant.
+  /* eslint-disable react-hooks/immutability */
   useEffect(() => {
     const c = controls.current;
-    if (!c) return;
+    if (!c || !framing || applied.current === framing) return;
+    applied.current = framing;
 
-    const initialRequested = lastNonce.current !== nonce;
+    const [cx, cy, cz] = framing.center;
+    c.target.set(cx, cy, cz);
+    c.object.position.set(cx, cy + framing.height * 0.06, cz + framing.distance);
+    c.minDistance = framing.minDistance;
+    c.maxDistance = framing.maxDistance;
+    camera.near = Math.max(0.01, framing.distance / 200);
+    camera.far = framing.distance * 8;
+    camera.updateProjectionMatrix();
+    c.update();
+
+    goal.current = 0;
+    animating.current = false;
     lastNonce.current = nonce;
+  }, [framing, controls, camera, nonce]);
 
-    if (initialRequested) {
-      // Retour à la vue de départ : position et cible d'origine, avec amortissement.
-      c.reset();
+  // Changement de face : rotation animée. « Vue initiale » : retour au cadrage.
+  useEffect(() => {
+    const c = controls.current;
+    if (!c || !framing || applied.current !== framing) return;
+
+    if (lastNonce.current !== nonce) {
+      lastNonce.current = nonce;
+      const [cx, cy, cz] = framing.center;
+      c.target.set(cx, cy, cz);
+      c.object.position.set(cx, cy + framing.height * 0.06, cz + framing.distance);
+      c.update();
+      goal.current = 0;
       animating.current = false;
       return;
     }
 
     goal.current = side === 'front' ? 0 : Math.PI;
     animating.current = Math.abs(c.getAzimuthalAngle() - goal.current) > 0.02;
-  }, [side, nonce, controls]);
+  }, [side, nonce, framing, controls]);
 
   useFrame(() => {
     const c = controls.current;
@@ -80,6 +119,8 @@ function CameraRig({
       animating.current = false;
     }
   });
+
+  /* eslint-enable react-hooks/immutability */
 
   return null;
 }
@@ -120,9 +161,21 @@ type DebugWindow = Window & { __elembo3d?: Record<string, unknown> };
 export default function ProductViewer({ cameraNonce = 0 }: { cameraNonce?: number }) {
   const side = useConfiguratorStore((s) => s.side);
   const controls = useRef<OrbitControlsImpl | null>(null);
+  const [framing, setFraming] = useState<Framing | null>(null);
+  const aspectRef = useRef(16 / 9);
+
+  // Le modèle annonce sa boîte englobante réelle : on en déduit le cadrage.
+  const handleBounds = useCallback((box: Box) => {
+    setFraming(framingFor(box, 35, aspectRef.current));
+  }, []);
 
   return (
-    <div className="relative h-full min-h-[380px] w-full overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-b from-neutral-50 to-white">
+    <div
+      ref={(el) => {
+        if (el && el.clientWidth > 0) aspectRef.current = el.clientWidth / Math.max(1, el.clientHeight);
+      }}
+      className="relative h-full min-h-[380px] w-full overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-b from-neutral-50 to-white"
+    >
       <Canvas
         shadows
         dpr={[1, 2]}
@@ -144,6 +197,7 @@ export default function ProductViewer({ cameraNonce = 0 }: { cameraNonce?: numbe
             }),
             describe: () => describeModel(scene),
             cameraPos: () => camera.position.toArray().map((n) => Number(n.toFixed(3))),
+            framing: () => (framing ? { center: framing.center, distance: framing.distance } : null),
             // Force un rendu dans une cible hors écran puis lit les pixels : preuve
             // visuelle que le visuel composé apparaît bien sur le modèle. On passe par
             // une cible de rendu car le tampon de l'écran est vidé après composition
@@ -160,11 +214,14 @@ export default function ProductViewer({ cameraNonce = 0 }: { cameraNonce?: numbe
               target.dispose();
               let opaque = 0;
               let orange = 0;
+              let clair = 0;
               for (let i = 0; i < buffer.length; i += 4) {
                 if (buffer[i + 3] > 10) opaque++;
-                if (buffer[i] > 150 && buffer[i + 1] > 40 && buffer[i + 1] < 190 && buffer[i + 2] < 130) orange++;
+                if (buffer[i] > 40 && buffer[i + 1] > 40 && buffer[i + 2] > 40) clair++;
+                // teinte du visuel en espace linéaire (rendu dans une cible)
+                if (buffer[i] > 60 && buffer[i + 2] < 60 && buffer[i] > buffer[i + 1] * 2) orange++;
               }
-              return { mode: 'render-target', width: canvas.width, height: canvas.height, opaque, orange };
+              return { mode: 'render-target', width: canvas.width, height: canvas.height, opaque, clair, orange };
             },
           };
         }}
@@ -177,25 +234,39 @@ export default function ProductViewer({ cameraNonce = 0 }: { cameraNonce?: numbe
           castShadow
           shadow-mapSize={[1024, 1024]}
           shadow-bias={-0.0004}
+          shadow-camera-left={-((framing?.radius ?? 3) * 0.9)}
+          shadow-camera-right={(framing?.radius ?? 3) * 0.9}
+          shadow-camera-top={(framing?.radius ?? 3) * 0.9}
+          shadow-camera-bottom={-((framing?.radius ?? 3) * 0.9)}
+          shadow-camera-near={0.1}
+          shadow-camera-far={(framing?.distance ?? 10) * 3}
         />
         <directionalLight position={[-4, 2.5, -3]} intensity={0.45} />
 
         <Suspense fallback={null}>
           <ModelErrorBoundary>
-            <ProductModel />
+            <ProductModel onBounds={handleBounds} />
           </ModelErrorBoundary>
         </Suspense>
 
-        <ContactShadows position={[0, -0.72, 0]} opacity={0.32} scale={6} blur={2.8} far={2} />
-        <CameraRig side={side} nonce={cameraNonce} controls={controls} />
+        {framing && (
+          <ContactShadows
+            position={[framing.center[0], framing.groundY, framing.center[2]]}
+            opacity={0.3}
+            scale={framing.shadowScale}
+            blur={2.6}
+            far={framing.height * 0.5}
+          />
+        )}
+        <CameraRig side={side} nonce={cameraNonce} framing={framing} controls={controls} />
         <OrbitControls
           ref={controls}
           makeDefault
           enablePan={false}
           enableDamping
           dampingFactor={0.08}
-          minDistance={1.7}
-          maxDistance={6}
+          minDistance={framing?.minDistance ?? 1.7}
+          maxDistance={framing?.maxDistance ?? 6}
           minPolarAngle={0.4}
           maxPolarAngle={2.5}
         />

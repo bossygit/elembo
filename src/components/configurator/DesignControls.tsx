@@ -7,10 +7,9 @@
 import { useMemo, useState } from 'react';
 import { useConfiguratorStore } from '../../stores/configurator-store';
 import { getPrintArea, getProductById } from '../../lib/products/catalog';
-import { designRect, printedCm, PRINT_DPI, productionTextureSize } from '../../lib/canvas/design-canvas';
+import { compositionSize, designRect, printedCm, PRINT_DPI, productionTextureSize } from '../../lib/canvas/design-canvas';
 import { downloadBlob, renderPrintPng } from '../../lib/canvas/export';
 import { assessPrintQuality, computeDpi } from '../../lib/printQuality';
-import { PREVIEW_TEXTURE_SIZE } from '../../lib/canvas/design-canvas';
 import { useDesignImage } from './useDesignImage';
 
 const LEVEL_CLASS: Record<string, string> = {
@@ -37,8 +36,9 @@ export default function DesignControls() {
 
   const quality = useMemo(() => {
     if (!area || !design) return null;
-    const rect = designRect(transform, area, PREVIEW_TEXTURE_SIZE, { w: design.width, h: design.height });
-    const cm = printedCm(rect, area, PREVIEW_TEXTURE_SIZE);
+    const space = compositionSize(area);
+    const rect = designRect(transform, area, space, { w: design.width, h: design.height });
+    const cm = printedCm(rect, area, space);
     return assessPrintQuality(computeDpi(design.width, design.height, cm.w, cm.h));
   }, [area, design, transform]);
 

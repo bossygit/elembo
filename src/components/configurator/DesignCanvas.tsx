@@ -7,10 +7,11 @@
 import { useEffect, useRef } from 'react';
 import { useConfiguratorStore } from '../../stores/configurator-store';
 import { getPrintArea, getProductById } from '../../lib/products/catalog';
-import { drawComposition, printAreaRect } from '../../lib/canvas/design-canvas';
+import { compositionSize, drawComposition, printAreaRect } from '../../lib/canvas/design-canvas';
 import { useDesignImage } from './useDesignImage';
 
-const EDITOR_SIZE = 720;
+/** Largeur de l'éditeur ; la hauteur suit le format de la zone d'impression. */
+const EDITOR_WIDTH = 720;
 
 export default function DesignCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -27,6 +28,9 @@ export default function DesignCanvas() {
 
   const product = getProductById(productId);
   const area = getPrintArea(product, side);
+  // Espace de composition = format réel de la zone (A4 portrait pour un décalque) : ce
+  // que l'éditeur affiche est exactement ce qui sera projeté sur le vêtement.
+  const space = area ? compositionSize(area, EDITOR_WIDTH) : { width: EDITOR_WIDTH, height: EDITOR_WIDTH };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -34,7 +38,8 @@ export default function DesignCanvas() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     drawComposition(ctx, {
-      size: EDITOR_SIZE,
+      size: space.width,
+      height: space.height,
       area,
       transform,
       design: image,
@@ -42,7 +47,7 @@ export default function DesignCanvas() {
       baseColor: color,
       showGuides,
     });
-  }, [area, transform, image, design, color, showGuides]);
+  }, [area, space.width, space.height, transform, image, design, color, showGuides]);
 
   function onPointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!design) return;
@@ -63,9 +68,9 @@ export default function DesignCanvas() {
     d.x = e.clientX;
     d.y = e.clientY;
 
-    // px écran → px texture → fraction de zone (le store borne ensuite).
-    const zone = printAreaRect(area, EDITOR_SIZE);
-    const ratio = EDITOR_SIZE / (canvas.clientWidth || EDITOR_SIZE);
+    // px écran → px de composition → fraction de zone (le store borne ensuite).
+    const zone = printAreaRect(area, space);
+    const ratio = space.width / (canvas.clientWidth || space.width);
     setTransform({
       x: transform.x + (dx * ratio) / zone.w,
       y: transform.y + (dy * ratio) / zone.h,
@@ -91,8 +96,8 @@ export default function DesignCanvas() {
     <div className="flex flex-col gap-2">
       <canvas
         ref={canvasRef}
-        width={EDITOR_SIZE}
-        height={EDITOR_SIZE}
+        width={space.width}
+        height={space.height}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
@@ -104,8 +109,8 @@ export default function DesignCanvas() {
       />
       <p className="text-xs text-neutral-500">
         {design
-          ? 'Glissez le visuel dans le cadre pointillé (zone d’impression).'
-          : 'Zone d’impression : le visuel reste borné à ce cadre.'}
+          ? `Glissez le visuel dans le cadre pointillé (${area.cmWidth} × ${area.cmHeight} cm).`
+          : `Zone d’impression ${area.cmWidth} × ${area.cmHeight} cm : le visuel reste borné à ce cadre.`}
       </p>
     </div>
   );

@@ -81,3 +81,23 @@ export function describeModel(scene: THREE.Object3D): {
 export function cloneModelScene(scene: THREE.Object3D): THREE.Object3D {
   return scene.clone(true);
 }
+
+/**
+ * Maillage principal du vêtement : celui qui porte le plus de triangles. Utilisé pour la
+ * technique 'decal', où le modèle fournisseur est un maillage unique sans panneaux nommés.
+ */
+export function findGarmentMesh(scene: THREE.Object3D): THREE.Mesh | null {
+  let best: THREE.Mesh | null = null;
+  let bestCount = 0;
+  scene.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const geometry = mesh.geometry as THREE.BufferGeometry;
+    const count = geometry.index?.count ?? geometry.attributes.position?.count ?? 0;
+    if (count > bestCount) {
+      bestCount = count;
+      best = mesh;
+    }
+  });
+  return best;
+}

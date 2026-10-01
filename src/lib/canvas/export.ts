@@ -10,7 +10,7 @@
 
 import type { DesignTransform } from '../../types/configurator';
 import type { PrintArea } from '../products/catalog';
-import { designRect, printAreaRect, productionTextureSize } from './design-canvas';
+import { compositionSize, designRect, printAreaRect, productionTextureSize } from './design-canvas';
 
 /** Espace de composition interne pour l'export (assez grand pour ne pas interpoler deux fois). */
 const COMPOSE_SPACE = 2048;
@@ -29,7 +29,10 @@ export async function renderPrintPng(params: RenderPrintParams): Promise<Blob | 
   if (!image) return null;
 
   const target = params.size ?? productionTextureSize(area);
-  const space = COMPOSE_SPACE;
+  // L'espace de composition doit avoir le format de la zone (sinon le visuel exporté
+  // serait étiré), puis on recadre sur la zone : le fichier de production est exactement
+  // la zone d'impression, à 300 dpi de sa taille physique.
+  const space = compositionSize(area, COMPOSE_SPACE);
   const zone = printAreaRect(area, space);
   const rect = designRect(transform, area, space, { w: image.naturalWidth, h: image.naturalHeight });
 

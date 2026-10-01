@@ -64,6 +64,28 @@ partagent `src/lib/validate.ts` et `src/lib/printQuality.ts`.
 - **Impression** : le fichier 300 dpi est **recomposé** à partir des paramètres du design
   (le texte est redessiné à la résolution cible, les images repartent de l'original).
 
+### Commande et production
+
+Le tunnel de commande transforme un design validé en **dossier de production** :
+
+- **Validation** : aperçu de chaque face personnalisée (ce que le client voit est ce qui sera
+  imprimé), tailles et quantités, ville de livraison, récapitulatif FCFA.
+- **Livraison** : Brazzaville 1 000 FCFA ; le délai varie avec la quantité mais **ne dépasse
+  jamais 3 jours**. Pointe-Noire est volontairement « à confirmer » tant que le tarif n'est pas
+  arbitré — la commande refuse de valider plutôt que d'afficher un montant inventé.
+- **Fichiers générés** : un **PNG 300 dpi par face réellement personnalisée** (avant, arrière)
+  et une **fiche de production** (`.txt` pour WhatsApp/e-mail + `.json` pour la traçabilité)
+  contenant, pour chaque élément : type, contenu, police et corps en cm, couleur, alignement,
+  **position du centre en centimètres depuis le coin haut-gauche de la zone**, dimensions en cm,
+  rotation, et l'avertissement si l'élément déborde (donc rogné). Un imprimeur peut travailler
+  directement avec ça.
+- **Paiement** : montant en FCFA à encaisser par **MTN Mobile Money** ; l'intégration MoMo
+  (clés Collections déjà obtenues, 3 routes serveur à mettre en place) est décrite dans
+  `docs/momo-mtn-integration.md`.
+
+Le champ `priceFcfa` du catalogue est vide : la validation est bloquée tant que le prix
+unitaire n'est pas défini, avec le motif affiché au client.
+
 ### Polices
 
 17 familles classées par usage (sans serif, display, script, serif), **toutes sous licence

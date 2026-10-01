@@ -10,6 +10,33 @@ import { useEffect, useMemo, useState } from 'react';
 import type { DesignElement, TextElement } from '../../types/configurator';
 import { ensureFontReady } from '../../lib/fonts';
 
+/** Cache partagé : une source n'est décodée qu'une fois, même avec plusieurs consommateurs. */
+const cache = new Map<string, HTMLImageElement>();
+const enCours = new Map<string, Promise<HTMLImageElement>>();
+
+function chargerImage(src: string): Promise<HTMLImageElement> {
+  const connue = cache.get(src);
+  if (connue) return Promise.resolve(connue);
+  const deja = enCours.get(src);
+  if (deja) return deja;
+  const promesse = new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => {
+      cache.set(src, img);
+      enCours.delete(src);
+      resolve(img);
+    };
+    img.onerror = () => {
+      enCours.delete(src);
+      reject(new Error(`image illisible : ${src.slice(0, 32)}`));
+    };
+    img.src = src;
+  });
+  enCours.set(src, promesse);
+  return promesse;
+}
+
 /**
  * Images chargées, INDEXÉES PAR IDENTIFIANT D'ÉLÉMENT — c'est la clé dont se servent le
  * canvas 2D et la texture 3D. Une source n'est chargée qu'une fois, et l'image n'est
@@ -25,23 +52,21 @@ export function useElementImages(elements: DesignElement[]): Map<string, HTMLIma
     [elements],
   );
   const cle = demandes.map((d) => `${d.id}:${d.src}`).join('|');
-  const [parSource, setParSource] = useState<Map<string, HTMLImageElement>>(new Map());
+  const [parSource, setParSource] = useState<Map<string, HTMLImageElement>>(() => new Map(cache));
 
   useEffect(() => {
     if (!demandes.length) return;
-    let cancelled = false;
+    let annule = false;
     for (const src of [...new Set(demandes.map((d) => d.src))]) {
-      if (parSource.has(src)) continue;
-      const img = new Image();
-      img.decoding = 'async';
-      img.onload = () => {
-        if (cancelled) return;
-        setParSource((prev) => (prev.has(src) ? prev : new Map(prev).set(src, img)));
-      };
-      img.src = src;
+      if (cache.has(src)) continue;
+      chargerImage(src)
+        .then((img) => {
+          if (!annule) setParSource((prev) => (prev.get(src) === img ? prev : new Map(prev).set(src, img)));
+        })
+        .catch(() => undefined);
     }
     return () => {
-      cancelled = true;
+      annule = true;
     };
     // `cle` résume (identifiant, source) : l'effet ne rejoue pas à chaque rendu.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -50,7 +75,7 @@ export function useElementImages(elements: DesignElement[]): Map<string, HTMLIma
   return useMemo(() => {
     const parId = new Map<string, HTMLImageElement>();
     for (const { id, src } of demandes) {
-      const image = parSource.get(src);
+      const image = cache.get(src) ?? parSource.get(src);
       if (image) parId.set(id, image);
     }
     return parId;

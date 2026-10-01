@@ -76,6 +76,11 @@ export type Product = {
    */
   surface?: SurfaceMode;
   colors: ColorOption[];
+  /**
+   * Prix unitaire TTC en FCFA, hors livraison. Laisser vide tant qu'il n'est pas arbitré :
+   * le tunnel de commande refuse alors de valider plutôt que d'afficher un montant inventé.
+   */
+  priceFcfa?: number;
   printAreas: { front?: PrintArea; back?: PrintArea };
 };
 

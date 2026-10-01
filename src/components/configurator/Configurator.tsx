@@ -13,6 +13,7 @@ import DesignPanel from './DesignPanel';
 import ElementControls from './ElementControls';
 import DesignControls from './DesignControls';
 import DesignCanvas from './DesignCanvas';
+import OrderPanel from './OrderPanel';
 import ProductColorSelector from './ProductColorSelector';
 import ProductSelector from './ProductSelector';
 import ViewControls from './ViewControls';
@@ -191,6 +192,12 @@ export default function Configurator() {
       <div className="mt-5">
         <Panel step="6" title="Configuration">
           <ConfigPanel />
+        </Panel>
+      </div>
+
+      <div className="mt-5">
+        <Panel step="7" title="Commande">
+          <OrderPanel />
         </Panel>
       </div>
     </div>

@@ -129,6 +129,9 @@ export const CATALOG: Product[] = [
     // T-shirt vierge à la couleur exacte. La forme et les plis viennent de la géométrie
     // et de l'éclairage.
     surface: 'blank',
+    // Prix de TEST (à confirmer en production) : il sera rendu configurable depuis un
+    // tableau de bord ; d'ici là la valeur vit ici et la commande la reprend telle quelle.
+    priceFcfa: 5000,
     colors: [
       { name: 'Blanc', hex: '#FFFFFF' },
       { name: 'Noir', hex: '#1A1A1A' },
@@ -145,6 +148,7 @@ export const CATALOG: Product[] = [
     modelUrl: `${MODEL_DIR}/tshirt-alt/tshirt.glb`,
     technique: 'decal',
     unitToCm: 100, // 1 unité = 1 mètre (65,3 × 70,2 cm mesurés sur le maillage)
+    priceFcfa: 5000, // même prix de test que le raglan (configurable via le futur tableau de bord)
     colors: [
       { name: 'Blanc', hex: '#FFFFFF' },
       { name: 'Noir', hex: '#1A1A1A' },

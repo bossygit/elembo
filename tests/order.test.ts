@@ -221,3 +221,18 @@ describe('fiche de production', () => {
     for (const r of refs) expect(r).toMatch(/^ELB-20261001-0930-[A-Z0-9]{2}$/);
   });
 });
+
+describe('le catalogue permet de commander', () => {
+  it('chaque produit vendable a un prix unitaire en FCFA', () => {
+    for (const p of CATALOG) {
+      expect(typeof p.priceFcfa, `prix manquant pour ${p.id}`).toBe('number');
+      expect(p.priceFcfa).toBeGreaterThan(0);
+    }
+  });
+
+  it('une pièce du produit par défaut donne un total validable', () => {
+    const t = orderTotals({ lines: [{ size: 'M', quantity: 1 }], unitPriceFcfa: product.priceFcfa ?? null, city: 'brazzaville' });
+    expect(t.blockedBy).toEqual([]);
+    expect(t.totalFcfa).toBe((product.priceFcfa ?? 0) + 1000);
+  });
+});

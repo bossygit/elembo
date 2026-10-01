@@ -42,13 +42,22 @@ partagent `src/lib/validate.ts` et `src/lib/printQuality.ts`.
 
 ### Modèle 3D et impression
 
-Le produit commercial est `public/models/tshirt/tshirt.glb` (T-shirt raglan fournisseur,
-29 678 triangles, textures PBR 4k). Son maillage est unique : le visuel est **projeté sur
-la surface** (technique `decal`) dans un cadre exprimé en unités du modèle et déduit du
+Le catalogue contient **deux T-shirts 3D**, interchangeables depuis le sélecteur de
+produit (le visuel et le réglage sont conservés d'un modèle à l'autre) :
+
+- `public/models/tshirt/tshirt.glb` — T-shirt raglan fournisseur (29 678 triangles,
+  textures PBR 4k, 1 unité = 1 pouce) ;
+- `public/models/tshirt-alt/tshirt.glb` — T-shirt col rond (237 940 triangles, maillages
+  séparés avant/arrière, sans textures donc teinté exactement, 1 unité = 1 mètre).
+
+Les deux ont un maillage sans zone d'impression réservée : le visuel est **projeté sur la
+surface** (technique `decal`) dans un cadre exprimé en unités du modèle et déduit du
 maillage avec :
 
 ```bash
-node scripts/inspect-glb.mjs "chemin/vers/modele.glb"   # dimensions, UV, profondeur de surface
+node scripts/inspect-glb.mjs "chemin/vers/modele.glb"        # dimensions, UV, profondeur de surface
+node scripts/glb-meshes.mjs  "chemin/vers/modele.glb"        # un maillage par ligne (parent, UV, taille)
+node scripts/decal-frame.mjs "chemin/vers/modele.glb" 100 21 30 7  # cadre d'impression (unité cm, 21×30 cm, 7 cm sous le col)
 ```
 
 La technique `uv` (nœuds `FrontPanel` / `BackPanel` / `Body`) reste supportée pour des

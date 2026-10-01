@@ -9,6 +9,7 @@ déploiement est ajouté par `resolveModelUrl()`.
 | Fichier                        | Rôle                                                                                          |
 | ------------------------------ | --------------------------------------------------------------------------------------------- |
 | `tshirt/tshirt.glb`            | **Modèle commercial** : T-shirt raglan fournisseur (19 Mo, 29 678 triangles, textures PBR 4k intégrées). |
+| `tshirt-alt/tshirt.glb`        | **Second modèle** : T-shirt col rond (6,5 Mo, 237 940 triangles, maillages séparés avant/arrière, sans textures — teinté exactement par la couleur choisie). |
 | `tshirt/tshirt-placeholder.glb` | Placeholder généré par nous (36 triangles), pour la technique `uv` et les tests.              |
 
 ## Deux techniques d'impression
@@ -62,9 +63,28 @@ Le script affiche la boîte englobante, les UV des faces avant/arrière et la pr
 surface (Z) par bande verticale — exactement les valeurs à reporter dans
 `printAreas[].projection` (`center`, `rotationY`, `depth`).
 
+Un second script calcule directement le cadre d'impression (centre et profondeur de la
+surface) à partir d'une taille d'impression en centimètres :
+
+```bash
+node scripts/glb-meshes.mjs   "modele.glb"          # un maillage par ligne : UV, taille 3D, nœud parent
+node scripts/decal-frame.mjs  "modele.glb" 100 21 30 7   # unité en cm, largeur, hauteur, cm sous le col
+```
+
+### Plusieurs maillages : les deux pièges
+
+- **La couleur doit être appliquée à tous les maillages.** Un modèle peut compter une
+  dizaine de maillages (corps avant/arrière, manches, col) : n'en teinter qu'un laisse
+  une partie du vêtement à sa couleur d'origine.
+- **La projection se fait via `mesh.matrixWorld`.** Le cadre du catalogue est exprimé
+  dans le repère d'authoring du modèle (celui que mesure le script) ; il faut le
+  convertir en coordonnées monde, sinon un modèle dont la racine porte une rotation
+  (exports Sketchfab, par exemple) projette dans le vide — le décalque est alors créé
+  avec zéro sommet, sans aucune erreur.
+
 3. Renseigner le produit dans `src/lib/products/catalog.ts` : `modelUrl`, `technique`,
-   `unitToCm` (1 unité = 1 pouce pour le modèle actuel → 2,54 cm), `colors`, et les zones
-   avec leur taille physique en cm.
+   `unitToCm` (1 unité = 1 pouce pour le raglan → 2,54 cm ; 1 unité = 1 mètre pour le
+   modèle col rond → 100), `colors`, et les zones avec leur taille physique en cm.
 4. `npm test` : `validateProduct()` refuse une configuration incohérente (zone hors texture,
    projection incomplète, `unitToCm` manquant…).
 

@@ -101,7 +101,7 @@ export const TSHIRT_BACK: PrintArea = {
 export const CATALOG: Product[] = [
   {
     id: DEFAULT_PRODUCT_ID,
-    name: 'T-Shirt classique',
+    name: 'T-Shirt raglan',
     modelUrl: `${MODEL_DIR}/tshirt/tshirt.glb`,
     technique: 'decal',
     unitToCm: INCH,
@@ -112,6 +112,47 @@ export const CATALOG: Product[] = [
       { name: 'Bleu', hex: '#1565C0' },
     ],
     printAreas: { front: TSHIRT_FRONT, back: TSHIRT_BACK },
+  },
+  {
+    // Second modèle (Sketchfab) : col rond, maillage séparé avant/arrière, en mètres,
+    // sans textures (deux couleurs plates) — donc teinté exactement par la couleur choisie.
+    id: 'tshirt-alt',
+    name: 'T-Shirt col rond',
+    modelUrl: `${MODEL_DIR}/tshirt-alt/tshirt.glb`,
+    technique: 'decal',
+    unitToCm: 100, // 1 unité = 1 mètre (65,3 × 70,2 cm mesurés sur le maillage)
+    colors: [
+      { name: 'Blanc', hex: '#FFFFFF' },
+      { name: 'Noir', hex: '#1A1A1A' },
+      { name: 'Rouge', hex: '#C62828' },
+      { name: 'Bleu', hex: '#1565C0' },
+    ],
+    printAreas: {
+      front: {
+        side: 'front',
+        technique: 'decal',
+        x: 0,
+        y: 0,
+        w: 1,
+        h: 1,
+        cmWidth: 21, // A4 portrait, haut du visuel 7 cm sous le col
+        cmHeight: 30,
+        // surface avant mesurée à Z ≈ 0,044 → 0,118 (script decal-frame.mjs)
+        projection: { center: [0, 1.418, 0.1], rotationY: 0, depth: 0.14 },
+      },
+      back: {
+        side: 'back',
+        technique: 'decal',
+        x: 0,
+        y: 0,
+        w: 1,
+        h: 1,
+        cmWidth: 25,
+        cmHeight: 32.4,
+        // surface arrière mesurée à Z ≈ −0,119 → −0,149
+        projection: { center: [0, 1.396, -0.14], rotationY: Math.PI, depth: 0.14 },
+      },
+    },
   },
 ];
 

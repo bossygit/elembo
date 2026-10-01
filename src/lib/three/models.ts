@@ -101,3 +101,60 @@ export function findGarmentMesh(scene: THREE.Object3D): THREE.Mesh | null {
   });
   return best;
 }
+
+/**
+ * Tous les maillages du vêtement.
+ *
+ * Un modèle fournisseur peut en compter une dizaine (corps avant/arrière, manches,
+ * col…) : la couleur doit être appliquée à CHACUN, sinon seul un morceau du vêtement
+ * change de teinte.
+ */
+export function findGarmentMeshes(scene: THREE.Object3D): THREE.Mesh[] {
+  const meshes: THREE.Mesh[] = [];
+  scene.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (mesh.isMesh) meshes.push(mesh);
+  });
+  return meshes;
+}
+
+/**
+ * Maillage sur lequel projeter le visuel : celui qui possède, au plus près du centre de
+ * la zone d'impression, des sommets orientés dans la bonne direction.
+ *
+ * Indispensable pour les modèles à plusieurs maillages : projeter sur « le plus gros »
+ * poserait le visuel sur le panneau arrière ou dans le vide.
+ *
+ * @param direction +1 pour la face avant, −1 pour l'arrière.
+ */
+export function findMeshForDecal(
+  scene: THREE.Object3D,
+  center: [number, number, number],
+  direction: number,
+): THREE.Mesh | null {
+  let best: THREE.Mesh | null = null;
+  let bestDistance = Infinity;
+
+  scene.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const position = mesh.geometry.attributes.position as THREE.BufferAttribute | undefined;
+    const normal = mesh.geometry.attributes.normal as THREE.BufferAttribute | undefined;
+    if (!position) return;
+
+    const step = Math.max(1, Math.floor(position.count / 4000));
+    for (let i = 0; i < position.count; i += step) {
+      if (normal && normal.getZ(i) * direction < 0.7) continue;
+      const dx = position.getX(i) - center[0];
+      const dy = position.getY(i) - center[1];
+      const dz = position.getZ(i) - center[2];
+      const distance = dx * dx + dy * dy + dz * dz;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = mesh;
+      }
+    }
+  });
+
+  return best;
+}

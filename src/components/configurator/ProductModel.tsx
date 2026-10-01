@@ -18,7 +18,7 @@ import * as THREE from 'three';
 import { DecalGeometry } from 'three/examples/jsm/geometries/DecalGeometry.js';
 import { useConfiguratorStore } from '../../stores/configurator-store';
 import { decalFrame, getPrintArea, getProductById, resolveModelUrl } from '../../lib/products/catalog';
-import { cloneModelScene, findGarmentMesh, findPanelMesh } from '../../lib/three/models';
+import { cloneModelScene, findGarmentMeshes, findMeshForDecal, findPanelMesh } from '../../lib/three/models';
 import {
   applyColorToGarment,
   applyGarmentColor,
@@ -69,7 +69,7 @@ export default function ProductModel({ onBounds }: { onBounds?: (box: Box) => vo
   const isDecal = product.technique === 'decal';
 
   // Copie de la scène + préparation des matériaux : une seule fois par scène chargée.
-  const { root, panels, garmentMesh } = useMemo(() => {
+  const { root, panels, garmentMeshes } = useMemo(() => {
     const cloned = cloneModelScene(scene);
 
     if (product.technique === 'uv') {
@@ -95,23 +95,31 @@ export default function ProductModel({ onBounds }: { onBounds?: (box: Box) => vo
       if (backMesh) backMesh.material = prepared.back!;
       if (bodyMesh) bodyMesh.material = prepared.body!;
 
-      return { root: cloned, panels: prepared, garmentMesh: null };
+      return { root: cloned, panels: prepared, garmentMeshes: [] as THREE.Mesh[] };
     }
 
     // Technique 'decal' : on garde les textures PBR du fournisseur (normal, rugosité,
-    // occlusion) mais son albédo est NEUTRALISÉ — sinon la couleur de l'auteur (ici un
-    // T-shirt bleu-teal) rendrait tous les choix de couleur faux.
-    const mesh = findGarmentMesh(cloned);
-    if (mesh) {
-      const source = firstMaterial(mesh);
-      const image = source?.map?.image as CanvasImageSource | undefined;
-      const neutral = image ? neutralAlbedoTexture(image) : null;
-      mesh.material = prepareGarmentMaterial(source, '#FFFFFF', neutral);
+    // occlusion) mais son albédo est NEUTRALISÉ — sinon la couleur de l'auteur (souvent
+    // une teinte déjà colorée) rendrait tous les choix de couleur faux.
+    //
+    // IMPORTANT : un modèle fournisseur compte souvent PLUSIEURS maillages (corps
+    // avant/arrière, manches, col). La couleur doit être appliquée à tous, sinon seule
+    // une partie du vêtement change de teinte.
+    const meshes = findGarmentMeshes(cloned);
+    for (const m of meshes) {
+      const isArray = Array.isArray(m.material);
+      const sources = isArray ? (m.material as THREE.MeshStandardMaterial[]) : [m.material as THREE.MeshStandardMaterial];
+      const tinted = sources.map((src) => {
+        const image = src?.map?.image as CanvasImageSource | undefined;
+        const neutral = image ? neutralAlbedoTexture(image) : null;
+        return prepareGarmentMaterial(src, '#FFFFFF', neutral);
+      });
+      m.material = isArray ? tinted : tinted[0];
     }
     return {
       root: cloned,
       panels: { front: null, back: null, body: null } as PanelMaterials,
-      garmentMesh: mesh,
+      garmentMeshes: meshes,
     };
   }, [scene, product.technique]);
 
@@ -137,15 +145,17 @@ export default function ProductModel({ onBounds }: { onBounds?: (box: Box) => vo
   // ─────────────────────────────────────────────────────────────────────────────
   /* eslint-disable react-hooks/immutability */
 
-  // Couleur du vêtement.
+  // Couleur du vêtement : appliquée à TOUS les maillages du modèle.
   useEffect(() => {
     if (isDecal) {
-      const material = garmentMesh ? firstMaterial(garmentMesh) : null;
-      applyColorToGarment(material, color);
+      for (const mesh of garmentMeshes) {
+        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        for (const m of materials) applyColorToGarment(m as THREE.MeshStandardMaterial, color);
+      }
       return;
     }
     applyGarmentColor(panels, color);
-  }, [isDecal, garmentMesh, panels, color]);
+  }, [isDecal, garmentMeshes, panels, color]);
 
   // Composition Canvas 2D → texture affichée.
   useEffect(() => {
@@ -199,7 +209,7 @@ export default function ProductModel({ onBounds }: { onBounds?: (box: Box) => vo
       });
       panels[inactive]!.needsUpdate = true;
     }
-  }, [isDecal, product, side, transform, image, design, color, panels, area, garmentMesh]);
+  }, [isDecal, product, side, transform, image, design, color, panels, area, garmentMeshes]);
 
   /* eslint-enable react-hooks/immutability */
 
@@ -209,16 +219,36 @@ export default function ProductModel({ onBounds }: { onBounds?: (box: Box) => vo
 
   /**
    * Décalque : projection du visuel sur la surface réelle du vêtement (DecalGeometry).
-   * Construit une seule fois par face/cadre, puis la texture est simplement redessinée
-   * (la géométrie n'est pas reconstruite à chaque déplacement du visuel).
+   *
+   * Le maillage cible est celui qui porte la surface au centre de la zone : sur un
+   * modèle à plusieurs maillages, prendre « le plus gros » poserait le visuel sur le
+   * panneau arrière ou dans le vide.
+   *
+   * ATTENTION : `DecalGeometry` projette les sommets via `mesh.matrixWorld`. Le cadre du
+   * catalogue est exprimé dans le repère D'AUTHORING du modèle (celui que mesure
+   * scripts/decal-frame.mjs), il faut donc le convertir en coordonnées monde — sinon un
+   * modèle dont la racine porte une rotation (exports Sketchfab) projette dans le vide.
+   * La géométrie produite est en coordonnées monde : le décalque se rend à la racine.
    */
   const decalMesh = useMemo(() => {
-    if (!isDecal || !frame || !garmentMesh || !decalTexture) return null;
+    if (!isDecal || !frame || !garmentMeshes.length || !decalTexture) return null;
+    const target = findMeshForDecal(root, frame.center, frame.rotationY === 0 ? 1 : -1);
+    if (!target) return null;
+
+    target.updateWorldMatrix(true, false);
+    const position = new THREE.Vector3(...frame.center).applyMatrix4(target.matrixWorld);
+    const rotation = new THREE.Quaternion()
+      .setFromEuler(new THREE.Euler(0, frame.rotationY, 0))
+      .premultiply(target.getWorldQuaternion(new THREE.Quaternion()));
+    const scale = target
+      .getWorldScale(new THREE.Vector3())
+      .multiply(new THREE.Vector3(frame.width, frame.height, frame.depth));
+
     const geometry = new DecalGeometry(
-      garmentMesh,
-      new THREE.Vector3(...frame.center),
-      new THREE.Euler(0, frame.rotationY, 0),
-      new THREE.Vector3(frame.width, frame.height, frame.depth),
+      target,
+      position,
+      new THREE.Euler().setFromQuaternion(rotation),
+      scale,
     );
     const material = new THREE.MeshStandardMaterial({
       map: decalTexture,
@@ -231,7 +261,7 @@ export default function ProductModel({ onBounds }: { onBounds?: (box: Box) => vo
     });
     return new THREE.Mesh(geometry, material);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDecal, garmentMesh, decalTexture, side, area, frame?.width, frame?.height, frame?.depth]);
+  }, [isDecal, root, garmentMeshes, decalTexture, side, area, frame?.width, frame?.height, frame?.depth]);
 
   // Le décalque n'est plus utilisé : on libère sa géométrie (le matériau est à nous).
   useEffect(() => {
@@ -251,16 +281,19 @@ export default function ProductModel({ onBounds }: { onBounds?: (box: Box) => vo
     w.__elembo3d.panels = () => {
       const list: { cible: string; material: string; color: string; hasMap: boolean; hasNormalMap: boolean }[] = [];
       if (isDecal) {
-        const m = garmentMesh ? firstMaterial(garmentMesh) : null;
-        if (m) {
-          list.push({
-            cible: 'vetement',
-            material: m.name || '(sans nom)',
-            color: `#${m.color.getHexString()}`,
-            hasMap: Boolean(m.map),
-            hasNormalMap: Boolean(m.normalMap),
+        garmentMeshes.forEach((mesh, i) => {
+          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          materials.forEach((m) => {
+            const mat = m as THREE.MeshStandardMaterial;
+            list.push({
+              cible: `${mesh.name || 'mesh'}#${i}`,
+              material: mat?.name || '(sans nom)',
+              color: `#${mat?.color?.getHexString() ?? '000000'}`,
+              hasMap: Boolean(mat?.map),
+              hasNormalMap: Boolean(mat?.normalMap),
+            });
           });
-        }
+        });
         return list;
       }
       for (const s of ['front', 'back', 'body'] as const) {
@@ -309,7 +342,7 @@ export default function ProductModel({ onBounds }: { onBounds?: (box: Box) => vo
             : null,
       };
     };
-  }, [isDecal, panels, garmentMesh, side, area, frame, decalTexture, product.technique]);
+  }, [isDecal, panels, garmentMeshes, side, area, frame, decalTexture, product.technique]);
 
   return (
     <>

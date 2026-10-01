@@ -28,13 +28,57 @@ const ProductViewer = dynamic(() => import('./ProductViewer'), {
   ),
 });
 
-function Panel({ step, title, children }: { step: string; title: string; children: React.ReactNode }) {
+function Panel({
+  step,
+  title,
+  children,
+  collapsible = false,
+  defaultOpen = true,
+}: {
+  step: string;
+  title: string;
+  children: React.ReactNode;
+  /** Panneau repliable : utile pour les blocs techniques ou encombrants. */
+  collapsible?: boolean;
+  defaultOpen?: boolean;
+}) {
+  const [ouvert, setOuvert] = useState(defaultOpen);
+
+  if (!collapsible) {
+    return (
+      <section className="rounded-2xl border border-neutral-200 bg-white p-4">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          {step}. {title}
+        </h2>
+        {children}
+      </section>
+    );
+  }
+
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-4">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">
-        {step}. {title}
+    <section className="rounded-2xl border border-neutral-200 bg-white">
+      <h2 className="m-0">
+        <button
+          type="button"
+          onClick={() => setOuvert((o) => !o)}
+          aria-expanded={ouvert}
+          aria-controls={`panel-${step}-contenu`}
+          data-testid={`panel-${step}-toggle`}
+          className="flex w-full items-center justify-between gap-2 rounded-2xl px-4 py-3 text-left text-sm font-semibold uppercase tracking-wide text-neutral-500 hover:bg-neutral-50"
+        >
+          <span>
+            {step}. {title}
+          </span>
+          <span aria-hidden className="text-xs text-neutral-400">
+            {ouvert ? '▾' : '▸'}
+          </span>
+        </button>
       </h2>
-      {children}
+      {ouvert && (
+        <div id={`panel-${step}-contenu`} className="px-4 pb-4">
+          {children}
+        </div>
+      )}
     </section>
   );
 }
@@ -181,7 +225,7 @@ export default function Configurator() {
       </div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <Panel step="4" title="Zone d’impression (aperçu 2D)">
+        <Panel step="4" title="Zone d’impression (aperçu 2D)" collapsible>
           <DesignCanvas />
         </Panel>
         <Panel step="5" title="Impression">
@@ -190,7 +234,7 @@ export default function Configurator() {
       </div>
 
       <div className="mt-5">
-        <Panel step="6" title="Configuration">
+        <Panel step="6" title="Configuration" collapsible defaultOpen={false}>
           <ConfigPanel />
         </Panel>
       </div>

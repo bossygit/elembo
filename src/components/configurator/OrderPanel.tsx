@@ -74,7 +74,7 @@ function FacePreview({ side, titre }: { side: Side; titre: string }) {
   if (!area || !space) return null;
 
   return (
-    <figure className="flex flex-col gap-1" data-testid={`apercu-${side}`}>
+    <figure className="flex w-[132px] max-w-full flex-col gap-1" data-testid={`apercu-${side}`}>
       <canvas
         ref={canvasRef}
         width={space.width}
@@ -82,9 +82,10 @@ function FacePreview({ side, titre }: { side: Side; titre: string }) {
         className="w-full rounded-lg border border-neutral-200 bg-white"
         aria-label={`Aperçu ${titre}`}
       />
-      <figcaption className="text-xs text-neutral-500">
-        <span className="font-semibold text-neutral-700">{titre}</span> — {area.cmWidth} × {area.cmHeight} cm ·{' '}
-        {deLaFace.filter((el) => el.visible !== false).length} élément(s)
+      <figcaption className="text-[11px] leading-snug text-neutral-500">
+        <span className="font-semibold text-neutral-700">{titre}</span>
+        <br />
+        {area.cmWidth} × {area.cmHeight} cm · {deLaFace.filter((el) => el.visible !== false).length} élément(s)
       </figcaption>
     </figure>
   );
@@ -179,7 +180,7 @@ export default function OrderPanel() {
         générés à la validation.
       </p>
 
-      <div className={`grid gap-3 ${faces.length > 1 ? 'sm:grid-cols-2' : ''}`}>
+      <div className="flex flex-wrap items-start gap-3">
         {faces.map((side) => (
           <FacePreview key={side} side={side} titre={side === 'front' ? 'Face avant' : 'Face arrière'} />
         ))}

@@ -12,7 +12,8 @@ import { getProductById } from '../../lib/products/catalog';
 import DesignPanel from './DesignPanel';
 import ElementControls from './ElementControls';
 import DesignControls from './DesignControls';
-import DesignCanvas from './DesignCanvas';
+// `DesignCanvas` (l'aperçu 2D en panneau) n'est plus monté : la sélection se fait depuis la
+// liste d'éléments du panneau « Design ». Le composant est conservé pour pouvoir être remis.
 import OrderPanel from './OrderPanel';
 import ProductColorSelector from './ProductColorSelector';
 import ProductSelector from './ProductSelector';
@@ -224,10 +225,7 @@ export default function Configurator() {
         </aside>
       </div>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <Panel step="4" title="Zone d’impression (aperçu 2D)" collapsible>
-          <DesignCanvas />
-        </Panel>
+      <div className="mt-5">
         <Panel step="5" title="Impression">
           <DesignControls />
         </Panel>

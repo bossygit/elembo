@@ -135,7 +135,7 @@ export default function Configurator() {
     <div className="mx-auto w-full max-w-7xl px-4 py-6">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <Link href="/" className="text-xs font-medium text-neutral-500 hover:text-[#E85F00]">
+          <Link href="/studio" className="text-xs font-medium text-neutral-500 hover:text-[#E85F00]">
             ← Studio 2D (photo de mockup)
           </Link>
           <p className="mt-2 text-xs font-semibold uppercase tracking-widest text-[#E85F00]">

@@ -15,7 +15,7 @@ Par Smart Vision Congo (SARLU enregistrée en République du Congo).
 - **Ajustements** : échelle 0,5×–1,5×, contain/stretch, réinitialisation, mode debug zone (checkbox « calage »).
 - **Export** : téléchargement du mockup rendu en PNG.
 
-## Configurateur 3D — `/configurator`
+## Configurateur 3D — page d'accueil (`/`)
 
 Vue 3D temps réel du produit : on tourne, on zoome, on change la couleur, on dépose son
 visuel et on le place dans la zone d'impression — le tout **dans le navigateur**, sans
@@ -57,7 +57,7 @@ npm install --include=dev   # cette machine omet les devDependencies par défaut
 npm test                    # vitest — 84 tests (zones, mapping, bornes, store, catalogue)
 npm run lint
 npm run build
-npm run dev                 # http://localhost:3000  ·  /configurator  ·  /  (studio 2D)
+npm run dev                 # http://localhost:3000  ·  /  (configurateur 3D)  ·  /studio  (studio 2D)
 ```
 
 ## Déploiement

@@ -1,0 +1,14 @@
+# Routes MoMo : servir /wp-json/momo/v1/<route> SANS redirection 301 vers la barre oblique finale.
+# MTN envoie son callback en PUT/POST sur l'URL exacte déclarée : une redirection ferait échouer
+# la notification (et MTN ne réessaie jamais).
+#
+# DirectorySlash Off ne vaut que pour ce dossier et ses sous-dossiers.
+DirectorySlash Off
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^callback/(.+)$ callback/index.php?reference=$1 [QSA,L]
+  RewriteRule ^callback/?$    callback/index.php [L]
+  RewriteRule ^statut/?$      statut/index.php   [L]
+  RewriteRule ^demande/?$     demande/index.php  [L]
+</IfModule>

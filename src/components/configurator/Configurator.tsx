@@ -2,18 +2,19 @@
 
 // Configurateur : assemble la vue 3D (élément dominant) et les panneaux de contrôle.
 // Responsive : sur mobile tout s'empile sous le viewer, sur desktop les contrôles passent
-// en colonne à droite et l'aperçu 2D + la configuration en bas.
+// en colonne à droite ; le tunnel de commande reste en bas, sur toute la largeur.
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
-import { useConfiguratorStore, serializeConfig } from '../../stores/configurator-store';
+import { useState } from 'react';
+import { useConfiguratorStore } from '../../stores/configurator-store';
 import { getProductById } from '../../lib/products/catalog';
 import DesignPanel from './DesignPanel';
 import ElementControls from './ElementControls';
-import DesignControls from './DesignControls';
-// `DesignCanvas` (l'aperçu 2D en panneau) n'est plus monté : la sélection se fait depuis la
-// liste d'éléments du panneau « Design ». Le composant est conservé pour pouvoir être remis.
+// Composants retirés de l'interface à la demande : `DesignCanvas` (aperçu 2D) et
+// `DesignControls` (téléchargement du visuel + qualité dpi) restent sur le disque, non
+// importés, pour pouvoir être remis en une ligne. L'export d'impression est désormais
+// produit par le panneau « Commande » à la validation.
 import OrderPanel from './OrderPanel';
 import ProductColorSelector from './ProductColorSelector';
 import ProductSelector from './ProductSelector';
@@ -84,104 +85,6 @@ function Panel({
   );
 }
 
-function ConfigPanel() {
-  const productId = useConfiguratorStore((s) => s.productId);
-  const color = useConfiguratorStore((s) => s.color);
-  const side = useConfiguratorStore((s) => s.side);
-  const elements = useConfiguratorStore((s) => s.elements);
-  const loadConfig = useConfiguratorStore((s) => s.loadConfig);
-
-  const [importText, setImportText] = useState('');
-  const [message, setMessage] = useState<string | null>(null);
-
-  // La sérialisation vient du store : une seule définition de la configuration.
-  const json = useMemo(
-    () => JSON.stringify(serializeConfig({ productId, color, side, elements }), null, 2),
-    [productId, color, side, elements],
-  );
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(json);
-      setMessage('Configuration copiée.');
-    } catch {
-      setMessage('Copie refusée par le navigateur — sélectionnez le texte ci-dessus.');
-    }
-  }
-
-  function load() {
-    try {
-      const parsed = JSON.parse(importText);
-      const result = loadConfig(parsed);
-      if (!result.ok) {
-        setMessage(`Refusée : ${result.errors.join(', ')}`);
-        return;
-      }
-      setMessage(
-        result.warnings.length
-          ? `Configuration chargée. ${result.warnings.join(' · ')}`
-          : 'Configuration chargée.',
-      );
-    } catch {
-      setMessage('JSON illisible.');
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-3">
-      <pre
-        data-testid="config-json"
-        className="max-h-64 overflow-auto rounded-lg bg-neutral-950 p-3 text-[11px] leading-relaxed text-neutral-100"
-      >
-        {json}
-      </pre>
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={copy}
-          className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-50"
-        >
-          Copier la configuration
-        </button>
-        <button
-          type="button"
-          onClick={() => setMessage(null)}
-          className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-50"
-        >
-          Effacer le message
-        </button>
-      </div>
-      <details className="rounded-lg border border-neutral-200 p-3">
-        <summary className="cursor-pointer text-sm text-neutral-700">Recharger une configuration (JSON)</summary>
-        <textarea
-          value={importText}
-          onChange={(e) => setImportText(e.target.value)}
-          rows={4}
-          aria-label="Configuration JSON à recharger"
-          placeholder='{"version":2,"productId":"tshirt-basic","elements":[…]}'
-          className="mt-2 w-full rounded-lg border border-neutral-300 p-2 font-mono text-xs"
-        />
-        <button
-          type="button"
-          onClick={load}
-          className="mt-2 rounded-lg bg-neutral-900 px-3 py-1.5 text-sm text-white hover:bg-[#E85F00]"
-        >
-          Charger
-        </button>
-        <p className="mt-2 text-xs text-neutral-500">
-          Les images ne sont pas incluses (fichiers locaux) : rechargez-les après avoir appliqué la configuration. Le
-          texte, lui, est entièrement restauré.
-        </p>
-      </details>
-      {message && (
-        <p role="status" aria-live="polite" className="text-xs text-neutral-600">
-          {message}
-        </p>
-      )}
-    </div>
-  );
-}
-
 export default function Configurator() {
   const productId = useConfiguratorStore((s) => s.productId);
   const [cameraNonce, setCameraNonce] = useState(0);
@@ -223,18 +126,6 @@ export default function Configurator() {
             <ElementControls />
           </Panel>
         </aside>
-      </div>
-
-      <div className="mt-5">
-        <Panel step="5" title="Impression">
-          <DesignControls />
-        </Panel>
-      </div>
-
-      <div className="mt-5">
-        <Panel step="6" title="Configuration" collapsible defaultOpen={false}>
-          <ConfigPanel />
-        </Panel>
       </div>
 
       <div className="mt-5">

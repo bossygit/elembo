@@ -119,6 +119,54 @@ export function findGarmentMeshes(scene: THREE.Object3D): THREE.Mesh[] {
 }
 
 /**
+ * Détecte une surface plate : quelques triangles formant un plan (sol, fond, ombre
+ * portée livrés avec un modèle fournisseur, ou au contraire un panneau de vêtement).
+ */
+export function isFlatMesh(mesh: THREE.Mesh): boolean {
+  const geometry = mesh.geometry as THREE.BufferGeometry | undefined;
+  const position = geometry?.attributes?.position as THREE.BufferAttribute | undefined;
+  if (!position) return false;
+  const triangles = ((geometry?.index?.count ?? position.count) || 0) / 3;
+  if (triangles > 12) return false;
+  const box = new THREE.Box3().setFromBufferAttribute(position);
+  const size = box.getSize(new THREE.Vector3());
+  const longest = Math.max(size.x, size.y, size.z);
+  if (longest <= 0) return true;
+  return Math.min(size.x, size.y, size.z) <= longest * 0.02;
+}
+
+/**
+ * Boîte englobante du vêtement seul, pour le cadrage de la caméra.
+ *
+ * Un modèle fournisseur embarque souvent un sol ou un fond : le cadrer avec le vêtement
+ * fait reculer la caméra et le produit paraît minuscule. On écarte donc les surfaces
+ * plates **nettement plus grandes** que le reste — un vêtement entièrement fait de
+ * panneaux plats (placeholder, produit plat) est conservé, sans quoi il n'y aurait plus
+ * rien à cadrer. Renvoie `null` si la scène ne contient aucun maillage.
+ */
+export function garmentBox(scene: THREE.Object3D): THREE.Box3 | null {
+  const entries: { box: THREE.Box3; flat: boolean; diagonal: number }[] = [];
+  scene.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const box = new THREE.Box3().setFromObject(mesh);
+    if (box.isEmpty()) return;
+    entries.push({ box, flat: isFlatMesh(mesh), diagonal: box.getSize(new THREE.Vector3()).length() });
+  });
+  if (!entries.length) return null;
+
+  const solides = entries.filter((e) => !e.flat);
+  const reference = Math.max(...(solides.length ? solides : entries).map((e) => e.diagonal));
+  // Un sol ou un fond fait facilement deux fois la taille du vêtement (mesuré : 2,6× sur
+  // un modèle fournisseur) ; un panneau de vêtement, lui, ne dépasse pas le corps.
+  const gardes = entries.filter((e) => !e.flat || e.diagonal <= reference * 2);
+
+  const box = gardes[0].box.clone();
+  for (const e of gardes.slice(1)) box.union(e.box);
+  return box;
+}
+
+/**
  * Maillage sur lequel projeter le visuel : celui qui possède, au plus près du centre de
  * la zone d'impression, des sommets orientés dans la bonne direction.
  *

@@ -18,7 +18,7 @@ import * as THREE from 'three';
 import { DecalGeometry } from 'three/examples/jsm/geometries/DecalGeometry.js';
 import { useConfiguratorStore } from '../../stores/configurator-store';
 import { decalFrame, getPrintArea, getProductById, resolveModelUrl } from '../../lib/products/catalog';
-import { cloneModelScene, findGarmentMeshes, findMeshForDecal, findPanelMesh } from '../../lib/three/models';
+import { cloneModelScene, findGarmentMeshes, findMeshForDecal, findPanelMesh, garmentBox } from '../../lib/three/models';
 import {
   applyColorToGarment,
   applyGarmentColor,
@@ -128,7 +128,7 @@ export default function ProductModel({ onBounds }: { onBounds?: (box: Box) => vo
   useEffect(() => {
     if (!onBounds) return;
     root.updateWorldMatrix(true, true);
-    const box = new THREE.Box3().setFromObject(root);
+    const box = garmentBox(root) ?? new THREE.Box3().setFromObject(root);
     onBounds({
       min: box.min.toArray() as [number, number, number],
       max: box.max.toArray() as [number, number, number],

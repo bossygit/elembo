@@ -18,8 +18,9 @@ import { StoreTransactions } from './store.ts';
 
 async function demarrer(): Promise<void> {
   // Le fichier .env est lu ici plutôt que sourcé par le shell : une valeur contenant une guillemet
-  // non fermée ne doit pas empêcher le service de démarrer.
-  const depuisFichier = chargerFichierEnv();
+  // non fermée ne doit pas empêcher le service de démarrer. MOMO_ENV_FILE permet de viser un autre
+  // fichier (par exemple .env.production) sans toucher à la configuration courante.
+  const depuisFichier = chargerFichierEnv(process.env.MOMO_ENV_FILE || '.env');
   const config = lireConfig();
 
   const client =

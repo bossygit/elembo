@@ -1,5 +1,5 @@
 /**
- * Les trois routes HTTP du service de paiement — le seul endroit qui parle à MTN.
+ * Les routes HTTP du service de paiement — le seul endroit qui parle à MTN.
  *
  *   POST /api/momo/payer      le navigateur annonce la commande ; le MONTANT EST RECALCULÉ ici,
  *                             jamais repris du client. Renvoie la référence à suivre.
@@ -7,6 +7,10 @@
  *                             on revérifie le statut par l'API, on compare le montant au nôtre.
  *                             Toujours répondu 200 (sinon MTN rejoue la notification en boucle).
  *   GET  /api/momo/statut     le navigateur sonde l'état : PENDING / PAYE / ECHEC.
+ *   GET  /api/momo/tarifs     tarifs que CE processus appliquera (lecture seule) : le catalogue
+ *                             est lu au démarrage, donc un service laissé en vie facture
+ *                             l'ancien barème — cette route rend l'écart visible.
+ *   GET  /sante               état : mode, environnement, devise.
  *
  * Sécurité : la clé d'abonnement ne quitte jamais ce processus ; le total validé par le client
  * n'est jamais réutilisé comme montant de facturation ; toute divergence de montant produit une
@@ -17,6 +21,7 @@ import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import { ErreurConfig, type Config } from './config.ts';
+import { CATALOGUE, VILLES } from './catalogue.ts';
 import { ErreurTelephone, masquerMsisdn, normaliserMsisdn } from './msisdn.ts';
 import { ErreurCommande, calculerMontant, type Ligne } from './pricing.ts';
 import { ErreurMomo, type ClientMomo } from './mtn.ts';
@@ -104,6 +109,10 @@ export function creerServeur(deps: Dependances) {
   const { config, client, store } = deps;
   const journal = deps.journal ?? ((ligne: string) => console.log(ligne));
   const maintenant = deps.maintenant ?? (() => new Date());
+  // Les tarifs sont lus une fois, au démarrage : c'est ce que ce processus facturera tant
+  // qu'il tourne. La route /api/momo/tarifs les rend visibles de l'extérieur, pour repérer
+  // un service resté sur un ancien barème (cas vécu : site à 200 FCFA, service à 1 100).
+  const chargeLe = maintenant().toISOString();
 
   return async function gerer(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
@@ -118,6 +127,25 @@ export function creerServeur(deps: Dependances) {
     try {
       if (req.method === 'GET' && (url.pathname === '/sante' || url.pathname === '/health')) {
         repondre(res, 200, { ok: true, mode: config.mode, env: config.env, devise: config.devise }, cors);
+        return;
+      }
+
+      // Tarifs réellement appliqués par CE processus : lecture seule, aucune commande, aucun
+      // appel à MTN. Sert à vérifier ce qui sera facturé — et à détecter un service qui
+      // tourne encore avec un barème périmé (il faut le redémarrer pour changer un prix).
+      if (req.method === 'GET' && url.pathname === '/api/momo/tarifs') {
+        repondre(res, 200, {
+          env: config.env,
+          devise: config.devise,
+          chargeLe,
+          produits: CATALOGUE.map((p) => ({ id: p.id, nom: p.nom, prixFcfa: p.prixFcfa })),
+          villes: VILLES.map((v) => ({
+            id: v.id,
+            nom: v.nom,
+            fraisFcfa: v.fraisFcfa,
+            delaiMaxJours: v.delaiMaxJours,
+          })),
+        }, cors);
         return;
       }
 

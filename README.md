@@ -110,6 +110,13 @@ boutique sur un nouveau service ne demande donc ni rebuild ni redéploiement, se
 L'adresse d'un tunnel rapide change à chaque redémarrage : relancer le script suffit. La machine
 qui héberge le service doit rester allumée et éveillée (`caffeinate`, activé par le script).
 
+Le catalogue (prix, frais de livraison) est lu **au démarrage du service** : après un changement
+de tarif, il faut donc redémarrer le service pour qu'il facture le nouveau barème — un service
+laissé en vie facture l'ancien (cas vécu le 06/10 : site à 200 FCFA, téléphone à 1 100). Le script
+le fait systématiquement, et `GET /api/momo/tarifs` renvoie les tarifs réellement appliqués par le
+processus en cours (`chargeLe` = date de démarrage) — c'est la vérification à faire avant d'envoyer
+le lien : `curl "$URL/api/momo/tarifs"`.
+
 Le champ `priceFcfa` du catalogue porte un **prix de test de 100 FCFA** (décidé le 05/10/2026
 pour les essais de paiement réel entre collègues ; le tarif commercial reste à arbitrer), en
 attendant le tableau de bord qui le rendra configurable ; si un prix ou des frais de livraison

@@ -71,6 +71,23 @@ describe('santé et CORS', () => {
     expect(await r.json()).toMatchObject({ ok: true, mode: 'mock' });
   });
 
+  it('expose les tarifs que ce processus appliquera (lecture seule, aucun appel MTN)', async () => {
+    await demarrer();
+    const r = await fetch(`${base}/api/momo/tarifs`);
+    expect(r.status).toBe(200);
+    const corps = (await r.json()) as {
+      env: string;
+      devise: string;
+      chargeLe: string;
+      produits: { id: string; prixFcfa: number }[];
+      villes: { id: string; fraisFcfa: number | null }[];
+    };
+    expect(corps.produits.find((p) => p.id === 'tshirt-basic')?.prixFcfa).toBe(produit('tshirt-basic')!.prixFcfa);
+    expect(corps.villes.find((v) => v.id === 'brazzaville')?.fraisFcfa).toBe(ville('brazzaville')!.fraisFcfa);
+    expect(corps.villes.find((v) => v.id === 'pointe-noire')?.fraisFcfa).toBe(ville('pointe-noire')!.fraisFcfa);
+    expect(Number.isNaN(Date.parse(corps.chargeLe))).toBe(false);
+  });
+
   it('autorise l’origine de la boutique et refuse les autres', async () => {
     await demarrer();
     const ok = await fetch(`${base}/sante`, { headers: { Origin: ORIGINE } });

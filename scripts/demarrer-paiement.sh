@@ -21,8 +21,16 @@ LOG_TUNNEL="/tmp/elembo-tunnel.log"
 CF="$HOME/bin/cloudflared"
 
 echo "=== 1. Service de paiement (production) ==="
+# On redémarre TOUJOURS : le catalogue (prix, frais de livraison) est lu au démarrage du
+# processus. Un service laissé en vie facturerait l'ancien barème — c'est exactement ce qui
+# est arrivé le 06/10 (site à 200 FCFA, téléphone débité de 1 100).
+if pgrep -f "node src/server.ts" >/dev/null 2>&1; then
+  echo "service en cours : redémarrage pour recharger le catalogue"
+  pkill -f "node src/server.ts" 2>/dev/null || true
+  sleep 1
+fi
 if curl -s --max-time 3 "http://127.0.0.1:$PORT/sante" >/dev/null; then
-  echo "déjà en écoute : $(curl -s --max-time 3 http://127.0.0.1:$PORT/sante)"
+  echo "déjà en écoute (autre processus) : $(curl -s --max-time 3 http://127.0.0.1:$PORT/sante)"
 else
   [ -f momo-service/.env.production ] || { echo "momo-service/.env.production manquant : impossible de démarrer en production."; exit 1; }
   ( cd momo-service && MOMO_ENV_FILE=.env.production nohup node src/server.ts >/tmp/elembo-momo.log 2>&1 & )

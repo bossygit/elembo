@@ -149,3 +149,23 @@ describe('validation du numéro côté navigateur', () => {
     }
   });
 });
+
+describe('adresse du service de paiement', () => {
+  it('utilise l’adresse compilée par défaut', () => {
+    expect(urlService()).toBe('http://localhost:8787');
+  });
+
+  it('privilégie l’adresse définie à l’exécution (public/api-config.js)', () => {
+    const g = globalThis as unknown as { window?: unknown };
+    try {
+      g.window = { __ELEMBO_MOMO_API_URL__: 'https://tunnel.exemple.cg/' };
+      expect(urlService()).toBe('https://tunnel.exemple.cg');
+
+      // Valeur vide : on retombe sur l'adresse compilée plutôt que d'appeler nulle part.
+      g.window = { __ELEMBO_MOMO_API_URL__: '   ' };
+      expect(urlService()).toBe('http://localhost:8787');
+    } finally {
+      delete g.window;
+    }
+  });
+});

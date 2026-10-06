@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-import { CATALOGUE, VILLES, ville } from '../src/catalogue.ts';
+import { CATALOGUE, VILLES, produit, ville } from '../src/catalogue.ts';
 import { ErreurCommande, calculerMontant, delaiJours, normaliserLignes } from '../src/pricing.ts';
 
 describe('montant recalculé côté serveur', () => {
@@ -13,9 +13,9 @@ describe('montant recalculé côté serveur', () => {
       villeId: 'brazzaville',
     });
     expect(m.quantiteTotale).toBe(5);
-    expect(m.sousTotalFcfa).toBe(25000);
+    expect(m.sousTotalFcfa).toBe(5 * produit('tshirt-basic')!.prixFcfa);
     expect(m.fraisLivraisonFcfa).toBe(1000);
-    expect(m.montantFcfa).toBe(26000);
+    expect(m.montantFcfa).toBe(5 * produit('tshirt-basic')!.prixFcfa + 1000);
     expect(m.delaiJours).toBe(1);
   });
 
@@ -27,7 +27,7 @@ describe('montant recalculé côté serveur', () => {
       villeId: 'pointe-noire',
     });
     expect(m.fraisLivraisonFcfa).toBe(2000);
-    expect(m.montantFcfa).toBe(5000 + 2000);
+    expect(m.montantFcfa).toBe(produit('tshirt-basic')!.prixFcfa + 2000);
   });
 
   it('aucune ville livrée n’a de tarif non arbitré', () => {

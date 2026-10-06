@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { creerServeur } from '../src/app.ts';
+import { produit, ville } from '../src/catalogue.ts';
 import { lireConfig, type Config } from '../src/config.ts';
 import { creerClientMock } from '../src/mock-mtn.ts';
 import type { ClientMomo, StatutPaiement } from '../src/mtn.ts';
@@ -90,7 +91,7 @@ describe('POST /api/momo/payer', () => {
     const r = await poster('/api/momo/payer', COMMANDE, { Origin: ORIGINE });
     expect(r.status).toBe(201);
     const corps = (await r.json()) as Record<string, unknown>;
-    expect(corps.montantFcfa).toBe(11000); // 2 × 5 000 + 1 000
+    expect(corps.montantFcfa).toBe(2 * produit('tshirt-basic')!.prixFcfa + ville('brazzaville')!.fraisFcfa!);
     expect(corps.statut).toBe('PENDING');
     expect(corps.quantiteTotale).toBe(2);
     expect(typeof corps.referenceId).toBe('string');
@@ -101,7 +102,7 @@ describe('POST /api/momo/payer', () => {
     await demarrer();
     const r = await poster('/api/momo/payer', { ...COMMANDE, montantFcfa: 1, total: 1 }, {});
     const corps = (await r.json()) as Record<string, unknown>;
-    expect(corps.montantFcfa).toBe(11000);
+    expect(corps.montantFcfa).toBe(2 * produit('tshirt-basic')!.prixFcfa + ville('brazzaville')!.fraisFcfa!);
   });
 
   it('refuse une commande non chiffrable (422) avec un motif lisible', async () => {
@@ -114,7 +115,9 @@ describe('POST /api/momo/payer', () => {
     // Pointe-Noire est arbitrée (2 000 FCFA) : la même commande passe.
     const pointeNoire = await poster('/api/momo/payer', { ...COMMANDE, villeId: 'pointe-noire' });
     expect(pointeNoire.status).toBe(201);
-    expect(((await pointeNoire.json()) as { montantFcfa: number }).montantFcfa).toBe(2 * 5000 + 2000);
+    expect(((await pointeNoire.json()) as { montantFcfa: number }).montantFcfa).toBe(
+      2 * produit('tshirt-basic')!.prixFcfa + ville('pointe-noire')!.fraisFcfa!,
+    );
 
     // Une ville hors zone de livraison reste refusée.
     const horsZone = await poster('/api/momo/payer', { ...COMMANDE, villeId: 'dolisie' });
@@ -157,7 +160,9 @@ describe('GET /api/momo/statut', () => {
     const seconde = await fetch(`${base}/api/momo/statut?referenceId=${referenceId}`);
     const corps = (await seconde.json()) as { statut: string; montantFcfa: number; commande: string };
     expect(corps.statut).toBe('PAYE');
-    expect(corps.montantFcfa).toBe(11000);
+    expect(corps.montantFcfa).toBe(
+      2 * produit('tshirt-basic')!.prixFcfa + ville('brazzaville')!.fraisFcfa!,
+    );
     expect(corps.commande).toBe(COMMANDE.commande);
   });
 

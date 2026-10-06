@@ -37,7 +37,12 @@ export class ErreurPaiement extends Error {
 }
 
 export function urlService(): string {
-  const configuree = (process.env.NEXT_PUBLIC_MOMO_API_URL ?? '').trim();
+  // L'adresse définie à l'exécution (public/api-config.js) est prioritaire : elle permet de
+  // changer de service — tunnel, hébergement — sans reconstruire ni redéployer le site.
+  const runtime = typeof window !== 'undefined'
+    ? (window as unknown as { __ELEMBO_MOMO_API_URL__?: string }).__ELEMBO_MOMO_API_URL__
+    : undefined;
+  const configuree = (runtime ?? process.env.NEXT_PUBLIC_MOMO_API_URL ?? '').trim();
   return (configuree || 'http://localhost:8787').replace(/\/+$/, '');
 }
 

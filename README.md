@@ -92,9 +92,26 @@ Adresse du service : variable `NEXT_PUBLIC_MOMO_API_URL` (défaut `http://localh
 service tourne séparément (voir `momo-service/README.md`) : sans lui, le bouton de paiement
 affiche « service injoignable » et le repli atelier reste utilisable.
 
-Le champ `priceFcfa` du catalogue porte un **prix de test (5 000 FCFA)**, en attendant le tableau
-de bord qui le rendra configurable ; si un prix ou des frais de livraison manquent, la commande
-est refusée avec le motif affiché plutôt que de facturer un montant inventé.
+**Essais de paiement réel entre collègues** — le service doit être joignable depuis les
+navigateurs des testeurs, donc exposé publiquement (il tourne sur une machine locale) :
+
+```bash
+bash scripts/demarrer-paiement.sh
+```
+
+Le script démarre le service en **production** (`momo-service/.env.production`), ouvre un tunnel
+`cloudflared`, puis écrit l'adresse obtenue dans `api-config.js` de la branche `gh-pages` et la
+pousse. L'application lit cette adresse **à l'exécution** (`public/api-config.js`) : rebrancher la
+boutique sur un nouveau service ne demande donc ni rebuild ni redéploiement, seulement cette
+écriture. Si l'adresse est absente ou vide, l'application retombe sur la valeur compilée.
+
+L'adresse d'un tunnel rapide change à chaque redémarrage : relancer le script suffit. La machine
+qui héberge le service doit rester allumée et éveillée (`caffeinate`, activé par le script).
+
+Le champ `priceFcfa` du catalogue porte un **prix de test de 100 FCFA** (décidé le 05/10/2026
+pour les essais de paiement réel entre collègues ; le tarif commercial reste à arbitrer), en
+attendant le tableau de bord qui le rendra configurable ; si un prix ou des frais de livraison
+manquent, la commande est refusée avec le motif affiché plutôt que de facturer un montant inventé.
 
 ### Polices
 

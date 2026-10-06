@@ -30,6 +30,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <head>
         <link rel="stylesheet" href={`${basePath}/fonts/fonts.css`} />
+        {/* Adresse du service de paiement, modifiable sans reconstruire le site
+            (voir public/api-config.js) : c'est elle qui rebranche la boutique sur
+            le tunnel courant. Absente ou vide → adresse compilée dans le bundle.
+            `defer` : la valeur n'est lue qu'au moment de payer, donc inutile de
+            bloquer l'analyse de la page (et c'est ce que la règle Next exige). */}
+        <script src={`${basePath}/api-config.js`} defer />
       </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

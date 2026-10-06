@@ -17,8 +17,11 @@ export type ProduitServeur = {
 };
 
 export const CATALOGUE: readonly ProduitServeur[] = [
-  { id: 'tshirt-basic', nom: 'T-Shirt raglan', prixFcfa: 5000 },
-  { id: 'tshirt-alt', nom: 'T-Shirt col rond', prixFcfa: 5000 },
+  // PRIX DE TEST — 100 FCFA pour les essais de paiement réel (05/10/2026). Toute
+  // modification ici doit être répercutée dans `src/lib/products/catalog.ts` : le test
+  // `tests/coherenceCatalogues.test.ts` compare les deux et échoue sinon.
+  { id: 'tshirt-basic', nom: 'T-Shirt raglan', prixFcfa: 100 },
+  { id: 'tshirt-alt', nom: 'T-Shirt col rond', prixFcfa: 100 },
 ];
 
 export type VilleServeur = {

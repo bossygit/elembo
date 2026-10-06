@@ -80,8 +80,17 @@ describe('livraison', () => {
     expect(deliveryOption('brazzaville').feeFcfa).toBe(1000);
   });
 
-  it('laisse Pointe-Noire « à confirmer » plutôt que d’inventer un tarif', () => {
-    expect(deliveryOption('pointe-noire').feeFcfa).toBeNull();
+  it('facture 2 000 FCFA pour Pointe-Noire', () => {
+    expect(deliveryOption('pointe-noire').feeFcfa).toBe(2000);
+  });
+
+  it('aucune ville livrée n’affiche un tarif non arbitré', () => {
+    // L'invariant du projet : un montant qui n'est pas arbitré doit manquer (null) plutôt
+    // qu'être inventé. Ce test échoue si une ville est ajoutée sans tarif.
+    for (const ville of DELIVERY) {
+      expect(ville.feeFcfa).not.toBeNull();
+      expect(ville.feeFcfa ?? 0).toBeGreaterThan(0);
+    }
   });
 
   it('annonce un délai qui varie avec la quantité, sans jamais dépasser 3 jours', () => {
@@ -118,12 +127,16 @@ describe('récapitulatif de commande (FCFA)', () => {
     expect(sansPrix.totalFcfa).toBeNull();
     expect(sansPrix.blockedBy.join(' ')).toContain('prix unitaire');
 
-    const pn = orderTotals({ lines: LIGNES, unitPriceFcfa: 5000, city: 'pointe-noire' });
-    expect(pn.totalFcfa).toBeNull();
-    expect(pn.blockedBy.join(' ')).toContain('Pointe-Noire');
-
     const vide = orderTotals({ lines: [], unitPriceFcfa: 5000, city: 'brazzaville' });
     expect(vide.blockedBy.join(' ')).toContain('quantité');
+  });
+
+  it('totalise la commande pour Pointe-Noire avec ses frais', () => {
+    const pn = orderTotals({ lines: LIGNES, unitPriceFcfa: 5000, city: 'pointe-noire' });
+    expect(pn.shippingFcfa).toBe(2000);
+    expect(pn.itemsSubtotalFcfa).toBe(25000);
+    expect(pn.totalFcfa).toBe(27000);
+    expect(pn.blockedBy).toEqual([]);
   });
 
   it('formate les montants en FCFA', () => {

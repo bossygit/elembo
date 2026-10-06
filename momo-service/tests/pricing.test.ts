@@ -19,11 +19,24 @@ describe('montant recalculé côté serveur', () => {
     expect(m.delaiJours).toBe(1);
   });
 
-  it('refuse une ville dont les frais ne sont pas arbitrés (Pointe-Noire)', () => {
-    expect(ville('pointe-noire')?.fraisFcfa).toBeNull();
-    expect(() =>
-      calculerMontant({ produitId: 'tshirt-basic', lignes: [{ taille: 'M', quantite: 1 }], villeId: 'pointe-noire' }),
-    ).toThrow(/frais de livraison/);
+  it('facture les frais arbitrés de Pointe-Noire', () => {
+    expect(ville('pointe-noire')?.fraisFcfa).toBe(2000);
+    const m = calculerMontant({
+      produitId: 'tshirt-basic',
+      lignes: [{ taille: 'M', quantite: 1 }],
+      villeId: 'pointe-noire',
+    });
+    expect(m.fraisLivraisonFcfa).toBe(2000);
+    expect(m.montantFcfa).toBe(5000 + 2000);
+  });
+
+  it('aucune ville livrée n’a de tarif non arbitré', () => {
+    // Ceinture de sécurité : une ville ajoutée sans tarif ferait échouer ce test au lieu
+    // de laisser le service facturer un montant inventé.
+    for (const v of VILLES) {
+      expect(v.fraisFcfa).not.toBeNull();
+      expect(v.fraisFcfa ?? 0).toBeGreaterThan(0);
+    }
   });
 
   it('refuse un produit, une ville ou une taille inconnus', () => {

@@ -19,9 +19,11 @@ import { resolveFont } from '../fonts';
 /* -------------------------------------------------------------- livraison ------ */
 
 /**
- * Villes desservies. Brazzaville : 1 000 FCFA (tarif confirmé). Pointe-Noire : tarif à
- * confirmer — la commande est bloquée tant qu'il n'est pas défini, plutôt que d'inventer
- * un montant que le client paierait.
+ * Villes desservies, tarifs arbitrés : Brazzaville 1 000 FCFA, Pointe-Noire 2 000 FCFA,
+ * livraison en 3 jours maximum. `feeFcfa: null` reste possible pour une ville dont le tarif
+ * n'est pas encore fixé : la commande est alors bloquée au lieu d'être facturée au hasard.
+ * Les mêmes montants existent côté serveur (`momo-service/src/catalogue.ts`) et le test
+ * `tests/coherenceCatalogues.test.ts` échoue dès que les deux divergent.
  */
 export type DeliveryCity = 'brazzaville' | 'pointe-noire';
 
@@ -36,7 +38,7 @@ export type DeliveryOption = {
 
 export const DELIVERY: DeliveryOption[] = [
   { city: 'brazzaville', label: 'Brazzaville', feeFcfa: 1000, maxDays: 3 },
-  { city: 'pointe-noire', label: 'Pointe-Noire', feeFcfa: null, maxDays: 3 },
+  { city: 'pointe-noire', label: 'Pointe-Noire', feeFcfa: 2000, maxDays: 3 },
 ];
 
 export function deliveryOption(city: DeliveryCity): DeliveryOption {

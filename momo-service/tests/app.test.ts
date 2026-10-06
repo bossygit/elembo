@@ -111,9 +111,15 @@ describe('POST /api/momo/payer', () => {
     expect(sansPieces.status).toBe(422);
     expect(String(((await sansPieces.json()) as { erreur: string }).erreur)).toMatch(/aucune pièce/);
 
+    // Pointe-Noire est arbitrée (2 000 FCFA) : la même commande passe.
     const pointeNoire = await poster('/api/momo/payer', { ...COMMANDE, villeId: 'pointe-noire' });
-    expect(pointeNoire.status).toBe(422);
-    expect(String(((await pointeNoire.json()) as { erreur: string }).erreur)).toMatch(/frais de livraison/);
+    expect(pointeNoire.status).toBe(201);
+    expect(((await pointeNoire.json()) as { montantFcfa: number }).montantFcfa).toBe(2 * 5000 + 2000);
+
+    // Une ville hors zone de livraison reste refusée.
+    const horsZone = await poster('/api/momo/payer', { ...COMMANDE, villeId: 'dolisie' });
+    expect(horsZone.status).toBe(422);
+    expect(String(((await horsZone.json()) as { erreur: string }).erreur)).toMatch(/Ville inconnue/);
 
     // En sandbox, un numéro ordinaire est accepté (tout numéro réussit chez MTN) : pour obtenir un
     // 422 il faut un numéro manifestement inexploitable. La règle congolaise stricte, elle, est

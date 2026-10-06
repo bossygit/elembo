@@ -43,10 +43,10 @@ describe('demande de paiement', () => {
 
   it('remonte le motif de refus renvoyé par le service', async () => {
     const fetchFactice = (async () =>
-      reponse({ erreur: 'Les frais de livraison pour Pointe-Noire ne sont pas définis : commande refusée.' }, 422)) as unknown as typeof fetch;
+      reponse({ erreur: 'Ville inconnue : Dolisie.' }, 422)) as unknown as typeof fetch;
 
-    await expect(demanderPaiement({ ...DEMANDE, villeId: 'pointe-noire' }, fetchFactice)).rejects.toThrow(
-      /Pointe-Noire/,
+    await expect(demanderPaiement({ ...DEMANDE, villeId: 'dolisie' }, fetchFactice)).rejects.toThrow(
+      /Ville inconnue/,
     );
     await expect(demanderPaiement(DEMANDE, fetchFactice)).rejects.toBeInstanceOf(ErreurPaiement);
   });

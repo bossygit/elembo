@@ -6,8 +6,8 @@
  * lieu de facturer un montant inventé.
  *
  * Ces valeurs doivent correspondre à celles de l'application (`src/lib/products/catalog.ts` et
- * `src/lib/order/order.ts`) ; le test `tests/catalogue.test.ts` compare les deux fichiers et
- * échoue à la moindre divergence.
+ * `src/lib/order/order.ts`) ; le test `tests/coherenceCatalogues.test.ts` importe les deux
+ * sources et échoue à la moindre divergence de prix ou de frais de livraison.
  */
 
 export type ProduitServeur = {
@@ -30,8 +30,8 @@ export type VilleServeur = {
 
 export const VILLES: readonly VilleServeur[] = [
   { id: 'brazzaville', nom: 'Brazzaville', fraisFcfa: 1000, delaiMaxJours: 3 },
-  // Tarif non arbitré : la commune refusera la commande (fraisFcfa === null).
-  { id: 'pointe-noire', nom: 'Pointe-Noire', fraisFcfa: null, delaiMaxJours: 3 },
+  { id: 'pointe-noire', nom: 'Pointe-Noire', fraisFcfa: 2000, delaiMaxJours: 3 },
+  // Une ville dont le tarif n'est pas arbitré porterait fraisFcfa: null et serait refusée.
 ];
 
 /** Aucune livraison n'est annoncée au-delà de trois jours, quelle que soit la quantité. */

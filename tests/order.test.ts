@@ -76,12 +76,12 @@ const LIGNES: SizeLine[] = [
 ];
 
 describe('livraison', () => {
-  it('facture 1 000 FCFA pour Brazzaville', () => {
-    expect(deliveryOption('brazzaville').feeFcfa).toBe(1000);
+  it('facture 100 FCFA de livraison pour Brazzaville (prix de test)', () => {
+    expect(deliveryOption('brazzaville').feeFcfa).toBe(100);
   });
 
-  it('facture 2 000 FCFA pour Pointe-Noire', () => {
-    expect(deliveryOption('pointe-noire').feeFcfa).toBe(2000);
+  it('facture 100 FCFA de livraison pour Pointe-Noire (prix de test)', () => {
+    expect(deliveryOption('pointe-noire').feeFcfa).toBe(100);
   });
 
   it('aucune ville livrée n’affiche un tarif non arbitré', () => {
@@ -117,8 +117,8 @@ describe('récapitulatif de commande (FCFA)', () => {
     const t = orderTotals({ lines: LIGNES, unitPriceFcfa: 5000, city: 'brazzaville' });
     expect(t.quantity).toBe(5);
     expect(t.itemsSubtotalFcfa).toBe(25000);
-    expect(t.shippingFcfa).toBe(1000);
-    expect(t.totalFcfa).toBe(26000);
+    expect(t.shippingFcfa).toBe(deliveryOption('brazzaville').feeFcfa);
+    expect(t.totalFcfa).toBe(t.itemsSubtotalFcfa! + t.shippingFcfa!);
     expect(t.blockedBy).toEqual([]);
   });
 
@@ -133,9 +133,9 @@ describe('récapitulatif de commande (FCFA)', () => {
 
   it('totalise la commande pour Pointe-Noire avec ses frais', () => {
     const pn = orderTotals({ lines: LIGNES, unitPriceFcfa: 5000, city: 'pointe-noire' });
-    expect(pn.shippingFcfa).toBe(2000);
+    expect(pn.shippingFcfa).toBe(deliveryOption('pointe-noire').feeFcfa);
     expect(pn.itemsSubtotalFcfa).toBe(25000);
-    expect(pn.totalFcfa).toBe(27000);
+    expect(pn.totalFcfa).toBe(pn.itemsSubtotalFcfa! + pn.shippingFcfa!);
     expect(pn.blockedBy).toEqual([]);
   });
 

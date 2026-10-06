@@ -70,10 +70,12 @@ Le tunnel de commande transforme un design validé en **dossier de production** 
 
 - **Validation** : aperçu de chaque face personnalisée (ce que le client voit est ce qui sera
   imprimé), tailles et quantités, ville de livraison, récapitulatif FCFA.
-- **Livraison** : Brazzaville 1 000 FCFA, Pointe-Noire 2 000 FCFA (tarifs arbitrés) ; le délai
-  varie avec la quantité mais **ne dépasse jamais 3 jours**. Une ville dont le tarif n'est pas
-  fixé bloque la validation de la commande plutôt que d'afficher un montant inventé — les deux
-  sources de prix (application et service MoMo) sont comparées par `tests/coherenceCatalogues.test.ts`.
+- **Livraison** : **100 FCFA** par commande pour Brazzaville comme pour Pointe-Noire — prix de
+  test décidé le 06/10/2026 pour les essais de paiement réel (tarifs arbitrés à rétablir :
+  Brazzaville 1 000, Pointe-Noire 2 000) ; le délai varie avec la quantité mais **ne dépasse
+  jamais 3 jours**. Une ville dont le tarif n'est pas fixé bloque la validation de la commande
+  plutôt que d'afficher un montant inventé — les deux sources de prix (application et service
+  MoMo) sont comparées par `tests/coherenceCatalogues.test.ts`.
 - **Fichiers générés** : un **PNG 300 dpi par face réellement personnalisée** (avant, arrière)
   et une **fiche de production** (`.txt` pour WhatsApp/e-mail + `.json` pour la traçabilité)
   contenant, pour chaque élément : type, contenu, police et corps en cm, couleur, alignement,

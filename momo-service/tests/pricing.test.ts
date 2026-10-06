@@ -14,20 +14,20 @@ describe('montant recalculé côté serveur', () => {
     });
     expect(m.quantiteTotale).toBe(5);
     expect(m.sousTotalFcfa).toBe(5 * produit('tshirt-basic')!.prixFcfa);
-    expect(m.fraisLivraisonFcfa).toBe(1000);
-    expect(m.montantFcfa).toBe(5 * produit('tshirt-basic')!.prixFcfa + 1000);
+    expect(m.fraisLivraisonFcfa).toBe(ville('brazzaville')!.fraisFcfa);
+    expect(m.montantFcfa).toBe(m.sousTotalFcfa + m.fraisLivraisonFcfa);
     expect(m.delaiJours).toBe(1);
   });
 
-  it('facture les frais arbitrés de Pointe-Noire', () => {
-    expect(ville('pointe-noire')?.fraisFcfa).toBe(2000);
+  it('facture les frais de livraison de Pointe-Noire', () => {
+    expect(ville('pointe-noire')?.fraisFcfa).toBe(100); // prix de test (tarif arbitré : 2 000)
     const m = calculerMontant({
       produitId: 'tshirt-basic',
       lignes: [{ taille: 'M', quantite: 1 }],
       villeId: 'pointe-noire',
     });
-    expect(m.fraisLivraisonFcfa).toBe(2000);
-    expect(m.montantFcfa).toBe(produit('tshirt-basic')!.prixFcfa + 2000);
+    expect(m.fraisLivraisonFcfa).toBe(ville('pointe-noire')!.fraisFcfa);
+    expect(m.montantFcfa).toBe(produit('tshirt-basic')!.prixFcfa + ville('pointe-noire')!.fraisFcfa!);
   });
 
   it('aucune ville livrée n’a de tarif non arbitré', () => {

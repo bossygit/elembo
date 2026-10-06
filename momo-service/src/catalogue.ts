@@ -32,8 +32,10 @@ export type VilleServeur = {
 };
 
 export const VILLES: readonly VilleServeur[] = [
-  { id: 'brazzaville', nom: 'Brazzaville', fraisFcfa: 1000, delaiMaxJours: 3 },
-  { id: 'pointe-noire', nom: 'Pointe-Noire', fraisFcfa: 2000, delaiMaxJours: 3 },
+  // PRIX DE TEST : 100 FCFA de livraison pour les deux villes (essais de paiement réel,
+  // 06/10/2026). Tarifs arbitrés à rétablir ensuite : Brazzaville 1 000, Pointe-Noire 2 000.
+  { id: 'brazzaville', nom: 'Brazzaville', fraisFcfa: 100, delaiMaxJours: 3 },
+  { id: 'pointe-noire', nom: 'Pointe-Noire', fraisFcfa: 100, delaiMaxJours: 3 },
   // Une ville dont le tarif n'est pas arbitré porterait fraisFcfa: null et serait refusée.
 ];
 

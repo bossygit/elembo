@@ -112,7 +112,7 @@ describe('POST /api/momo/payer', () => {
     expect(sansPieces.status).toBe(422);
     expect(String(((await sansPieces.json()) as { erreur: string }).erreur)).toMatch(/aucune pièce/);
 
-    // Pointe-Noire est arbitrée (2 000 FCFA) : la même commande passe.
+    // Pointe-Noire est livrable comme Brazzaville (frais de test) : la même commande passe.
     const pointeNoire = await poster('/api/momo/payer', { ...COMMANDE, villeId: 'pointe-noire' });
     expect(pointeNoire.status).toBe(201);
     expect(((await pointeNoire.json()) as { montantFcfa: number }).montantFcfa).toBe(

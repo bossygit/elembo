@@ -210,8 +210,12 @@ describe('fiche de production', () => {
     expect(sheet.faces[0].pixels).toEqual({ w: 2480, h: 3543 }); // 21 × 30 cm à 300 dpi
     expect(sheet.faces[0].zoneCm).toEqual({ w: 21, h: 30 });
     expect(sheet.tailleEtQuantite.total).toBe(5);
-    expect(sheet.livraison).toMatchObject({ ville: 'Brazzaville', fraisFcfa: 1000, delaiJours: 1 });
-    expect(sheet.paiement).toMatchObject({ moyen: 'MTN Mobile Money (MoMo)', devise: 'FCFA', montantFcfa: 26000 });
+    expect(sheet.livraison).toMatchObject({ ville: 'Brazzaville', fraisFcfa: 100, delaiJours: 1 });
+    expect(sheet.paiement).toMatchObject({
+      moyen: 'MTN Mobile Money (MoMo)',
+      devise: 'FCFA',
+      montantFcfa: 5 * 5000 + 100, // 5 pièces à 5 000 (fixture) + livraison de test
+    });
     expect(sheet.consignes.length).toBeGreaterThan(2);
   });
 
@@ -223,8 +227,10 @@ describe('fiche de production', () => {
     expect(txt).toContain('Montserrat');
     expect(txt).toContain('cm du bord gauche');
     expect(txt).toContain('Brazzaville');
-    expect(txt).toContain('1 000 FCFA');
-    expect(txt).toContain('26 000 FCFA');
+    // Les montants de la fiche suivent le catalogue : on les recalcule plutôt que de figer
+    // un tarif de test (100 FCFA aujourd'hui, tarif commercial rétabli plus tard).
+    expect(txt).toContain(formatFcfa(sheet.livraison.fraisFcfa));
+    expect(txt).toContain(formatFcfa(sheet.paiement.montantFcfa));
     expect(txt).toContain('DTF');
   });
 
@@ -246,6 +252,6 @@ describe('le catalogue permet de commander', () => {
   it('une pièce du produit par défaut donne un total validable', () => {
     const t = orderTotals({ lines: [{ size: 'M', quantity: 1 }], unitPriceFcfa: product.priceFcfa ?? null, city: 'brazzaville' });
     expect(t.blockedBy).toEqual([]);
-    expect(t.totalFcfa).toBe((product.priceFcfa ?? 0) + 1000);
+    expect(t.totalFcfa).toBe((product.priceFcfa ?? 0) + deliveryOption('brazzaville').feeFcfa!);
   });
 });

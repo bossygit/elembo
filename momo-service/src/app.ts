@@ -21,9 +21,9 @@ import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import { ErreurConfig, type Config } from './config.ts';
-import { CATALOGUE, VILLES } from './catalogue.ts';
+import { CATALOGUE, FORMATS_TABLEAU, PALIERS_TABLEAU, VILLES } from './catalogue.ts';
 import { ErreurTelephone, masquerMsisdn, normaliserMsisdn } from './msisdn.ts';
-import { ErreurCommande, calculerMontant, type Ligne } from './pricing.ts';
+import { ErreurCommande, calculerMontant, type Ligne, type LigneTableau, type Montant } from './pricing.ts';
 import { ErreurMomo, type ClientMomo } from './mtn.ts';
 import type { StoreTransactions } from './store.ts';
 
@@ -42,6 +42,8 @@ type PayloadPayer = {
   commande?: string;
   produitId?: string;
   lignes?: Ligne[];
+  /** Produit « tableau » : une ligne par format (monté ou toile seule). */
+  tableaux?: LigneTableau[];
   villeId?: string;
   telephone?: string;
 };
@@ -105,6 +107,17 @@ function referenceDuCallback(url: URL, corps: unknown): string | null {
   return null;
 }
 
+/** Résumé lisible de la commande, conservé avec la transaction (traçabilité atelier). */
+function detailCommande(montant: Montant): string | undefined {
+  if (!montant.lignesTableaux?.length) return undefined;
+  return montant.lignesTableaux
+    .map(
+      (l) =>
+        `${l.formatLibelle} ${l.support === 'chassis' ? 'monté sur châssis' : 'toile seule'} ×${l.quantite}${l.remisePct ? ` (−${l.remisePct} %)` : ''}`,
+    )
+    .join(' + ');
+}
+
 export function creerServeur(deps: Dependances) {
   const { config, client, store } = deps;
   const journal = deps.journal ?? ((ligne: string) => console.log(ligne));
@@ -145,6 +158,17 @@ export function creerServeur(deps: Dependances) {
             fraisFcfa: v.fraisFcfa,
             delaiMaxJours: v.delaiMaxJours,
           })),
+          tableaux: {
+            formats: FORMATS_TABLEAU.map((f) => ({
+              id: f.id,
+              libelle: f.libelle,
+              largeurCm: f.largeurCm,
+              hauteurCm: f.hauteurCm,
+              prixToileSeuleFcfa: f.prixToileSeuleFcfa,
+              prixChassisFcfa: f.prixChassisFcfa,
+            })),
+            paliers: PALIERS_TABLEAU.map((p) => ({ aPartirDe: p.aPartirDe, remisePct: p.remisePct })),
+          },
         }, cors);
         return;
       }
@@ -159,6 +183,7 @@ export function creerServeur(deps: Dependances) {
         const montant = calculerMontant({
           produitId: String(corps.produitId ?? ''),
           lignes: corps.lignes ?? [],
+          tableaux: corps.tableaux ?? [],
           villeId: String(corps.villeId ?? ''),
         });
 
@@ -171,6 +196,7 @@ export function creerServeur(deps: Dependances) {
           referenceId,
           commande,
           produitId: String(corps.produitId ?? ''),
+          detail: detailCommande(montant),
           montantFcfa: montant.montantFcfa,
           montantEnvoye,
           devise: config.devise,
@@ -208,6 +234,7 @@ export function creerServeur(deps: Dependances) {
             devise: config.devise,
             quantiteTotale: montant.quantiteTotale,
             delaiJours: montant.delaiJours,
+            lignesTableaux: montant.lignesTableaux ?? [],
           },
           cors,
         );

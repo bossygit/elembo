@@ -23,6 +23,8 @@ export type DemandePaiement = {
   commande: string;
   produitId: string;
   lignes: { taille: string; quantite: number }[];
+  /** Produit « tableau » : une ligne par format (le service recalcule, comme pour le textile). */
+  tableaux?: { formatId: string; support: string; quantite: number }[];
   villeId: string;
   telephone: string;
 };

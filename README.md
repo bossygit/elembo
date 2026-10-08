@@ -177,6 +177,40 @@ modèles qui réserveraient une zone d'impression ; le placeholder
 `tshirt-placeholder.glb` (`node scripts/gen-tshirt-glb.mjs`) l'exerce et sert aux tests.
 Détails et procédure d'ajout d'un modèle : `public/models/README.md`.
 
+## Tableaux (impression canvas) — phase 1 du catalogue
+
+Le tableau est le premier produit **à formats** : la zone d'impression n'est pas fixe, elle est
+recalculée selon le format choisi par le client, et le prix suit ce format.
+
+| Format | Toile seule | Monté sur châssis |
+|---|---|---|
+| 20 × 30 cm | 5 000 | 7 500 |
+| 30 × 40 cm | 7 000 | 11 000 |
+| 40 × 60 cm | 10 500 | 17 500 |
+| 50 × 70 cm | 13 500 | 23 000 |
+| 60 × 90 cm | 19 500 | 33 000 |
+
+Prix en FCFA, TTC. **Barème provisoire** : il est calculé (surface imprimée + montage + préparation,
+arrondi au multiple de 500 FCFA supérieur), pas relevé sur le marché. Pour l'ajuster, modifier
+`TARIFS` dans `src/lib/products/tableaux.ts` **et** `FORMATS_TABLEAU` dans
+`momo-service/src/catalogue.ts` — `tests/coherenceCatalogues.test.ts` échoue si les deux divergent.
+
+- **Remise de quantité par ligne** : 0 % (1), 5 % (2), 10 % (5), 15 % (10 et plus).
+- **Conseil de format** : la plateforme calcule la densité de la photo sur chaque format et annonce
+  « votre photo convient jusqu'à … », avec un bouton pour basculer directement dessus. Une photo de
+  téléphone de 2 Mpx plafonne au 20 × 30 ; en dessous du seuil, la commande est signalée comme à
+  risque sans être bloquée.
+- **Aperçu à l'échelle** : la photo d'ambiance (`public/mockups/tableau-salon.png`, 1400 × 1400,
+  carrée) contient un cadre d'affichage de 48 × 50 % ; `zonePourFormat()` y inscrit le rectangle au
+  ratio exact du format. L'image est carrée exprès : dans une image carrée, une fraction de largeur
+  et une fraction de hauteur valent la même distance en pixels, donc les ratios calculés sur les
+  fractions sont exacts (c'est ce que vérifie `tests/printPhysics.test.ts`).
+- **Fichier d'impression** : après paiement, le visuel est régénéré SEUL (sans la pièce) au format
+  physique du tableau, à 150 dpi (`src/lib/canvas/exportZone.ts`).
+- **Commande** : `produitId: 'tableau'` + `tableaux: [{ formatId, support, quantite }]`. Le service
+  recalcule le montant comme pour le textile ; le détail de la commande est conservé dans la
+  transaction (`detail`).
+
 ## Développement
 
 ```bash

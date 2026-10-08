@@ -10,7 +10,8 @@ import { describe, expect, it } from 'vitest';
 
 import { CATALOG, PLACEHOLDER_PRODUCT } from '../src/lib/products/catalog';
 import { DELIVERY } from '../src/lib/order/order';
-import { CATALOGUE, VILLES } from '../momo-service/src/catalogue';
+import { FORMATS, PALIERS, formatParId, prixUnitaireFcfa } from '../src/lib/products/tableaux';
+import { CATALOGUE, FORMATS_TABLEAU, PALIERS_TABLEAU, VILLES } from '../momo-service/src/catalogue';
 
 /** Produits réellement commandables : le produit de démonstration (uv/placeholder) n'en fait pas partie. */
 const produitsVendables = CATALOG.filter((p) => p.id !== PLACEHOLDER_PRODUCT.id);
@@ -46,5 +47,32 @@ describe('prix du catalogue — navigateur et service identiques', () => {
 
     const villesApp = new Set<string>(DELIVERY.map((v) => v.city));
     for (const v of VILLES) expect(villesApp.has(v.id), `ville serveur inconnue de l’application : ${v.id}`).toBe(true);
+  });
+});
+
+describe('prix des tableaux — navigateur et service identiques', () => {
+  it('propose exactement les mêmes formats, dans le même ordre', () => {
+    expect(FORMATS_TABLEAU.map((f) => f.id)).toEqual(FORMATS.map((f) => f.id));
+    for (const f of FORMATS) {
+      const serveur = FORMATS_TABLEAU.find((s) => s.id === f.id);
+      expect(serveur, `format absent du catalogue serveur : ${f.id}`).toBeDefined();
+      expect(serveur!.largeurCm).toBe(f.largeurCm);
+      expect(serveur!.hauteurCm).toBe(f.hauteurCm);
+    }
+  });
+
+  it('le prix recalculé par le navigateur est celui du serveur (toile seule et châssis)', () => {
+    for (const f of FORMATS) {
+      const local = formatParId(f.id)!;
+      const serveur = FORMATS_TABLEAU.find((s) => s.id === f.id)!;
+      expect(prixUnitaireFcfa(local, 'toile-seule'), `toile seule ${f.id}`).toBe(
+        serveur.prixToileSeuleFcfa,
+      );
+      expect(prixUnitaireFcfa(local, 'chassis'), `châssis ${f.id}`).toBe(serveur.prixChassisFcfa);
+    }
+  });
+
+  it('applique les mêmes paliers de quantité des deux côtés', () => {
+    expect(PALIERS_TABLEAU.map((p) => ({ ...p }))).toEqual(PALIERS.map((p) => ({ ...p })));
   });
 });

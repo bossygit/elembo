@@ -139,4 +139,52 @@ const SHADOW = [0x05, 0x15, 0x1b]; // utilisé en alpha faible
   c.save('tableau-mural.png');
 }
 
+// ---------- 4. Tableau dans un salon (1400×1400, carré) ----------
+// Photo d'ambiance des tableaux à formats : la zone d'impression n'est PAS fixe, elle est
+// recalculée selon le format choisi (voir zonePourFormat dans lib/products/tableaux.ts).
+// Le cadre d'affichage est donc la seule référence : {x:0.26, y:0.14, w:0.48, h:0.5}
+// → px 364..1036 en largeur, 196..896 en hauteur.
+//
+// L'image est volontairement CARRÉE : dans une image carrée, une fraction de largeur et une
+// fraction de hauteur représentent la même distance en pixels, donc les ratios calculés sur les
+// fractions sont exacts — c'est ce qui garantit qu'un 30×40 s'affiche en 30×40.
+{
+  const W = 1400;
+  const H = 1400;
+  const MUR = [0xf1, 0xec, 0xe4]; // mur chaud
+  const SOL = [0xdc, 0xd0, 0xbf]; // parquet clair
+  const BOIS = [0x8a, 0x6a, 0x4d]; // meuble / cadre
+  const TISSU = [0x2f, 0x3a, 0x44]; // canapé
+  const TISSU2 = [0x3a, 0x47, 0x53]; // coussin
+  const VERT = [0x3f, 0x6b, 0x4f]; // plante
+  const POT = [0xb5, 0x6a, 0x4a];
+
+  const c = makeCanvas(W, H, MUR);
+  // plinthes et sol
+  c.rect(0, 1036, W, 1052, [0xe6, 0xe0, 0xd6]);
+  c.rect(0, 1052, W, H, SOL);
+
+  // canapé (assise + dossier + deux coussins + pieds)
+  c.rect(250, 1080, 1150, 1290, TISSU); // assise
+  c.rect(250, 1180, 1150, 1300, TISSU); // base
+  c.rect(300, 1120, 640, 1195, TISSU2); // coussin gauche
+  c.rect(760, 1120, 1100, 1195, TISSU2); // coussin droit
+  c.rect(300, 1300, 340, 1330, BOIS); // pied gauche
+  c.rect(1060, 1300, 1100, 1330, BOIS); // pied droit
+
+  // plante à gauche
+  c.rect(90, 1150, 230, 1290, POT);
+  c.rect(120, 1010, 200, 1150, VERT);
+  c.rect(60, 1080, 130, 1160, VERT);
+  c.rect(190, 1050, 270, 1140, VERT);
+
+  // lampe à droite
+  c.rect(1230, 1180, 1260, 1300, BOIS);
+  c.rect(1180, 1090, 1310, 1180, [0xf3, 0xed, 0xd8]);
+
+  // léger voile marquant la zone d'affichage disponible (repère de calage, très discret)
+  c.rect(364, 196, 1036, 896, SHADOW, 6);
+  c.save('tableau-salon.png');
+}
+
 console.log('Mockups générés.');

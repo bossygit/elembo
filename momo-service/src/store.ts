@@ -19,6 +19,8 @@ export type Transaction = {
   referenceId: string;
   commande: string;
   produitId: string;
+  /** Résumé lisible de ce qui a été commandé (formats de tableaux, tailles…). */
+  detail?: string;
   montantFcfa: number;
   montantEnvoye: string;
   devise: string;

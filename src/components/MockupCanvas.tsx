@@ -90,6 +90,18 @@ export default function MockupCanvas({
         const zw = product.zone.w * W;
         const zh = product.zone.h * H;
 
+        // Tableau accroché au mur : la toile (rect blanche + ombre portée) est peinte avant le
+        // visuel, sinon un visuel qui ne remplit pas la zone flotterait dans le vide.
+        if (product.ombreCadre && des) {
+          ctx.save();
+          ctx.shadowColor = 'rgba(5, 21, 27, 0.38)';
+          ctx.shadowBlur = Math.max(6, W / 70);
+          ctx.shadowOffsetY = Math.max(2, W / 240);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(zx, zy, zw, zh);
+          ctx.restore();
+        }
+
         if (des) {
           const rect = computePrintRect(des.width, des.height, W, H, product.zone, fitMode);
           const p = computePlacement(rect, product.zone, W, H, scale, offset);

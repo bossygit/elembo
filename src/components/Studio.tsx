@@ -7,10 +7,13 @@ import { useRef, useState } from 'react';
 import { PRODUCTS } from '../lib/products';
 import type { ProductDef } from '../lib/products';
 import type { FitMode } from '../lib/printArea';
+import { formatParId, zoneCmPourFormat, zonePourFormat } from '../lib/products/tableaux';
+import type { TableauFormatId, TableauOrientation } from '../lib/products/tableaux';
 import UploadZone, { type Design } from './UploadZone';
 import MockupCanvas from './MockupCanvas';
 import DesignControls from './DesignControls';
 import DownloadButton from './DownloadButton';
+import TableauPanel from './TableauPanel';
 
 export default function Studio() {
   const [product, setProduct] = useState<ProductDef>(PRODUCTS[0]);
@@ -20,8 +23,22 @@ export default function Studio() {
   const [rotation, setRotation] = useState(0);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [showZones, setShowZones] = useState(false);
+  const [formatId, setFormatId] = useState<TableauFormatId>('30x40');
+  const [orientation, setOrientation] = useState<TableauOrientation>('portrait');
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const dragRef = useRef<{ id: number; lastX: number; lastY: number } | null>(null);
+
+  const estTableau = Boolean(product.formatDefaut);
+  const formatTableau = formatParId(formatId)!;
+  // Pour un produit à formats (tableau), la zone ET sa taille physique dépendent du format :
+  // c'est ce couple qui garantit un aperçu à l'échelle et une impression non déformée.
+  const produitEffectif: ProductDef = estTableau
+    ? {
+        ...product,
+        zone: zonePourFormat(formatTableau, orientation),
+        zoneCm: zoneCmPourFormat(formatTableau, orientation),
+      }
+    : product;
 
   function onPointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!design) return;
@@ -42,8 +59,8 @@ export default function Studio() {
     const dy = e.clientY - drag.lastY;
     drag.lastX = e.clientX;
     drag.lastY = e.clientY;
-    const zoneW = product.zone.w * canvas.width;
-    const zoneH = product.zone.h * canvas.height;
+    const zoneW = produitEffectif.zone.w * canvas.width;
+    const zoneH = produitEffectif.zone.h * canvas.height;
     const zoneScale = canvas.width / (canvas.clientWidth || canvas.width); // px canvas par px CSS
     setOffset((o) => ({
       // offset en fraction de zone, borné pour ne jamais perdre le design
@@ -80,6 +97,10 @@ export default function Studio() {
                   onClick={() => {
                     setProduct(p);
                     setOffset({ x: 0, y: 0 });
+                    if (p.formatDefaut) {
+                      setFormatId(p.formatDefaut.formatId);
+                      setOrientation(p.formatDefaut.orientation);
+                    }
                   }}
                   className={`flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-medium transition-colors ${
                     product.id === p.id
@@ -112,7 +133,7 @@ export default function Studio() {
             3. Votre mockup en direct
           </h2>
           <MockupCanvas
-            product={product}
+            product={produitEffectif}
             design={design}
             scale={scale}
             fitMode={fitMode}
@@ -168,6 +189,23 @@ export default function Studio() {
           />
         </div>
       </div>
+
+      {/* Tableaux : format, montage, quantité et paiement — le format choisi pilote la zone
+          d'aperçu ci-dessus (aperçu à l'échelle du format). */}
+      {estTableau && (
+        <TableauPanel
+          design={design}
+          formatId={formatId}
+          orientation={orientation}
+          onFormatId={setFormatId}
+          onOrientation={setOrientation}
+          zone={produitEffectif.zone}
+          scale={scale}
+          fitMode={fitMode}
+          rotation={rotation}
+          offset={offset}
+        />
+      )}
     </section>
   );
 }

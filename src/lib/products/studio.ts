@@ -2,6 +2,9 @@
 // Une zone est relative à la PHOTO de mockup (0..1) : {x, y} = coin haut-gauche,
 // {w, h} = taille. Le rendu convertit en pixels canvas via printArea.ts.
 
+import { formatParId, zonePourFormat } from './tableaux';
+import type { TableauFormatId, TableauOrientation } from './tableaux';
+
 export type Zone = { x: number; y: number; w: number; h: number };
 
 export type ProductDef = {
@@ -11,6 +14,14 @@ export type ProductDef = {
   zone: Zone; // zone d'impression normalisée 0..1
   zoneCm: { w: number; h: number }; // taille physique IMPRIMABLE de la zone (cm) — sert au calcul des dpi
   accent: string; // couleur d'accent UI (aplats, pas de dégradés)
+  /**
+   * Produit décliné en FORMATS (les tableaux) : la zone d'impression est recalculée selon le
+   * format choisi par le client (`zonePourFormat`), et `zone`/`zoneCm` ci-dessus décrivent
+   * seulement le format affiché par défaut. Sans ce champ, le produit a une zone unique.
+   */
+  formatDefaut?: { formatId: TableauFormatId; orientation: TableauOrientation };
+  /** Dessine une ombre douce derrière la zone : objet accroché à un mur plutôt que porté. */
+  ombreCadre?: boolean;
 };
 
 // ⚠️ INVARIANT : la conversion pixels → centimètres doit être isotrope, donc
@@ -44,10 +55,14 @@ export const PRODUCTS: ProductDef[] = [
   {
     id: 'tableau',
     label: 'Tableau',
-    mockup: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/mockups/tableau-mural.png`, // 1000×1300
-    zone: { x: 0.3, y: 0.18, w: 0.4, h: 0.55 }, // cadre vertical → zone photo 400×715 px (ratio 0,559)
-    zoneCm: { w: 24, h: 42.9 }, // affiche verticale
+    // Photo d'ambiance CARRÉE (1400×1400) : le tableau s'y accroche à l'échelle, et la zone
+    // est recalculée selon le format choisi (voir zonePourFormat dans ./tableaux).
+    mockup: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/mockups/tableau-salon.png`,
+    zone: zonePourFormat(formatParId('30x40')!, 'portrait'),
+    zoneCm: { w: 30, h: 40 }, // format par défaut : 30 × 40 cm
     accent: '#0E7C66',
+    formatDefaut: { formatId: '30x40', orientation: 'portrait' },
+    ombreCadre: true,
   },
 ];
 

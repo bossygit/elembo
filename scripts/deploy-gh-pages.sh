@@ -11,7 +11,7 @@ echo "=== 1bis. Adresse du service de paiement dans l'export ==="
 # `public/api-config.js` est copié tel quel dans l'export : il contient l'adresse du tunnel au
 # moment du build. Or le tunnel change à chaque redémarrage — on réinjecte donc l'adresse
 # COURANTE dans l'export juste avant de publier, sinon le site pointerait vers un tunnel mort.
-URL="$(cat /tmp/tunnel-url.txt 2>/dev/null || true)"
+URL="$(cat "$HOME/.elembo/tunnel-url.txt" 2>/dev/null || cat /tmp/tunnel-url.txt 2>/dev/null || true)"
 if [ -n "$URL" ]; then
   python3 - "$PWD/out/api-config.js" "$URL" <<'PY'
 import re, sys

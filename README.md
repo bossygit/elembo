@@ -211,6 +211,44 @@ arrondi au multiple de 500 FCFA supérieur), pas relevé sur le marché. Pour l'
   recalcule le montant comme pour le textile ; le détail de la commande est conservé dans la
   transaction (`detail`).
 
+## Service de paiement en continu (launchd)
+
+Un agent utilisateur maintient la chaîne debout sans intervention :
+
+```bash
+bash scripts/installer-service-paiement.sh     # installe (ou réinstalle) l'agent
+launchctl kickstart -k gui/$(id -u)/cg.smartvision.elembo.paiement   # forcer un passage
+tail -f ~/.elembo/service-paiement.log         # journal
+# désinstaller :
+launchctl bootout gui/$(id -u)/cg.smartvision.elembo.paiement
+rm ~/Library/LaunchAgents/cg.smartvision.elembo.paiement.plist
+```
+
+L'agent se déclenche à l'ouverture de session puis **toutes les 5 minutes**, et
+`scripts/service-paiement.sh` fait trois choses — rien de plus si tout va bien :
+
+1. **service** : le relance s'il n'écoute plus sur le port 8787 ;
+2. **tunnel** : le recrée si son processus est absent ou si l'adresse ne répond plus — puis
+   **republie la nouvelle adresse** dans `api-config.js` sur la branche `gh-pages`. Sans cette
+   republication, un tunnel relancé laisserait le site envoyer les paiements dans le vide ;
+3. **veille** : empêche la mise en veille (sur secteur uniquement), sinon le tunnel tombe.
+
+**Tout ce que l'agent exécute vit dans `~/.elembo/`** — et c'est une contrainte de macOS, pas un
+choix : un agent launchd ne peut pas lire dans `~/Documents` (`Operation not permitted`, TCC
+mesuré sur cette machine). L'installateur entretient donc deux copies hors de Documents :
+
+| Chemin | Rôle |
+|---|---|
+| `~/.elembo/service-paiement.sh` | le superviseur (copie de `scripts/service-paiement.sh`) |
+| `~/.elembo/elembo-service/` | le service de paiement en production (copie de `momo-service/`, avec ses `.env.production` et `data/transactions.json`) |
+| `~/.elembo/elembo-pages/` | clone de la branche `gh-pages`, utilisé pour republier l'adresse |
+| `~/.elembo/tunnel-url.txt` | adresse du tunnel en service (source de vérité locale) |
+
+**Conséquences à connaître** : le registre des transactions de production est
+`~/.elembo/elembo-service/data/transactions.json` (le dossier `momo-service/data/` du dépôt ne
+reçoit plus que les essais lancés à la main) ; rejouer l'installateur après toute modification du
+service ou du superviseur, sinon la copie reste sur l'ancien code.
+
 ## Développement
 
 ```bash

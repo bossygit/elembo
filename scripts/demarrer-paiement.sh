@@ -4,6 +4,11 @@
 #
 #   bash scripts/demarrer-paiement.sh
 #
+# ⚠ DEPUIS L'AGENT launchd (scripts/installer-service-paiement.sh), CE SCRIPT N'EST PLUS
+#   NÉCESSAIRE : l'agent relève déjà le service, le tunnel, et republie l'adresse si elle
+#   change. Ne l'utiliser que pour un dépannage ponctuel sur une machine sans agent — et
+#   arrêter l'agent d'abord, sinon deux services se disputent le port 8787.
+#
 # Ce que fait le script :
 #   1. démarre momo-service avec .env.production s'il ne tourne pas déjà (port 8787) ;
 #   2. ouvre un tunnel public cloudflared vers ce port (l'ordinateur doit rester allumé) ;

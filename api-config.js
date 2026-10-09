@@ -7,4 +7,4 @@
 // rebrancher la boutique sur le bon service — sans build.
 //
 // Valeur vide ou fichier absent : l'application retombe sur l'adresse compilée.
-window.__ELEMBO_MOMO_API_URL__ = "https://corporation-andrew-tall-hardcover.trycloudflare.com";
+window.__ELEMBO_MOMO_API_URL__ = "https://kodak-give-harvey-frequently.trycloudflare.com";

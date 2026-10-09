@@ -50,12 +50,22 @@ log() {
 }
 
 # Un seul exemplaire à la fois (un lancement manuel peut croiser celui de launchd).
+# Le verrou porte le PID : s'il a été abandonné (arrêt brutal, redémarrage de la machine), on le
+# reprend au lieu de bloquer TOUS les passages suivants — un verrou orphelin condamnait le
+# service à rester éteint (constaté).
 VERROU="$BASE/.verrou"
 if ! mkdir "$VERROU" 2>/dev/null; then
-  log "déjà en cours d'exécution — rien à faire"
-  exit 0
+  pid="$(cat "$VERROU/pid" 2>/dev/null || true)"
+  if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+    log "déjà en cours d'exécution (pid $pid) — rien à faire"
+    exit 0
+  fi
+  log "verrou abandonné${pid:+ (pid $pid disparu)} — reprise"
+  rm -rf "$VERROU"
+  mkdir "$VERROU" 2>/dev/null || { log "verrou impossible à reprendre — rien à faire"; exit 0; }
 fi
-trap 'rmdir "$VERROU" 2>/dev/null' EXIT
+printf '%s' "$$" >"$VERROU/pid"
+trap 'rm -rf "$VERROU" 2>/dev/null' EXIT
 
 log "--- passage du superviseur ---"
 

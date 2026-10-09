@@ -13,7 +13,7 @@
 // Aucun montant n'est inventé ni calculé ici : le service de paiement recalcule à partir du
 // catalogue, et refuse (motif affiché) si un prix ou des frais ne sont pas définis.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useConfiguratorStore } from '../../stores/configurator-store';
 import { getPrintArea, getProductById } from '../../lib/products/catalog';
 import { compositionSize, drawComposition, elementsOfSide } from '../../lib/canvas/design-canvas';
@@ -113,6 +113,21 @@ export default function OrderPanel() {
   const [suivi, setSuivi] = useState<'inactif' | 'attente' | 'succes' | 'echec' | 'expire'>('inactif');
   const [erreurPaiement, setErreurPaiement] = useState<string | null>(null);
 
+  // Référence de commande STABLE pour un panier donné : un double clic (ou un renvoi du
+  // navigateur) réémet exactement la même commande, que le service refuse comme doublon.
+  // Sans cela, chaque clic créerait une commande distincte — donc un second débit possible.
+  const empreintePanier = `${Object.entries(quantites)
+    .map(([taille, quantite]) => `${taille}:${quantite}`)
+    .sort()
+    .join(',')}|${ville}`;
+  const referenceCommande = useMemo(
+    () => makeReference(),
+    // L'empreinte n'est pas utilisée dans la fabrique : elle sert de DÉCLENCHEUR (une nouvelle
+    // référence par panier, pas par clic), ce que l'analyse statique ne peut pas deviner.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [empreintePanier],
+  );
+
   const product = getProductById(productId);
   const prixUnitaire = product?.priceFcfa ?? null;
   const images = useElementImages(elements);
@@ -192,7 +207,7 @@ export default function OrderPanel() {
     setErreurPaiement(null);
     setMessage(null);
     setPaiement(null);
-    const ref = makeReference();
+    const ref = referenceCommande;
     setReference(ref);
 
     try {

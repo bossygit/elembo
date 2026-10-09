@@ -7,9 +7,10 @@
 // Après un paiement confirmé, le visuel est généré au format physique du tableau (150 dpi),
 // prêt pour l'atelier.
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   FORMATS,
+  TARIFS,
   conseilFormat,
   devisTableau,
   formatParId,
@@ -19,11 +20,12 @@ import {
 import type { TableauBord, TableauFormatId, TableauOrientation, TableauSupport } from '../lib/products/tableaux';
 import type { Zone } from '../lib/products/studio';
 import type { FitMode } from '../lib/printArea';
-import { DELIVERY, formatFcfa } from '../lib/order/order';
+import { DELIVERY, formatFcfa, makeReference } from '../lib/order/order';
 import type { DeliveryCity } from '../lib/order/order';
 import { demanderPaiement, suivrePaiement, telephonePlausible } from '../lib/payment/momo';
 import type { Paiement } from '../lib/payment/momo';
-import { DPI_IMPRESSION_CANVAS, nomFichierImpression, renderVisuelPng } from '../lib/canvas/exportZone';
+import { DPI_IMPRESSION, ficheFichierImpression, ficheTexte } from '../lib/products/impression';
+import { nomFichierImpression, renderVisuelPng } from '../lib/canvas/exportZone';
 import { downloadBlob } from '../lib/canvas/export';
 import type { Design } from './UploadZone';
 
@@ -66,32 +68,55 @@ export default function TableauPanel({
   const [erreur, setErreur] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [fichierPret, setFichierPret] = useState<{ url: string; nom: string } | null>(null);
+  const [fichePrete, setFichePrete] = useState<{ url: string; nom: string } | null>(null);
 
   const devis = devisTableau({ formatId, support, quantite });
+  // Référence de commande STABLE pour un contenu donné : un double clic (ou un renvoi du
+  // navigateur) réémet la même commande, que le service refuse comme doublon. Sans cela,
+  // chaque clic créerait une commande distincte — donc un second débit possible.
+  const reference = useMemo(
+    () => makeReference(),
+    [formatId, support, bord, quantite, ville],
+  );
   const livraison = DELIVERY.find((d) => d.city === ville)?.feeFcfa ?? null;
   const total = livraison === null ? null : devis.sousTotalFcfa + livraison;
   const numeroOk = telephonePlausible(telephone);
   const conseil = design ? conseilFormat(design.width, design.height) : null;
 
-  /** Génère le visuel d'impression (sans la photo d'ambiance) pour l'atelier. */
+  /** Génère le fichier d'impression (visuel seul, débords compris) et la fiche pour l'atelier. */
   async function produireFichier(reference: string) {
     if (!design) return;
     try {
+      const format = formatParId(formatId)!;
       const blob = await renderVisuelPng({
         design: { url: design.url, width: design.width, height: design.height },
-        zone,
-        zoneCm: { w: formatParId(formatId)!.largeurCm, h: formatParId(formatId)!.hauteurCm },
+        format,
+        support,
+        bord,
         scale,
         fitMode,
         rotation,
         offset,
-        dpi: DPI_IMPRESSION_CANVAS,
+        dpi: DPI_IMPRESSION,
       });
       if (!blob) return;
-      const nom = nomFichierImpression(reference, formatId);
-      const url = URL.createObjectURL(blob);
-      setFichierPret({ url, nom });
+      const nom = nomFichierImpression(reference, formatId, support);
+      setFichierPret({ url: URL.createObjectURL(blob), nom });
       downloadBlob(blob, nom);
+
+      // La fiche dit à l'atelier CE QU'IL FABRIQUE : toile seule ou montée, et la surface exacte
+      // à imprimer (débords compris). Sans elle, on risque de monter un châssis sur un fichier
+      // au format fini — le défaut le plus coûteux en impression sur toile.
+      const fiche = ficheFichierImpression({ commande: reference, format, support, bord });
+      const texte = ficheTexte([fiche], [
+        `COMMANDE ${reference}`,
+        `Tableau ${format.label} — ${libelleSupport(support)} — ${libelleBord(bord)}`,
+        `Livraison : ${DELIVERY.find((d) => d.city === ville)?.label ?? ville}`,
+      ]);
+      const fichierFiche = new Blob([texte], { type: 'text/plain;charset=utf-8' });
+      const nomFiche = `${reference}-FICHE-PRODUCTION.txt`;
+      setFichePrete({ url: URL.createObjectURL(fichierFiche), nom: nomFiche });
+      downloadBlob(fichierFiche, nomFiche);
     } catch {
       // l'échec de génération ne remet pas en cause le paiement déjà encaissé
     }
@@ -104,8 +129,8 @@ export default function TableauPanel({
     setMessage(null);
     setPaiement(null);
     setFichierPret(null);
+    setFichePrete(null);
 
-    const reference = `${formatId.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
     try {
       const demande = await demanderPaiement({
         commande: reference,
@@ -345,8 +370,10 @@ export default function TableauPanel({
           <dd data-testid="total-tableau">{formatFcfa(total)}</dd>
         </div>
         <p className="mt-1 text-xs text-neutral-500">
-          Délai estimé : {devis.delaiJours} jour(s) maximum — visuel d&apos;impression fourni en{' '}
-          {DPI_IMPRESSION_CANVAS} dpi.
+          Délai estimé : {devis.delaiJours} jour(s) maximum — fichier d&apos;impression fourni en {DPI_IMPRESSION} dpi
+          {support === 'chassis'
+            ? `, avec ${TARIFS.debordChassisCm} cm de débord par côté pour envelopper le châssis.`
+            : '.'}
         </p>
       </dl>
 
@@ -384,9 +411,18 @@ export default function TableauPanel({
             <a
               href={fichierPret.url}
               download={fichierPret.nom}
-              className="mt-1 inline-block underline underline-offset-2"
+              className="mt-1 block underline underline-offset-2"
             >
               Retélécharger le fichier d&apos;impression ({fichierPret.nom})
+            </a>
+          )}
+          {fichePrete && (
+            <a
+              href={fichePrete.url}
+              download={fichePrete.nom}
+              className="mt-1 block underline underline-offset-2"
+            >
+              Retélécharger la fiche de production ({fichePrete.nom})
             </a>
           )}
         </div>

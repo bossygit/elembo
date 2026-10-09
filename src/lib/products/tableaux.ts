@@ -11,24 +11,17 @@
 // même valeur dans `momo-service/src/catalogue.ts`. Les prix affichés sont recalculés, jamais
 // écrits en dur.
 
+import { formatsTableaux, paliersTableaux, tarifsTableaux } from '../tarifs/grille';
+import type { TarifsTableau } from '../tarifs/grille';
 import type { Zone } from './studio';
 
-/** Tarifs unitaires du barème — un seul endroit à corriger. */
-export const TARIFS = {
-  /** Toile + impression : prix au m² de surface réellement imprimée. */
-  impressionToileFcfaParM2: 30_000,
-  /** Montage sur châssis bois, au m² de format fini. */
-  chassisFcfaParM2: 18_000,
-  /** Préparation du fichier, calage, emballage : forfait par tableau. */
-  forfaitPreparationFcfa: 3_000,
-  /**
-   * Débord de toile nécessaire autour d'un châssis (profondeur du châssis + agrafage), en cm
-   * par côté. C'est de la toile imprimée en plus du format fini : elle se paie.
-   */
-  debordChassisCm: 4,
-  /** Les prix publics sont arrondis au multiple de 500 FCFA SUPÉRIEUR (jamais de centimes). */
-  arrondiFcfa: 500,
-} as const;
+/**
+ * Tarifs du barème — lus dans la SOURCE UNIQUE des prix (`tarifs/grille.json`, section
+ * `tableaux.tarifs`). Le service de paiement lit le même fichier à son démarrage : il n'existe
+ * pas de seconde copie à tenir à jour, donc pas de dérive possible entre le prix affiché et le
+ * prix encaissé.
+ */
+export const TARIFS: TarifsTableau = tarifsTableaux();
 
 export type TableauFormatId = '20x30' | '30x40' | '40x60' | '50x70' | '60x90';
 export type TableauSupport = 'chassis' | 'toile-seule';
@@ -43,13 +36,12 @@ export type TableauFormat = {
   hauteurCm: number;
 };
 
-export const FORMATS: readonly TableauFormat[] = [
-  { id: '20x30', label: '20 × 30 cm', largeurCm: 20, hauteurCm: 30 },
-  { id: '30x40', label: '30 × 40 cm', largeurCm: 30, hauteurCm: 40 },
-  { id: '40x60', label: '40 × 60 cm', largeurCm: 40, hauteurCm: 60 },
-  { id: '50x70', label: '50 × 70 cm', largeurCm: 50, hauteurCm: 70 },
-  { id: '60x90', label: '60 × 90 cm', largeurCm: 60, hauteurCm: 90 },
-];
+export const FORMATS: readonly TableauFormat[] = formatsTableaux().map((f) => ({
+  id: f.id as TableauFormatId,
+  label: f.libelle,
+  largeurCm: f.largeurCm,
+  hauteurCm: f.hauteurCm,
+}));
 
 export function formatParId(id: string): TableauFormat | undefined {
   return FORMATS.find((f) => f.id === id);
@@ -64,13 +56,8 @@ export type Palier = {
   remisePct: number;
 };
 
-/** Paliers de quantité : décroissance simple et lisible. */
-export const PALIERS: readonly Palier[] = [
-  { aPartirDe: 1, remisePct: 0 },
-  { aPartirDe: 2, remisePct: 5 },
-  { aPartirDe: 5, remisePct: 10 },
-  { aPartirDe: 10, remisePct: 15 },
-];
+/** Paliers de quantité : décroissance simple et lisible (source : `tarifs/grille.json`). */
+export const PALIERS: readonly Palier[] = paliersTableaux();
 
 export function palierPour(quantite: number): Palier {
   const q = Math.max(1, Math.floor(quantite));

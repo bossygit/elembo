@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "statut": "PROVISOIRE — à arbitrer par l'exploitant après chiffrage des prestataires",
+  "maj": "2026-10-08",
+  "devise": "XAF",
+  "note": "SOURCE UNIQUE DES PRIX. L'application (export statique) lit ce fichier à la compilation, le service de paiement le lit à son démarrage : une seule valeur à corriger, et le montant affiché est forcément celui que le service recalcule. Un fichier vide de sens ici = commande refusée, jamais un montant inventé.",
+  "produits": [
+    { "id": "tshirt-basic", "nom": "T-Shirt raglan", "prixFcfa": 100 },
+    { "id": "tshirt-alt", "nom": "T-Shirt col rond", "prixFcfa": 100 }
+  ],
+  "livraison": {
+    "delaiMaxJours": 3,
+    "villes": [
+      { "id": "brazzaville", "nom": "Brazzaville", "fraisFcfa": 100 },
+      { "id": "pointe-noire", "nom": "Pointe-Noire", "fraisFcfa": 100 }
+    ]
+  },
+  "tableaux": {
+    "tarifs": {
+      "impressionToileFcfaParM2": 30000,
+      "chassisFcfaParM2": 18000,
+      "forfaitPreparationFcfa": 3000,
+      "debordChassisCm": 4,
+      "arrondiFcfa": 500
+    },
+    "formats": [
+      { "id": "20x30", "libelle": "20 × 30 cm", "largeurCm": 20, "hauteurCm": 30 },
+      { "id": "30x40", "libelle": "30 × 40 cm", "largeurCm": 30, "hauteurCm": 40 },
+      { "id": "40x60", "libelle": "40 × 60 cm", "largeurCm": 40, "hauteurCm": 60 },
+      { "id": "50x70", "libelle": "50 × 70 cm", "largeurCm": 50, "hauteurCm": 70 },
+      { "id": "60x90", "libelle": "60 × 90 cm", "largeurCm": 60, "hauteurCm": 90 }
+    ],
+    "paliers": [
+      { "aPartirDe": 1, "remisePct": 0 },
+      { "aPartirDe": 2, "remisePct": 5 },
+      { "aPartirDe": 5, "remisePct": 10 },
+      { "aPartirDe": 10, "remisePct": 15 }
+    ]
+  }
+}

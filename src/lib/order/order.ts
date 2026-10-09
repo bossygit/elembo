@@ -12,6 +12,7 @@
 import type { DesignElement, Side, TextElement } from '../../types/configurator';
 import { SIDES } from '../../types/configurator';
 import type { PrintArea, Product } from '../products/catalog';
+import { GRILLE, villesLivraison } from '../tarifs/grille';
 import { compositionSize, elementRect, elementsOfSide, printAreaRect, productionTextureSize } from '../canvas/design-canvas';
 import type { Measurer, CanvasSpace } from '../canvas/design-canvas';
 import { resolveFont } from '../fonts';
@@ -19,14 +20,13 @@ import { resolveFont } from '../fonts';
 /* -------------------------------------------------------------- livraison ------ */
 
 /**
- * Villes desservies. PRIX DE TEST : 100 FCFA pour les deux villes, décidé le 06/10/2026 pour les
- * essais de paiement réel entre collègues. Les tarifs arbitrés à rétablir ensuite sont
- * Brazzaville 1 000 FCFA et Pointe-Noire 2 000 FCFA.
+ * Villes desservies — lues dans la SOURCE UNIQUE des prix (`tarifs/grille.json`), comme le
+ * service de paiement. `fraisFcfa: null` reste possible pour une ville dont le tarif n'est pas
+ * encore arbitré : la commande est alors bloquée au lieu d'être facturée au hasard.
  *
- * `feeFcfa: null` reste possible pour une ville dont le tarif n'est pas encore fixé : la commande
- * est alors bloquée au lieu d'être facturée au hasard. Les mêmes montants existent côté serveur
- * (`momo-service/src/catalogue.ts`) et `tests/coherenceCatalogues.test.ts` échoue dès qu'ils
- * divergent.
+ * Les tarifs affichés sont PROVISOIRES : 100 FCFA pour les deux villes, décidé le 06/10/2026
+ * pour les essais de paiement réel entre collègues. Les tarifs arbitrés à rétablir ensuite sont
+ * Brazzaville 1 000 FCFA et Pointe-Noire 2 000 FCFA — à corriger dans `tarifs/grille.json`.
  */
 export type DeliveryCity = 'brazzaville' | 'pointe-noire';
 
@@ -39,10 +39,12 @@ export type DeliveryOption = {
   maxDays: number;
 };
 
-export const DELIVERY: DeliveryOption[] = [
-  { city: 'brazzaville', label: 'Brazzaville', feeFcfa: 100, maxDays: 3 },
-  { city: 'pointe-noire', label: 'Pointe-Noire', feeFcfa: 100, maxDays: 3 },
-];
+export const DELIVERY: DeliveryOption[] = villesLivraison().map((v) => ({
+  city: v.id as DeliveryCity,
+  label: v.nom,
+  feeFcfa: v.fraisFcfa,
+  maxDays: GRILLE.livraison.delaiMaxJours,
+}));
 
 export function deliveryOption(city: DeliveryCity): DeliveryOption {
   return DELIVERY.find((d) => d.city === city) ?? DELIVERY[0];

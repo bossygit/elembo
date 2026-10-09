@@ -1,8 +1,6 @@
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-import { CATALOGUE, VILLES, produit, ville } from '../src/catalogue.ts';
+import { CATALOGUE, GRILLE, VILLES, produit, ville } from '../src/catalogue.ts';
 import { ErreurCommande, calculerMontant, delaiJours, normaliserLignes } from '../src/pricing.ts';
 
 describe('montant recalculé côté serveur', () => {
@@ -69,36 +67,35 @@ describe('montant recalculé côté serveur', () => {
   });
 });
 
-describe('le catalogue serveur ne dérive pas de celui de l’application', () => {
-  // Le montant facturé doit être exactement celui affiché au client : ces valeurs viennent du
-  // dépôt de l'application, on les relit pour détecter toute divergence.
-  const chemin = fileURLToPath(new URL('../../src/lib/products/catalog.ts', import.meta.url));
-  const source = readFileSync(chemin, 'utf8');
+describe('le catalogue serveur vient de la source unique des prix', () => {
+  // Les prix ne sont plus recopiés dans le service : il lit `tarifs/grille.json`, exactement le
+  // même fichier que celui importé par l'application au moment de la compilation. Ces tests
+  // vérifient donc que le service ne fait que DÉRIVER de la grille — aucune valeur propre —, ce
+  // qui rend une divergence entre prix affiché et prix encaissé structurellement impossible.
+  // (La comparaison des deux moteurs de calcul, elle, est faite par
+  // `tests/coherenceCatalogues.test.ts` côté application.)
 
-  const prixApplication = [...source.matchAll(/id: '([\w-]+)',[\s\S]{0,900}?priceFcfa: (\d+)/g)].map((m) => ({
-    id: m[1] as string,
-    prixFcfa: Number(m[2]),
-  }));
-
-  const cheminLivraison = fileURLToPath(new URL('../../src/lib/order/order.ts', import.meta.url));
-  const sourceLivraison = readFileSync(cheminLivraison, 'utf8');
-
-  it('retrouve au moins un produit avec son prix dans l’application', () => {
-    expect(prixApplication.length).toBeGreaterThan(0);
+  it('reprend exactement les produits de la grille', () => {
+    expect(CATALOGUE.map((p) => ({ id: p.id, nom: p.nom, prixFcfa: p.prixFcfa }))).toEqual(
+      GRILLE.produits.map((p) => ({ id: p.id, nom: p.nom, prixFcfa: p.prixFcfa })),
+    );
   });
 
-  it('facture le même prix que celui annoncé dans l’application', () => {
-    for (const p of prixApplication) {
-      const serveur = CATALOGUE.find((c) => c.id === p.id);
-      expect(serveur, `produit absent du catalogue serveur : ${p.id}`).toBeDefined();
-      expect(serveur?.prixFcfa, `prix divergent pour ${p.id}`).toBe(p.prixFcfa);
-    }
+  it('reprend exactement les villes et les frais de la grille', () => {
+    expect(VILLES.map((v) => ({ id: v.id, nom: v.nom, fraisFcfa: v.fraisFcfa }))).toEqual(
+      GRILLE.livraison.villes.map((v) => ({ id: v.id, nom: v.nom, fraisFcfa: v.fraisFcfa })),
+    );
   });
 
-  it('facture les mêmes frais de livraison que l’application', () => {
-    const fraisBrazzaville = /brazzaville[\s\S]{0,200}?feeFcfa: (\d+)/i.exec(sourceLivraison)?.[1];
-    expect(Number(fraisBrazzaville)).toBe(ville('brazzaville')?.fraisFcfa);
-    for (const v of VILLES) expect(v.delaiMaxJours).toBeLessThanOrEqual(3);
+  it('applique le délai maximum de la grille, jamais plus de trois jours', () => {
+    for (const v of VILLES) expect(v.delaiMaxJours).toBe(GRILLE.livraison.delaiMaxJours);
+    expect(GRILLE.livraison.delaiMaxJours).toBeLessThanOrEqual(3);
+  });
+
+  it('la grille trouvée est bien celle du dépôt', () => {
+    expect(GRILLE.devise).toBe('XAF');
+    expect(GRILLE.produits.length).toBeGreaterThan(0);
+    expect(GRILLE.tableaux.formats.length).toBeGreaterThan(0);
   });
 });
 

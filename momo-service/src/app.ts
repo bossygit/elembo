@@ -38,6 +38,9 @@ export type Dependances = {
 
 const TAILLE_MAX_CORPS = 64 * 1024;
 
+/** MTN abandonne une demande non validée au bout de 5 minutes : au-delà, la commande est libre. */
+const FENETRE_MTN_MS = 5 * 60 * 1000;
+
 type PayloadPayer = {
   commande?: string;
   produitId?: string;
@@ -180,12 +183,37 @@ export function creerServeur(deps: Dependances) {
         if (!commande) throw new ErreurCommande('Référence de commande manquante.');
 
         // Le montant est recalculé ici : le client ne fait que décrire ce qu'il a choisi.
+        // La validation vient AVANT le contrôle de doublon : sur une requête mal formée, le
+        // client doit lire la vraie raison (produit inconnu, quantité invalide) et non un
+        // « paiement déjà en cours » qui masquerait l'erreur de saisie.
         const montant = calculerMontant({
           produitId: String(corps.produitId ?? ''),
           lignes: corps.lignes ?? [],
           tableaux: corps.tableaux ?? [],
           villeId: String(corps.villeId ?? ''),
         });
+
+        // Prévention des doubles commandes. Le navigateur peut réémettre exactement la même
+        // commande (double clic, réponse perdue, rafraîchissement) : c'est ici que ça s'arrête.
+        //  - commande déjà PAYÉE  : aucun second débit, jamais ;
+        //  - demande encore EN COURS (< fenêtre MTN) : on refuse le doublon, le client valide
+        //    celle qui est déjà sur son téléphone ;
+        //  - demande EXPIRÉE (MTN abandonne au bout de 5 minutes) : nouvelle tentative permise,
+        //    sinon une demande bloquée interdirait toute nouvelle commande.
+        const dejaPayee = store.parCommande(commande).find((t) => t.statut === 'PAYE');
+        if (dejaPayee) {
+          throw new ErreurCommande(
+            `Commande ${commande} déjà payée (référence ${dejaPayee.referenceId}) : aucun second débit.`,
+          );
+        }
+        const enCours = store
+          .parCommande(commande)
+          .find((t) => t.statut === 'PENDING' && maintenant().getTime() - Date.parse(t.creeLe) < FENETRE_MTN_MS);
+        if (enCours) {
+          throw new ErreurCommande(
+            `Un paiement est déjà en cours pour la commande ${commande} : validez-le sur le téléphone, ou attendez son expiration (5 minutes) avant de réessayer.`,
+          );
+        }
 
         const msisdn = normaliserMsisdn(String(corps.telephone ?? ''), config.env);
         const montantEnvoye =

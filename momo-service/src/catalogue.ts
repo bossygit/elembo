@@ -1,29 +1,87 @@
 /**
  * Catalogue côté SERVEUR : c'est la seule source qui fait foi pour le montant.
  *
- * Le navigateur envoie ce que le client a choisi (produit, tailles, quantités, version du
- * tableau, ville), jamais un montant. Le service recalcule, et si un prix n'est pas arbitré il
- * refuse la commande au lieu de facturer un montant inventé.
+ * Les VALEURS ne sont plus recopiées ici : elles sont lues dans la source unique
+ * `tarifs/grille.json`, le même fichier que celui importé par l'application au moment de la
+ * compilation. Corriger un prix se fait donc à UN seul endroit, et il ne peut plus exister de
+ * dérive entre le prix affiché et le prix encaissé. Les prix « dérivés » (les formats de
+ * tableaux, dont le prix est calculé) sont recalculés ici par la même formule que côté
+ * navigateur : `tests/coherenceCatalogues.test.ts` compare les deux résultats.
  *
- * Ces valeurs doivent correspondre à celles de l'application (`src/lib/products/catalog.ts`,
- * `src/lib/order/order.ts` et `src/lib/products/tableaux.ts`) ; le test
- * `tests/coherenceCatalogues.test.ts` importe les deux sources et échoue à la moindre
- * divergence de prix ou de frais de livraison.
+ * `tarifs/grille.json` doit accompagner le service, où qu'il tourne (voir scripts/installer-
+ * service-paiement.sh). La recherche est tolérante : variable d'environnement MOMO_TARIFS_FILE,
+ * puis `tarifs/grille.json` à côté du dossier courant, puis le dossier parent.
+ *
+ * Le service REFUSE de démarrer sans grille : un service sans prix ne doit jamais encaisser.
  */
+
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+/* ------------------------------------------------------------------ grille ------- */
+
+export type ProduitGrille = { id: string; nom: string; prixFcfa: number | null };
+export type VilleGrille = { id: string; nom: string; fraisFcfa: number | null };
+export type TarifsTableauGrille = {
+  impressionToileFcfaParM2: number;
+  chassisFcfaParM2: number;
+  forfaitPreparationFcfa: number;
+  debordChassisCm: number;
+  arrondiFcfa: number;
+};
+export type FormatGrille = { id: string; libelle: string; largeurCm: number; hauteurCm: number };
+export type PalierTableau = { aPartirDe: number; remisePct: number };
+
+export type Grille = {
+  version: number;
+  statut: string;
+  maj: string;
+  devise: string;
+  produits: ProduitGrille[];
+  livraison: { delaiMaxJours: number; villes: VilleGrille[] };
+  tableaux: { tarifs: TarifsTableauGrille; formats: FormatGrille[]; paliers: PalierTableau[] };
+};
+
+function chargerGrille(): Grille {
+  const candidats = [
+    process.env.MOMO_TARIFS_FILE,
+    resolve(process.cwd(), 'tarifs/grille.json'),
+    resolve(process.cwd(), '../tarifs/grille.json'),
+    resolve(process.cwd(), '../../tarifs/grille.json'),
+  ].filter((c): c is string => Boolean(c));
+
+  for (const chemin of candidats) {
+    try {
+      const grille = JSON.parse(readFileSync(chemin, 'utf8')) as Grille;
+      if (!grille?.produits || !grille?.tableaux?.formats) {
+        throw new Error(`grille incomplète : ${chemin}`);
+      }
+      return grille;
+    } catch (erreur) {
+      const e = erreur as NodeJS.ErrnoException;
+      if (e.code !== 'ENOENT') throw erreur;
+    }
+  }
+  throw new Error(
+    `grille tarifaire introuvable (cherché : ${candidats.join(', ')}). Copiez tarifs/grille.json à côté du service, ou renseignez MOMO_TARIFS_FILE.`,
+  );
+}
+
+export const GRILLE: Grille = chargerGrille();
+
+/* --------------------------------------------------------------- catalogue ------- */
 
 export type ProduitServeur = {
   id: string;
   nom: string;
-  prixFcfa: number;
+  prixFcfa: number | null;
 };
 
-export const CATALOGUE: readonly ProduitServeur[] = [
-  // PRIX DE TEST — 100 FCFA pour les essais de paiement réel (05/10/2026). Toute
-  // modification ici doit être répercutée dans `src/lib/products/catalog.ts` : le test
-  // `tests/coherenceCatalogues.test.ts` compare les deux et échoue sinon.
-  { id: 'tshirt-basic', nom: 'T-Shirt raglan', prixFcfa: 100 },
-  { id: 'tshirt-alt', nom: 'T-Shirt col rond', prixFcfa: 100 },
-];
+export const CATALOGUE: readonly ProduitServeur[] = GRILLE.produits.map((p) => ({
+  id: p.id,
+  nom: p.nom,
+  prixFcfa: p.prixFcfa,
+}));
 
 export type VilleServeur = {
   id: string;
@@ -32,16 +90,15 @@ export type VilleServeur = {
   delaiMaxJours: number;
 };
 
-export const VILLES: readonly VilleServeur[] = [
-  // PRIX DE TEST : 100 FCFA de livraison pour les deux villes (essais de paiement réel,
-  // 06/10/2026). Tarifs arbitrés à rétablir ensuite : Brazzaville 1 000, Pointe-Noire 2 000.
-  { id: 'brazzaville', nom: 'Brazzaville', fraisFcfa: 100, delaiMaxJours: 3 },
-  { id: 'pointe-noire', nom: 'Pointe-Noire', fraisFcfa: 100, delaiMaxJours: 3 },
-  // Une ville dont le tarif n'est pas arbitré porterait fraisFcfa: null et serait refusée.
-];
+export const VILLES: readonly VilleServeur[] = GRILLE.livraison.villes.map((v) => ({
+  id: v.id,
+  nom: v.nom,
+  fraisFcfa: v.fraisFcfa,
+  delaiMaxJours: GRILLE.livraison.delaiMaxJours,
+}));
 
-/** Aucune livraison n'est annoncée au-delà de trois jours, quelle que soit la quantité. */
-export const DELAI_MAX_JOURS = 3;
+/** Aucune livraison n'est annoncée au-delà de ce délai, quelle que soit la quantité. */
+export const DELAI_MAX_JOURS = GRILLE.livraison.delaiMaxJours;
 
 export function produit(id: string): ProduitServeur | undefined {
   return CATALOGUE.find((p) => p.id === id);
@@ -63,39 +120,49 @@ export type FormatTableauServeur = {
   libelle: string;
   largeurCm: number;
   hauteurCm: number;
-  /** Prix public TTC d'une toile seule (encadrée par le client). */
+  /** Prix public TTC d'une toile seule (encadrée par le client), recalculé à partir de la grille. */
   prixToileSeuleFcfa: number;
-  /** Prix public TTC d'une toile montée sur châssis bois. */
+  /** Prix public TTC d'une toile montée sur châssis bois, recalculé à partir de la grille. */
   prixChassisFcfa: number;
 };
 
+/** Arrondi des prix publics : multiple supérieur (jamais de centimes). */
+export const ARRONDI_TABLEAU_FCfa = GRILLE.tableaux.tarifs.arrondiFcfa;
+
+function arrondirSuperieur(montant: number): number {
+  return Math.ceil(montant / ARRONDI_TABLEAU_FCfa) * ARRONDI_TABLEAU_FCfa;
+}
+
 /**
- * ⚠️ BARÈME PROVISOIRE — à arbitrer par l'exploitant.
- * Recalculé depuis `src/lib/products/tableaux.ts` (mêmes tarifs) :
- *   toile seule = surface × 30 000 FCFA/m² + 3 000 de préparation
- *   châssis     = (format + 8 cm par côté) × 30 000 + format × 18 000 + 3 000
- * le tout arrondi au multiple de 500 FCFA supérieur.
+ * Prix public d'un tableau — MÊME FORMULE que l'application (`prixUnitaireFcfa` dans
+ * `src/lib/products/tableaux.ts`) :
+ *   toile seule = surface × tarif au m² + préparation
+ *   châssis     = (format + 2 × débord) × tarif au m² + format × tarif châssis + préparation
+ * le tout arrondi au multiple supérieur. Le test de cohérence compare les deux calculs format
+ * par format.
  */
-export const FORMATS_TABLEAU: readonly FormatTableauServeur[] = [
-  { id: '20x30', libelle: '20 × 30 cm', largeurCm: 20, hauteurCm: 30, prixToileSeuleFcfa: 5_000, prixChassisFcfa: 7_500 },
-  { id: '30x40', libelle: '30 × 40 cm', largeurCm: 30, hauteurCm: 40, prixToileSeuleFcfa: 7_000, prixChassisFcfa: 11_000 },
-  { id: '40x60', libelle: '40 × 60 cm', largeurCm: 40, hauteurCm: 60, prixToileSeuleFcfa: 10_500, prixChassisFcfa: 17_500 },
-  { id: '50x70', libelle: '50 × 70 cm', largeurCm: 50, hauteurCm: 70, prixToileSeuleFcfa: 13_500, prixChassisFcfa: 23_000 },
-  { id: '60x90', libelle: '60 × 90 cm', largeurCm: 60, hauteurCm: 90, prixToileSeuleFcfa: 19_500, prixChassisFcfa: 33_000 },
-];
+export function prixUnitaireFcfa(format: FormatGrille, support: SupportTableauServeur): number {
+  const { impressionToileFcfaParM2, chassisFcfaParM2, forfaitPreparationFcfa, debordChassisCm } =
+    GRILLE.tableaux.tarifs;
+  const debord = support === 'chassis' ? debordChassisCm : 0;
+  const surfaceImprimeeM2 = ((format.largeurCm + 2 * debord) * (format.hauteurCm + 2 * debord)) / 10_000;
+  const chassisM2 = (format.largeurCm * format.hauteurCm) / 10_000;
+  const toile = surfaceImprimeeM2 * impressionToileFcfaParM2;
+  const chassis = support === 'chassis' ? chassisM2 * chassisFcfaParM2 : 0;
+  return arrondirSuperieur(toile + chassis + forfaitPreparationFcfa);
+}
 
-/** Paliers de remise sur la quantité — identiques à ceux de l'application. */
-export type PalierTableau = { aPartirDe: number; remisePct: number };
+export const FORMATS_TABLEAU: readonly FormatTableauServeur[] = GRILLE.tableaux.formats.map((f) => ({
+  id: f.id,
+  libelle: f.libelle,
+  largeurCm: f.largeurCm,
+  hauteurCm: f.hauteurCm,
+  prixToileSeuleFcfa: prixUnitaireFcfa(f, 'toile-seule'),
+  prixChassisFcfa: prixUnitaireFcfa(f, 'chassis'),
+}));
 
-export const PALIERS_TABLEAU: readonly PalierTableau[] = [
-  { aPartirDe: 1, remisePct: 0 },
-  { aPartirDe: 2, remisePct: 5 },
-  { aPartirDe: 5, remisePct: 10 },
-  { aPartirDe: 10, remisePct: 15 },
-];
-
-/** Arrondi des prix publics : multiple de 500 FCFA supérieur. */
-export const ARRONDI_TABLEAU_FCfa = 500;
+/** Paliers de remise sur la quantité (source : `tarifs/grille.json`). */
+export const PALIERS_TABLEAU: readonly PalierTableau[] = GRILLE.tableaux.paliers;
 
 export function formatTableau(id: string): FormatTableauServeur | undefined {
   return FORMATS_TABLEAU.find((f) => f.id === id);
@@ -113,4 +180,16 @@ export function prixUnitaireTableau(
   support: SupportTableauServeur,
 ): number {
   return support === 'chassis' ? format.prixChassisFcfa : format.prixToileSeuleFcfa;
+}
+
+/** Dimensions physiques réellement imprimées (débord compris) — sert au fichier d'impression. */
+export function surfaceImprimeeCm(
+  format: FormatGrille,
+  support: SupportTableauServeur,
+): { largeurCm: number; hauteurCm: number } {
+  const debord = support === 'chassis' ? GRILLE.tableaux.tarifs.debordChassisCm : 0;
+  return {
+    largeurCm: format.largeurCm + 2 * debord,
+    hauteurCm: format.hauteurCm + 2 * debord,
+  };
 }

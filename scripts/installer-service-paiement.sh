@@ -46,6 +46,11 @@ etape "2. service de paiement → $SERVICE (copie hors de ~/Documents)"
 mkdir -p "$SERVICE"
 rsync -a --delete "$SOURCE_SERVICE/src/" "$SERVICE/src/"
 cp "$SOURCE_SERVICE/package.json" "$SERVICE/package.json"
+# La grille tarifaire est LA source unique des prix : le service la lit à son démarrage et
+# refusera de tourner sans elle.
+mkdir -p "$SERVICE/tarifs"
+cp "$RACINE/tarifs/grille.json" "$SERVICE/tarifs/grille.json"
+echo "grille tarifaire recopiée (tarifs/grille.json)."
 if [ -f "$SOURCE_SERVICE/.env.production" ]; then
   cp "$SOURCE_SERVICE/.env.production" "$SERVICE/.env.production"
   chmod 600 "$SERVICE/.env.production"

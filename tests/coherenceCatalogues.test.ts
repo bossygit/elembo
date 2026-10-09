@@ -1,20 +1,62 @@
-// Cohérence des DEUX catalogues de prix.
+// Cohérence des prix — désormais garantie par construction, et vérifiée ici.
 //
-// Le montant affiché au client vient du navigateur (`src/lib/products/catalog.ts` et
-// `src/lib/order/order.ts`), le montant ENCAISSÉ est recalculé par le service MTN
-// (`momo-service/src/catalogue.ts`). Deux fichiers, deux origines possibles de vérité : si
-// l'un change sans l'autre, le client voit un prix et en paie un autre. Ce test les compare
-// fichier par fichier — c'est le seul garde-fou contre une dérive silencieuse.
+// Depuis la mise en place de la source unique (`tarifs/grille.json`), ni le navigateur ni le
+// service ne recopient un prix : les deux LISENT le même fichier — l'application à la
+// compilation, le service à son démarrage. Ce test vérifie donc trois choses :
+//   1. la grille est exploitable (un prix absent doit être `null` explicite, jamais zéro) ;
+//   2. les deux moteurs de calcul donnent le MÊME prix pour chaque format et chaque support
+//      (c'est la vraie garantie : deux formules qui divergeraient produiraient deux montants) ;
+//   3. la grille et les prix attendus sont ÉPINGLÉS : une modification involontaire d'un tarif
+//      échoue ici au lieu de partir en production.
 
 import { describe, expect, it } from 'vitest';
 
 import { CATALOG, PLACEHOLDER_PRODUCT } from '../src/lib/products/catalog';
 import { DELIVERY } from '../src/lib/order/order';
 import { FORMATS, PALIERS, formatParId, prixUnitaireFcfa } from '../src/lib/products/tableaux';
+import { GRILLE } from '../src/lib/tarifs/grille';
 import { CATALOGUE, FORMATS_TABLEAU, PALIERS_TABLEAU, VILLES } from '../momo-service/src/catalogue';
 
 /** Produits réellement commandables : le produit de démonstration (uv/placeholder) n'en fait pas partie. */
 const produitsVendables = CATALOG.filter((p) => p.id !== PLACEHOLDER_PRODUCT.id);
+
+/** Grille de référence VALIDÉE provisoirement (elle devra être révisée après chiffrage réel). */
+const GRILLE_ATTENDUE: Record<string, { toileSeule: number; chassis: number }> = {
+  '20x30': { toileSeule: 5_000, chassis: 7_500 },
+  '30x40': { toileSeule: 7_000, chassis: 11_000 },
+  '40x60': { toileSeule: 10_500, chassis: 17_500 },
+  '50x70': { toileSeule: 13_500, chassis: 23_000 },
+  '60x90': { toileSeule: 19_500, chassis: 33_000 },
+};
+
+describe('source unique des prix (tarifs/grille.json)', () => {
+  it('est lisible et annoncée comme provisoire', () => {
+    expect(GRILLE.version).toBe(1);
+    expect(GRILLE.devise).toBe('XAF');
+    expect(GRILLE.statut).toMatch(/PROVISOIRE/i);
+  });
+
+  it('ne contient que des prix exploitables : nombre positif, ou null explicite', () => {
+    for (const p of GRILLE.produits) {
+      if (p.prixFcfa !== null) {
+        expect(typeof p.prixFcfa, `prix de ${p.id}`).toBe('number');
+        expect(p.prixFcfa, `prix de ${p.id}`).toBeGreaterThan(0);
+      }
+    }
+    for (const v of GRILLE.livraison.villes) {
+      if (v.fraisFcfa !== null) expect(v.fraisFcfa, `frais de ${v.id}`).toBeGreaterThan(0);
+    }
+  });
+
+  it('décrit les formats dans l’ordre croissant et des paliers croissants partant de 1', () => {
+    const surfaces = GRILLE.tableaux.formats.map((f) => f.largeurCm * f.hauteurCm);
+    expect([...surfaces].sort((a, b) => a - b)).toEqual(surfaces);
+    expect(GRILLE.tableaux.paliers[0].aPartirDe).toBe(1);
+    const paliers = GRILLE.tableaux.paliers.map((p) => p.aPartirDe);
+    expect([...paliers].sort((a, b) => a - b)).toEqual(paliers);
+    expect(GRILLE.tableaux.tarifs.arrondiFcfa).toBeGreaterThan(0);
+  });
+});
 
 describe('prix du catalogue — navigateur et service identiques', () => {
   it('chaque produit vendable existe côté serveur avec le même prix', () => {
@@ -22,6 +64,16 @@ describe('prix du catalogue — navigateur et service identiques', () => {
       const serveur = CATALOGUE.find((p) => p.id === produit.id);
       expect(serveur, `produit absent du catalogue serveur : ${produit.id}`).toBeDefined();
       expect(serveur?.prixFcfa, `prix divergent pour ${produit.id}`).toBe(produit.priceFcfa);
+    }
+  });
+
+  it('le prix affiché vient bien de la grille (aucune recopie cachée)', () => {
+    for (const produit of produitsVendables) {
+      const dansLaGrille = GRILLE.produits.find((p) => p.id === produit.id);
+      expect(dansLaGrille, `produit absent de la grille : ${produit.id}`).toBeDefined();
+      expect(produit.priceFcfa, `prix désynchronisé de la grille : ${produit.id}`).toBe(
+        dansLaGrille!.prixFcfa,
+      );
     }
   });
 
@@ -61,7 +113,7 @@ describe('prix des tableaux — navigateur et service identiques', () => {
     }
   });
 
-  it('le prix recalculé par le navigateur est celui du serveur (toile seule et châssis)', () => {
+  it('les DEUX formules de calcul donnent le même prix, pour chaque format et chaque support', () => {
     for (const f of FORMATS) {
       const local = formatParId(f.id)!;
       const serveur = FORMATS_TABLEAU.find((s) => s.id === f.id)!;
@@ -74,5 +126,15 @@ describe('prix des tableaux — navigateur et service identiques', () => {
 
   it('applique les mêmes paliers de quantité des deux côtés', () => {
     expect(PALIERS_TABLEAU.map((p) => ({ ...p }))).toEqual(PALIERS.map((p) => ({ ...p })));
+  });
+
+  it('la grille des tableaux correspond aux prix validés provisoirement', () => {
+    for (const f of FORMATS) {
+      const attendu = GRILLE_ATTENDUE[f.id];
+      expect(attendu, `aucun prix de référence pour ${f.id}`).toBeDefined();
+      const serveur = FORMATS_TABLEAU.find((s) => s.id === f.id)!;
+      expect(serveur.prixToileSeuleFcfa, `toile seule ${f.id}`).toBe(attendu.toileSeule);
+      expect(serveur.prixChassisFcfa, `châssis ${f.id}`).toBe(attendu.chassis);
+    }
   });
 });

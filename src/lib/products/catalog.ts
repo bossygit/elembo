@@ -18,6 +18,8 @@
 //             décalque (x/y/w/h = 0, 0, 1, 1) ; sa taille physique en cm reste la
 //             référence pour l'impression.
 
+import { prixProduit } from '../tarifs/grille';
+
 export type PanelDimensions = { width: number; height: number };
 export type PrintTechnique = 'uv' | 'decal';
 export type Side = 'front' | 'back';
@@ -80,7 +82,7 @@ export type Product = {
    * Prix unitaire TTC en FCFA, hors livraison. Laisser vide tant qu'il n'est pas arbitré :
    * le tunnel de commande refuse alors de valider plutôt que d'afficher un montant inventé.
    */
-  priceFcfa?: number;
+  priceFcfa?: number | null;
   printAreas: { front?: PrintArea; back?: PrintArea };
 };
 
@@ -129,11 +131,11 @@ export const CATALOG: Product[] = [
     // T-shirt vierge à la couleur exacte. La forme et les plis viennent de la géométrie
     // et de l'éclairage.
     surface: 'blank',
-    // PRIX DE TEST — décidé par l'exploitant le 05/10/2026 pour les essais de paiement
-    // réel entre collègues (le tarif commercial reste à arbitrer). Il vit ici et dans
-    // `momo-service/src/catalogue.ts`, et le test `tests/coherenceCatalogues.test.ts`
-    // échoue si les deux divergent. Un tableau de bord le rendra configurable.
-    priceFcfa: 100,
+    // PRIX DE TEST — décidé par l'exploitant le 05/10/2026 pour les essais de paiement réel
+    // entre collègues (le tarif commercial reste à arbitrer). La valeur vit dans la SOURCE
+    // UNIQUE `tarifs/grille.json`, que le service de paiement lit aussi : il n'y a plus de
+    // copie à tenir à jour. Un tableau de bord la rendra configurable.
+    priceFcfa: prixProduit('tshirt-basic'),
     colors: [
       { name: 'Blanc', hex: '#FFFFFF' },
       { name: 'Noir', hex: '#1A1A1A' },
@@ -150,7 +152,7 @@ export const CATALOG: Product[] = [
     modelUrl: `${MODEL_DIR}/tshirt-alt/tshirt.glb`,
     technique: 'decal',
     unitToCm: 100, // 1 unité = 1 mètre (65,3 × 70,2 cm mesurés sur le maillage)
-    priceFcfa: 100, // même prix de test que le raglan (voir le commentaire ci-dessus)
+    priceFcfa: prixProduit('tshirt-alt'), // même prix de test que le raglan (voir tarifs/grille.json)
     colors: [
       { name: 'Blanc', hex: '#FFFFFF' },
       { name: 'Noir', hex: '#1A1A1A' },

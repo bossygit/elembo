@@ -18,15 +18,23 @@ let serveur: Server | null = null;
 let base = '';
 let horloge = 0;
 
-async function demarrer(options: { client?: ClientMomo; delaiMockMs?: number } = {}) {
+async function demarrer(
+  options: { client?: ClientMomo; delaiMockMs?: number; maintenant?: () => Date } = {},
+): Promise<StoreTransactions> {
   const config: Config = {
     ...lireConfig({ MOMO_MOCK: '1', PORT: '0', APP_ORIGINS: ORIGINE }),
     fichierDonnees: join(dossier, 'transactions.json'),
     delaiMockMs: options.delaiMockMs ?? 4000,
   };
   const client = options.client ?? creerClientMock({ delaiMs: config.delaiMockMs, maintenant: () => horloge });
-  const store = await StoreTransactions.ouvrir(config.fichierDonnees);
-  const gerer = creerServeur({ config, client, store, maintenant: () => new Date(), journal: () => {} });
+  const store = await StoreTransactions.ouvrir(config.fichierDonnees, options.maintenant);
+  const gerer = creerServeur({
+    config,
+    client,
+    store,
+    maintenant: options.maintenant ?? (() => new Date()),
+    journal: () => {},
+  });
 
   serveur = createServer((req, res) => {
     void gerer(req, res);
@@ -35,6 +43,7 @@ async function demarrer(options: { client?: ClientMomo; delaiMockMs?: number } =
   const adresse = serveur.address();
   if (adresse == null || typeof adresse === 'string') throw new Error('port introuvable');
   base = `http://127.0.0.1:${adresse.port}`;
+  return store;
 }
 
 function poster(chemin: string, corps: unknown, entetes: Record<string, string> = {}) {
@@ -102,6 +111,62 @@ describe('santé et CORS', () => {
   });
 });
 
+describe('prévention des doubles commandes', () => {
+  // Le navigateur peut réémettre la même commande (double clic, réponse perdue, rechargement).
+  // Le service refuse le doublon : une commande payée ne se repaie jamais, et une demande en
+  // cours ne se double pas — sinon le client serait débité deux fois.
+
+  /** Interroge le statut jusqu'à un état définitif (le client MTN simulé est temporisé). */
+  async function jusquauBout(referenceId: string): Promise<string> {
+    let statut = 'PENDING';
+    for (let i = 0; i < 40 && statut === 'PENDING'; i++) {
+      await new Promise((r) => setTimeout(r, 25));
+      const r = await fetch(`${base}/api/momo/statut?referenceId=${referenceId}`);
+      statut = ((await r.json()) as { statut: string }).statut;
+    }
+    return statut;
+  }
+
+  it('refuse un second paiement pour une commande DÉJÀ PAYÉE', async () => {
+    await demarrer({ delaiMockMs: 0 });
+    const premier = await poster('/api/momo/payer', COMMANDE);
+    expect(premier.status).toBe(201);
+    const { referenceId } = (await premier.json()) as { referenceId: string };
+    expect(await jusquauBout(referenceId)).toBe('PAYE');
+
+    const second = await poster('/api/momo/payer', COMMANDE);
+    expect(second.status).toBe(422);
+    expect(String(((await second.json()) as { erreur: string }).erreur)).toMatch(/déjà payée/);
+  });
+
+  it('refuse une seconde demande pendant qu’une demande est EN COURS', async () => {
+    await demarrer({ delaiMockMs: 60_000 }); // le client simulé ne conclut pas : reste PENDING
+    const premier = await poster('/api/momo/payer', COMMANDE);
+    expect(premier.status).toBe(201);
+
+    const second = await poster('/api/momo/payer', COMMANDE);
+    expect(second.status).toBe(422);
+    expect(String(((await second.json()) as { erreur: string }).erreur)).toMatch(/déjà en cours/);
+  });
+
+  it('autorise une nouvelle tentative une fois la fenêtre MTN dépassée', async () => {
+    // Sans cette règle, une demande restée en attente bloquerait la commande pour toujours.
+    let instant = Date.parse('2026-10-08T10:00:00Z');
+    await demarrer({ delaiMockMs: 60_000, maintenant: () => new Date(instant) });
+
+    const premier = await poster('/api/momo/payer', COMMANDE);
+    expect(premier.status).toBe(201);
+
+    instant += 6 * 60 * 1000; // six minutes plus tard : MTN a abandonné la demande
+    const seconde = await poster('/api/momo/payer', COMMANDE);
+    expect(seconde.status).toBe(201);
+
+    // Une commande DIFFÉRENTE n'est jamais bloquée par la précédente.
+    const autre = await poster('/api/momo/payer', { ...COMMANDE, commande: 'ELB-20261008-1005-ZZ' });
+    expect(autre.status).toBe(201);
+  });
+});
+
 describe('POST /api/momo/payer', () => {
   it('recalcule le montant et renvoie la référence à suivre', async () => {
     await demarrer();
@@ -129,22 +194,36 @@ describe('POST /api/momo/payer', () => {
     expect(sansPieces.status).toBe(422);
     expect(String(((await sansPieces.json()) as { erreur: string }).erreur)).toMatch(/aucune pièce/);
 
+    // Chaque variante est une TENTATIVE DISTINCTE : une même référence ne peut pas être rejouée
+    // pendant qu'un paiement est en cours (prévention des doubles commandes, testée plus haut).
     // Pointe-Noire est livrable comme Brazzaville (frais de test) : la même commande passe.
-    const pointeNoire = await poster('/api/momo/payer', { ...COMMANDE, villeId: 'pointe-noire' });
+    const pointeNoire = await poster('/api/momo/payer', {
+      ...COMMANDE,
+      commande: 'ELB-20261001-1201-PN',
+      villeId: 'pointe-noire',
+    });
     expect(pointeNoire.status).toBe(201);
     expect(((await pointeNoire.json()) as { montantFcfa: number }).montantFcfa).toBe(
       2 * produit('tshirt-basic')!.prixFcfa + ville('pointe-noire')!.fraisFcfa!,
     );
 
     // Une ville hors zone de livraison reste refusée.
-    const horsZone = await poster('/api/momo/payer', { ...COMMANDE, villeId: 'dolisie' });
+    const horsZone = await poster('/api/momo/payer', {
+      ...COMMANDE,
+      commande: 'ELB-20261001-1202-HZ',
+      villeId: 'dolisie',
+    });
     expect(horsZone.status).toBe(422);
     expect(String(((await horsZone.json()) as { erreur: string }).erreur)).toMatch(/Ville inconnue/);
 
     // En sandbox, un numéro ordinaire est accepté (tout numéro réussit chez MTN) : pour obtenir un
     // 422 il faut un numéro manifestement inexploitable. La règle congolaise stricte, elle, est
     // testée sur normaliserMsisdn en environnement de production.
-    const mauvaisTel = await poster('/api/momo/payer', { ...COMMANDE, telephone: '12' });
+    const mauvaisTel = await poster('/api/momo/payer', {
+      ...COMMANDE,
+      commande: 'ELB-20261001-1203-TEL',
+      telephone: '12',
+    });
     expect(mauvaisTel.status).toBe(422);
     expect(String(((await mauvaisTel.json()) as { erreur: string }).erreur)).toMatch(/Numéro invalide/);
   });

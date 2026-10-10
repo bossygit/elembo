@@ -7,4 +7,4 @@
 // rebrancher la boutique sur le bon service — sans build.
 //
 // Valeur vide ou fichier absent : l'application retombe sur l'adresse compilée.
-window.__ELEMBO_MOMO_API_URL__ = "https://launch-drum-enjoying-syndrome.trycloudflare.com";
+window.__ELEMBO_MOMO_API_URL__ = "https://ecological-configuration-removable-cemetery.trycloudflare.com";

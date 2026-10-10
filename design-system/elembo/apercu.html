@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Elembo — design system : avant / après</title>
+<style>
+  /* Les polices réelles du projet, embarquées à côté de ce fichier.
+     Aucun téléchargement : Geist est déjà dans le build, Playfair déjà dans public/fonts. */
+  @font-face { font-family: 'Geist'; src: url('polices/geist-sans.woff2') format('woff2'); font-weight: 100 900; font-display: block; }
+  @font-face { font-family: 'Geist Mono'; src: url('polices/geist-mono.woff2') format('woff2'); font-weight: 100 900; font-display: block; }
+  @font-face { font-family: 'Playfair Display'; src: url('polices/playfair-display-400-latin.woff2') format('woff2'); font-weight: 400; font-display: block; }
+  @font-face { font-family: 'Playfair Display'; src: url('polices/playfair-display-700-latin.woff2') format('woff2'); font-weight: 700; font-display: block; }
+
+  .ui { font-family: 'Geist', system-ui, sans-serif; }
+  .titre { font-family: 'Playfair Display', Georgia, serif; font-weight: 700; }
+  .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
+
+  .racine { color: var(--foreground); font-size: 14px; line-height: 1.55; max-width: 780px; }
+  .racine h2 { font-size: 15px; font-weight: 600; margin: 30px 0 12px; letter-spacing: -0.01em; }
+  .racine h2 span { color: var(--muted-foreground); font-weight: 400; }
+  .intro { color: var(--muted-foreground); margin: 0 0 22px; max-width: 62ch; }
+
+  .grille { display: grid; gap: 12px; }
+  .c4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+  .c2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  @media (max-width: 620px) { .c4, .c2 { grid-template-columns: 1fr; } }
+
+  .mesure { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .mesure .val { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  .mesure .lib { color: var(--muted-foreground); font-size: 12px; margin-top: 2px; }
+  .juste { color: #15803d; }
+  .faux { color: #b91c1c; }
+  .tiède { color: #a16207; }
+
+  .carte { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .carte .etiquette { padding: 8px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid var(--border); color: var(--muted-foreground); }
+  .corps { padding: 16px; }
+
+  /* ---- rendu « avant » : ce que la boutique affiche aujourd'hui ---- */
+  .avant { background: #ffffff; color: #171717; font-family: Arial, Helvetica, sans-serif; }
+  /* ---- rendu « après » ---- */
+  .apres { background: #fefcf6; color: #200233; font-family: 'Geist', system-ui, sans-serif; }
+
+  .btn { display: inline-block; border-radius: 8px; padding: 11px 20px; font-size: 14px; font-weight: 600; border: 0; cursor: pointer; }
+  .btn-avant { background: #e85f00; color: #ffffff; }
+  .btn-apres { background: #c75100; color: #ffffff; }
+  .btn-fantome { background: transparent; border: 1.5px solid #8a86a0; color: #200233; }
+
+  .jetons { display: grid; grid-template-columns: repeat(auto-fill, minmax(158px,1fr)); gap: 10px; }
+  .jeton { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .jeton .pastille { height: 46px; }
+  .jeton .info { padding: 8px 10px; font-size: 11.5px; }
+  .jeton .nom { font-weight: 600; }
+  .jeton .hex { color: var(--muted-foreground); }
+  .jeton .cr { color: var(--muted-foreground); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted-foreground); font-weight: 500; }
+  td .ech { font-weight: 600; }
+
+  .echelle div { display: flex; align-items: baseline; gap: 12px; padding: 3px 0; }
+  .echelle .taille { color: var(--muted-foreground); font-size: 11px; width: 58px; text-align: right; }
+
+  ul { margin: 6px 0 0; padding-left: 18px; }
+  li { margin: 3px 0; }
+  .actif { border: 1px solid var(--accent); border-radius: 10px; padding: 14px 16px; margin-top: 26px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .actif button { background: var(--accent); color: var(--background); border: 0; border-radius: 8px; padding: 10px 18px; font: inherit; font-weight: 600; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="racine ui">
+
+  <div class="titre" style="font-size:30px;line-height:1.15;margin-bottom:6px">Elembo — banc d'essai du design system</div>
+  <p class="intro">Ce que la boutique affiche aujourd'hui, ce que le moteur de règles recommande, et ce que les mesures de contraste autorisent réellement. Tous les rapports ci-dessous sont calculés selon la formule WCAG (seuil 4,5:1 pour le texte courant, 3:1 pour les composants).</p>
+
+  <h2>1. Le constat <span>— quatre mesures, pas des impressions</span></h2>
+  <div class="grille c4">
+    <div class="mesure"><div class="val faux">0 Ko</div><div class="lib">Les 29 Ko de Geist sont préchargés sur chaque page… et le corps du site est rendu en Arial</div></div>
+    <div class="mesure"><div class="val tiède">3,46:1</div><div class="lib">L'orange de marque <span class="mono">#e85f00</span> : conforme en grand texte et en composant, <b>refusé en texte courant</b></div></div>
+    <div class="mesure"><div class="val faux">2,52:1</div><div class="lib"><span class="mono">neutral-400</span> sur blanc, utilisé 8 fois : échec sur les deux seuils</div></div>
+    <div class="mesure"><div class="val juste">18,79:1</div><div class="lib">Le violet <span class="mono">#200233</span> : la meilleure ressource de la marque, aujourd'hui sous-employée</div></div>
+  </div>
+
+  <h2>2. La carte de commande <span>— même contenu, deux rendus</span></h2>
+  <div class="grille c2">
+    <div class="carte avant">
+      <div class="etiquette" style="border-color:#e5e5e5;color:#737373">Aujourd'hui</div>
+      <div class="corps">
+        <div style="font-size:19px;font-weight:700;margin-bottom:6px">Tableau 40 × 60, châssis</div>
+        <div style="color:#737373;font-size:13px;margin-bottom:14px">Impression sur toile, montage sur châssis bois, livraison Brazzaville.</div>
+        <div style="font-size:13px;margin-bottom:4px">Total à payer</div>
+        <div style="font-size:24px;font-weight:700;margin-bottom:16px">17 600 FCFA</div>
+        <button class="btn btn-avant">Payer avec MTN MoMo</button>
+        <div style="color:#a3a3a3;font-size:12px;margin-top:12px">Paiement sécurisé · les fichiers partent après confirmation</div>
+        <div style="margin-top:12px;padding:8px 10px;border:1px solid #d4d4d4;border-radius:8px;color:#737373;font-size:12px">Aucune commande en cours</div>
+        <div style="margin-top:14px;font-size:11px;color:#737373;border-top:1px solid #e5e5e5;padding-top:10px">Police : Arial · texte atténué à 2,5:1 · bordures à 1,48:1</div>
+      </div>
+    </div>
+    <div class="carte apres">
+      <div class="etiquette" style="background:#200233;color:#fefcf6;border-color:#200233">Proposé</div>
+      <div class="corps">
+        <div class="titre" style="font-size:21px;margin-bottom:6px">Tableau 40 × 60, châssis</div>
+        <div style="color:#5b5b6b;font-size:13px;margin-bottom:14px">Impression sur toile, montage sur châssis bois, livraison Brazzaville.</div>
+        <div style="font-size:13px;color:#5b5b6b;margin-bottom:4px">Total à payer</div>
+        <div class="mono" style="font-size:24px;font-weight:600;margin-bottom:16px;letter-spacing:-0.02em">17 600 FCFA</div>
+        <button class="btn btn-apres">Payer avec MTN MoMo</button>
+        <button class="btn btn-fantome" style="margin-left:8px">Modifier</button>
+        <div style="color:#5b5b6b;font-size:12px;margin-top:12px">Paiement sécurisé · les fichiers partent après confirmation</div>
+        <div style="margin-top:12px;padding:8px 10px;border:1px solid #8a86a0;border-radius:8px;color:#5b5b6b;font-size:12px">Aucune commande en cours</div>
+        <div style="margin-top:14px;font-size:11px;color:#5b5b6b;border-top:1px solid #e0dbd0;padding-top:10px">Geist pour l'interface · Playfair Display pour les titres · orange #c75100 pour les actions (4,56:1)</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>3. Les jetons <span>— nommés, mesurés, avec leur usage autorisé</span></h2>
+  <div class="jetons">
+    <div class="jeton"><div class="pastille" style="background:#e85f00"></div><div class="info"><div class="nom">marque / orange</div><div class="hex mono">#e85f00</div><div class="cr">3,46:1 · grand texte, aplats, icônes</div></div></div>
+    <div class="jeton"><div class="pastille" style="background:#c75100"></div><div class="info"><div class="nom">action / orange</div><div class="hex mono">#c75100</div><div class="cr">4,56:1 · texte courant, boutons</div></div></div>
+    <div class="jeton"><div class="pastille" style="background:#200233"></div><div class="info"><div class="nom">encre / violet</div><div class="hex mono">#200233</div><div class="cr">18,79:1 · texte, fonds sombres</div></div></div>
+    <div class="jeton"><div class="pastille" style="background:#fefcf6;border-bottom:1px solid var(--border)"></div><div class="info"><div class="nom">fond / crème</div><div class="hex mono">#fefcf6</div><div class="cr">fond de page</div></div></div>
+    <div class="jeton"><div class="pastille" style="background:#5b5b6b"></div><div class="info"><div class="nom">texte atténué</div><div class="hex mono">#5b5b6b</div><div class="cr">6,66:1 · remplace neutral-400</div></div></div>
+    <div class="jeton"><div class="pastille" style="background:#8a86a0"></div><div class="info"><div class="nom">bordure active</div><div class="hex mono">#8a86a0</div><div class="cr">3,50:1 · champs, contrôles</div></div></div>
+    <div class="jeton"><div class="pastille" style="background:#e0dbd0"></div><div class="info"><div class="nom">filet décoratif</div><div class="hex mono">#e0dbd0</div><div class="cr">séparateurs sans rôle</div></div></div>
+    <div class="jeton"><div class="pastille" style="background:#b9b2c9"></div><div class="info"><div class="nom">texte atténué (sombre)</div><div class="hex mono">#b9b2c9</div><div class="cr">9,19:1 sur violet</div></div></div>
+  </div>
+
+  <h2>4. Mode sombre <span>— le violet de la marque au lieu du noir générique</span></h2>
+  <div class="carte" style="border-color:#200233">
+    <div class="corps" style="background:#200233;color:#fefcf6">
+      <div class="titre" style="font-size:20px;margin-bottom:6px">Votre tableau est en production</div>
+      <div style="color:#b9b2c9;font-size:13px;margin-bottom:14px">Commande ELB-20261010-0930-QA · paiement MTN confirmé</div>
+      <div class="mono" style="font-size:13px;margin-bottom:16px">8365076401</div>
+      <span style="display:inline-block;background:#e85f00;color:#200233;font-weight:600;font-size:12px;padding:5px 10px;border-radius:99px">Payé</span>
+      <span style="display:inline-block;border:1px solid #8a86a0;color:#fefcf6;font-size:12px;padding:5px 10px;border-radius:99px;margin-left:6px">En production</span>
+      <div style="margin-top:16px;font-size:11px;color:#b9b2c9;border-top:1px solid #3d2450;padding-top:10px">Crème 18,31:1 · orange 5,43:1 · texte atténué 9,19:1 — tout conforme en texte courant</div>
+    </div>
+  </div>
+
+  <h2>5. L'échelle typographique <span>— Geist pour lire, Playfair Display pour les titres</span></h2>
+  <div class="carte">
+    <div class="corps" style="background:#fefcf6;color:#200233">
+      <div class="echelle">
+        <div><span class="taille">61 px</span><span class="titre" style="font-size:61px;line-height:1.05">Imprimez votre idée</span></div>
+        <div><span class="taille">39 px</span><span class="titre" style="font-size:39px">Votre tableau, votre mur</span></div>
+        <div><span class="taille">25 px</span><span class="titre" style="font-size:25px">Le studio de personnalisation</span></div>
+        <div><span class="taille">20 px</span><span style="font-size:20px;font-weight:600">Choisir un format</span></div>
+        <div><span class="taille">16 px</span><span style="font-size:16px">Impression sur toile, montage sur châssis bois, livraison à Brazzaville et Pointe-Noire.</span></div>
+        <div><span class="taille">12,8 px</span><span style="font-size:12.8px;color:#5b5b6b">Les fichiers de l'atelier sont produits après confirmation du paiement.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>6. Ce que le moteur a apporté, et ce que j'ai écarté</h2>
+  <div class="grille c2">
+    <div class="mesure">
+      <div class="lib" style="margin:0 0 6px"><b>Retenu</b></div>
+      <ul>
+        <li>Direction « Flat Design » : pas d'ombres, pas de dégradés, transitions 150–200 ms</li>
+        <li>Typographie éditoriale « poster » : titres à empattement, accent vermillon</li>
+        <li>Interdits explicites : dégradés violet/rose génériques, icônes en emoji</li>
+        <li>Structure de page « Feature-Rich Showcase » pour l'accueil</li>
+        <li>Mouvement subtil au défilement, avec respect de <span class="mono">prefers-reduced-motion</span></li>
+      </ul>
+    </div>
+    <div class="mesure">
+      <div class="lib" style="margin:0 0 6px"><b>Écarté, et pourquoi</b></div>
+      <ul>
+        <li>Palette « pharmacie » proposée pour un magasin d'art : hors sujet, même après reprise ciblée</li>
+        <li>Accent rose « creative pink » : contredit l'identité et son propre interdit</li>
+        <li>Police Inter : Playfair est déjà embarquée, Geist déjà chargée — <b>0 Ko à ajouter</b></li>
+        <li>Mode sombre noir <span class="mono">#0a0a0a</span> du modèle Next.js : le violet de marque fait mieux</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="actif">
+    <div>Le fichier de règles du moteur est enregistré dans <span class="mono">design-system/elembo/MASTER.md</span>.<br>Rien n'a été appliqué à la boutique : dites-moi si j'y vais.</div>
+    <button data-hermes-send="Applique les jetons du design system à Elembo : jetons dans globals.css, contraste corrigé, polices cohérentes — puis vérifie le rendu">Appliquer ces jetons</button>
+  </div>
+
+</div>
+</body>
+</html>

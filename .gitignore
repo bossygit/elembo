@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# design system : copies locales des polices, uniquement pour que l'aperçu fonctionne hors ligne.
+# Les originaux sont dans le dépôt (public/fonts) ou produits par le build (out/fonts, media Geist).
+design-system/elembo/polices/

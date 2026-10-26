@@ -24,7 +24,7 @@ import { CATALOGUE, FORMATS_TABLEAU, PALIERS_TABLEAU, VILLES } from './catalogue
 import { ErreurConfig, type Config } from './config';
 import { ErreurTelephone, masquerMsisdn, normaliserMsisdn } from './msisdn';
 import { ErreurCommande, calculerMontant, type Ligne, type LigneTableau, type Montant } from './pricing';
-import { ErreurMomo, type ClientMomo } from './mtn';
+import { ErreurMomo, motifMtn, type ClientMomo } from './mtn';
 import { ErreurStockage, type JournalTransactions } from './store';
 import { archiveConfiguree } from '../dossiers/archive';
 import { telegramConfigure } from '../dossiers/telegram';
@@ -74,6 +74,8 @@ export type Gestionnaire = {
   payer(payload: unknown): Promise<Reponse>;
   callback(payload: unknown, referenceDuChemin?: string | null): Promise<Reponse>;
   statut(referenceId: string): Promise<Reponse>;
+  /** Rattrapage des transactions restées PENDING (callback MTN indisponible ou client parti). */
+  reconcilier(options?: { ageMinutes?: number; limite?: number }): Promise<Reponse>;
 };
 
 export function creerGestionnaire(deps: Dependances): Gestionnaire {
@@ -99,14 +101,68 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
         return { statut: 503, corps: { erreur: 'Journal des transactions indisponible.', detail: erreur.message } };
       }
       if (erreur instanceof ErreurMomo) {
+        journal(`MTN en erreur — ${erreur.message}`);
         return {
           statut: 502,
-          corps: { erreur: 'MTN a refusé ou n’a pas répondu.', detail: erreur.message },
+          // La cause réelle (code + message MTN) est renvoyée : un « MTN a refusé » générique
+          // ne permet ni de corriger ni de savoir s'il faut réessayer.
+          corps: {
+            erreur: 'MTN a refusé ou n’a pas répondu.',
+            detail: erreur.corps ? `${erreur.message} ${motifMtn(erreur.corps)}` : erreur.message,
+          },
         };
       }
       journal(`erreur inattendue : ${(erreur as Error)?.message}`);
       return { statut: 500, corps: { erreur: 'Erreur interne.', detail: (erreur as Error)?.message } };
     }
+  }
+
+  /**
+   * Tranche une transaction encore PENDING à partir du statut MTN : c'est la seule source de
+   * vérité. Trois chemins l'utilisent — le callback MTN, l'interrogation depuis le navigateur,
+   * et la réconciliation périodique — pour qu'ils appliquent exactement les mêmes règles,
+   * notamment le contrôle du montant encaissé.
+   */
+  async function trancher(
+    referenceId: string,
+    transaction: { commande: string; montantEnvoye: string; montantFcfa: number },
+    etat: { statut: string; montant: string | null; devise: string | null; financialTransactionId: string | null; raison: string | null },
+  ): Promise<'PENDING' | 'PAYE' | 'ECHEC' | 'ANOMALIE'> {
+    const le = maintenant().toISOString();
+
+    if (etat.statut === 'PENDING') {
+      await store.maj(referenceId, {}, { le, quoi: 'toujours en attente' });
+      return 'PENDING';
+    }
+
+    if (etat.statut === 'FAILED') {
+      await store.maj(
+        referenceId,
+        { statut: 'ECHEC', raison: etat.raison ?? 'REFUSE' },
+        { le, quoi: 'paiement refuse', detail: etat.raison ?? '' },
+      );
+      journal(`paiement refusé — commande ${transaction.commande}${etat.raison ? ` — ${etat.raison}` : ''}`);
+      return 'ECHEC';
+    }
+
+    // SUCCESSFUL : le montant encaissé doit être exactement celui attendu.
+    if (etat.montant != null && String(etat.montant) !== String(transaction.montantEnvoye)) {
+      await store.maj(
+        referenceId,
+        { statut: 'ANOMALIE', raison: `montant recu ${etat.montant} != attendu ${transaction.montantEnvoye}` },
+        { le, quoi: 'anomalie de montant', detail: `recu ${etat.montant} ${etat.devise ?? ''} / attendu ${transaction.montantEnvoye}` },
+      );
+      journal(`ANOMALIE de montant — commande ${transaction.commande} — à vérifier avant production`);
+      return 'ANOMALIE';
+    }
+
+    await store.maj(
+      referenceId,
+      { statut: 'PAYE', financialTransactionId: etat.financialTransactionId, raison: null },
+      { le, quoi: 'paiement confirme', detail: etat.financialTransactionId ?? '' },
+    );
+    journal(`paiement confirmé — commande ${transaction.commande} — ${transaction.montantFcfa} FCFA`);
+    return 'PAYE';
   }
 
   return {
@@ -239,7 +295,10 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
           await store.maj(referenceId, { statut: 'ECHEC', raison: 'DEMANDE_REFUSEE' }, {
             le: maintenant().toISOString(),
             quoi: 'demande refusee',
-            detail: erreur instanceof ErreurMomo ? `HTTP ${erreur.statutHttp ?? '?'}` : 'erreur reseau',
+            detail:
+              erreur instanceof ErreurMomo
+                ? `HTTP ${erreur.statutHttp ?? '?'}${erreur.corps ? ` ${motifMtn(erreur.corps)}` : ''}`
+                : 'erreur reseau',
           });
           throw erreur;
         }
@@ -309,47 +368,8 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
 
         // On ne croit pas la notification : on redemande le statut à MTN.
         const etat = await client.statut(referenceId);
-        if (etat.statut === 'PENDING') {
-          await store.maj(referenceId, {}, { le: maintenant().toISOString(), quoi: 'callback : toujours en attente' });
-          return { statut: 200, corps: { recu: true, traite: true, statut: 'PENDING' } };
-        }
-
-        if (etat.statut === 'FAILED') {
-          await store.maj(
-            referenceId,
-            { statut: 'ECHEC', raison: etat.raison ?? 'REFUSE' },
-            { le: maintenant().toISOString(), quoi: 'paiement refuse', detail: etat.raison ?? '' },
-          );
-          journal(`paiement refusé — commande ${transaction.commande}`);
-          return { statut: 200, corps: { recu: true, traite: true, statut: 'ECHEC' } };
-        }
-
-        // SUCCESSFUL : le montant encaissé doit être exactement celui attendu.
-        if (etat.montant != null && String(etat.montant) !== String(transaction.montantEnvoye)) {
-          await store.maj(
-            referenceId,
-            { statut: 'ANOMALIE', raison: `montant recu ${etat.montant} != attendu ${transaction.montantEnvoye}` },
-            {
-              le: maintenant().toISOString(),
-              quoi: 'anomalie de montant',
-              detail: `recu ${etat.montant} ${etat.devise ?? ''} / attendu ${transaction.montantEnvoye}`,
-            },
-          );
-          journal(`ANOMALIE de montant — commande ${transaction.commande} — à vérifier avant production`);
-          return { statut: 200, corps: { recu: true, traite: true, statut: 'ANOMALIE' } };
-        }
-
-        await store.maj(
-          referenceId,
-          { statut: 'PAYE', financialTransactionId: etat.financialTransactionId, raison: null },
-          {
-            le: maintenant().toISOString(),
-            quoi: 'paiement confirme',
-            detail: etat.financialTransactionId ?? '',
-          },
-        );
-        journal(`paiement confirmé — commande ${transaction.commande} — ${transaction.montantFcfa} FCFA`);
-        return { statut: 200, corps: { recu: true, traite: true, statut: 'PAYE' } };
+        const statut = await trancher(referenceId, transaction, etat);
+        return { statut: 200, corps: { recu: true, traite: statut !== 'PENDING', statut } };
       });
     },
 
@@ -361,17 +381,12 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
         const transaction = await store.parReferenceId(ref);
         if (!transaction) return { statut: 404, corps: { erreur: 'Référence inconnue.' } };
 
-        // Tant que le client n'a pas validé sur son téléphone, on interroge MTN.
+        // Tant que le client n'a pas validé sur son téléphone, on interroge MTN. C'est le seul
+        // chemin qui reste quand le callback MTN n'est pas joignable : il applique donc les mêmes
+        // règles que le callback (montant compris).
         if (transaction.statut === 'PENDING') {
           const etat = await client.statut(ref);
-          if (etat.statut !== 'PENDING') {
-            const statut = etat.statut === 'FAILED' ? 'ECHEC' : 'PAYE';
-            await store.maj(
-              ref,
-              { statut, financialTransactionId: etat.financialTransactionId, raison: etat.raison },
-              { le: maintenant().toISOString(), quoi: `statut ${statut} (interrogation directe)` },
-            );
-          }
+          await trancher(ref, transaction, etat);
         }
 
         const aJour = await store.parReferenceId(ref);
@@ -386,6 +401,53 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
             financialTransactionId: aJour?.financialTransactionId ?? null,
             raison: aJour?.raison ?? null,
           },
+        };
+      });
+    },
+
+    /**
+     * Réconciliation : interroge MTN pour les transactions PENDING assez anciennes et les tranche.
+     *
+     * Pourquoi c'est indispensable ici : MTN n'accepte qu'une URL de callback **enregistrée sur le
+     * compte**. Tant que notre domaine ne l'est pas, aucun callback ne nous parvient ; sans
+     * réconciliation, un client qui approuve sur son téléphone puis ferme la page laisserait une
+     * commande payée marquée PENDING. Ce balayage est déclenché par le cron Vercel (chaque minute).
+     */
+    async reconcilier(options) {
+      return executer(async () => {
+        const ageMinutes = Math.max(0, options?.ageMinutes ?? 1);
+        const limite = Math.min(200, Math.max(1, options?.limite ?? 50));
+        const seuil = maintenant().getTime() - ageMinutes * 60_000;
+
+        const toutes = await store.toutes();
+        const candidates = toutes
+          .filter((t) => t.statut === 'PENDING' && Date.parse(t.creeLe) <= seuil)
+          .sort((a, b) => a.creeLe.localeCompare(b.creeLe))
+          .slice(0, limite);
+
+        const resultats: { referenceId: string; commande: string; statut: string; motif?: string }[] = [];
+        for (const transaction of candidates) {
+          try {
+            const etat = await client.statut(transaction.referenceId);
+            const statut = await trancher(transaction.referenceId, transaction, etat);
+            resultats.push({ referenceId: transaction.referenceId, commande: transaction.commande, statut });
+          } catch (erreur) {
+            // Une transaction illisible chez MTN n'empêche pas de traiter les autres.
+            resultats.push({
+              referenceId: transaction.referenceId,
+              commande: transaction.commande,
+              statut: 'ERREUR',
+              motif: (erreur as Error).message,
+            });
+          }
+        }
+
+        const tranchees = resultats.filter((r) => r.statut !== 'PENDING' && r.statut !== 'ERREUR').length;
+        if (tranchees > 0) journal(`réconciliation — ${tranchees} transaction(s) tranchée(s) sur ${candidates.length}`);
+
+        return {
+          statut: 200,
+          corps: { examinees: candidates.length, tranchees, resultats },
         };
       });
     },

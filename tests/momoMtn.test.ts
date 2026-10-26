@@ -181,6 +181,39 @@ describe('client MTN', () => {
     expect(entetes['X-Callback-Url']).toBeUndefined();
   });
 
+  it('réessaie sans X-Callback-Url quand MTN refuse l’hôte de callback', async () => {
+    // Cas réel en production : le domaine du site n'est pas l'URL de callback enregistrée sur le
+    // compte MTN. MTN répond 500 INVALID_CALLBACK_URL_HOST — ce n'est pas un refus de paiement.
+    const { appels, fetchFactice } = fauxMtn([
+      { statut: 200, corps: { access_token: 'jeton-1', expires_in: 3600 } },
+      {
+        statut: 500,
+        corps: { code: 'INVALID_CALLBACK_URL_HOST', message: 'Callback URL does not match the configured value.' },
+      },
+      { statut: 202, corps: '' },
+    ]);
+
+    const client = creerClientMomo(CONFIG, { fetch: fetchFactice });
+    await client.demarrerPaiement(DEMANDE);
+
+    expect(appels).toHaveLength(3);
+    expect((appels[1]!.init?.headers as Record<string, string>)['X-Callback-Url']).toBe(CONFIG.callbackUrl);
+    expect((appels[2]!.init?.headers as Record<string, string>)['X-Callback-Url']).toBeUndefined();
+  });
+
+  it('remonte le code MTN quand la demande est refusée pour une autre raison', async () => {
+    const { fetchFactice } = fauxMtn([
+      { statut: 200, corps: { access_token: 'jeton-1', expires_in: 3600 } },
+      { statut: 400, corps: { code: 'PAYER_NOT_FOUND', message: 'Payer not found' } },
+    ]);
+    const client = creerClientMomo(CONFIG, { fetch: fetchFactice });
+
+    await expect(client.demarrerPaiement(DEMANDE)).rejects.toMatchObject({
+      statutHttp: 400,
+      message: expect.stringContaining('PAYER_NOT_FOUND'),
+    });
+  });
+
   it('échappe la référence dans l’URL de statut', async () => {
     const espion = vi.fn();
     const { fetchFactice } = fauxMtn([

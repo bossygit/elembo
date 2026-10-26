@@ -1,7 +1,13 @@
 import { issueSignedToken } from '@vercel/blob';
 import { handleUploadPresigned, type HandleUploadPresignedBody } from '@vercel/blob/client';
 
-import { verifierAutorisation, verifierChemin, MAX_TAILLE_FICHIER, TYPES_ACCEPTES } from '@/server/dossiers/dossier';
+import {
+  statutDepot,
+  verifierAutorisation,
+  verifierChemin,
+  MAX_TAILLE_FICHIER,
+  TYPES_ACCEPTES,
+} from '@/server/dossiers/dossier';
 import { journal } from '@/server/momo/instance';
 
 // L'envoi passe directement du navigateur à l'archive : le corps de la requête ne traverse pas la
@@ -74,7 +80,6 @@ export async function POST(demande: Request, contexte: Contexte) {
     return Response.json(reponse);
   } catch (erreur) {
     const message = (erreur as Error).message || 'Envoi refusé.';
-    const statut = /déjà été reçu/.test(message) ? 409 : /payée|inconnue|correspond/.test(message) ? 403 : 400;
-    return Response.json({ erreur: message }, { status: statut });
+    return Response.json({ erreur: message }, { status: statutDepot(message) });
   }
 }

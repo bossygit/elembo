@@ -10,6 +10,7 @@ import {
   recapDossier,
   verifierAutorisation,
   verifierChemin,
+  statutDepot,
   verifierDepot,
 } from '../src/server/dossiers/dossier';
 import type { Transaction } from '../src/server/momo/store';
@@ -124,6 +125,16 @@ describe('dépôt complet', () => {
       fichiers: [{ nom: 'x.png', chemin: `dossiers/${COMMANDE}/x.png`, taille: 'beaucoup', type: 'image/png' }],
     });
     expect(v).toMatchObject({ ok: false, statut: 422 });
+  });
+});
+
+describe('statuts HTTP des refus', () => {
+  it('distingue référence inconnue, commande non payée, dossier déjà reçu', () => {
+    expect(statutDepot('Référence de paiement inconnue.')).toBe(404);
+    expect(statutDepot("La commande n'est pas payée (statut PENDING) : dossier refusé.")).toBe(409);
+    expect(statutDepot('Cette référence de paiement ne correspond pas à la commande.')).toBe(403);
+    expect(statutDepot('Le dossier de la commande X a déjà été reçu : aucun nouvel envoi.')).toBe(409);
+    expect(statutDepot('Envoi refusé.')).toBe(400);
   });
 });
 

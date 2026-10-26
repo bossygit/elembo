@@ -131,6 +131,16 @@ export function normaliserFichiers(fichiers: unknown): FichierDepose[] {
   });
 }
 
+/** Traduit un refus de dépôt en statut HTTP : le client (et les journaux) doivent pouvoir distinguer
+ *  une référence inexistante d'une commande non payée ou d'un dossier déjà reçu. */
+export function statutDepot(message: string): number {
+  if (/déjà été reçu/.test(message)) return 409;
+  if (/pas payée/.test(message)) return 409;
+  if (/inconnue/.test(message)) return 404;
+  if (/correspond/.test(message)) return 403;
+  return 400;
+}
+
 /** Récapitulatif lisible envoyé à l'atelier (Telegram) — la fiche complète reste le JSON du dossier. */
 export function recapDossier(transaction: Transaction, fichiers: FichierDepose[]): string {
   const lignes = [

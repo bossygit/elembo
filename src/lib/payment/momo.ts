@@ -60,7 +60,9 @@ async function lireJson(reponse: Response): Promise<Record<string, unknown>> {
 }
 
 function messageErreur(corps: Record<string, unknown>, statut: number, defaut: string): string {
-  const detail = corps.erreur ?? corps.detail ?? corps.message;
+  // `detail` d'abord : c'est là que le service place la cause réelle renvoyée par MTN
+  // (« HTTP 500 : INVALID_CALLBACK_URL_HOST — … »). Un message générique n'aide personne à corriger.
+  const detail = corps.detail ?? corps.erreur ?? corps.message;
   return typeof detail === 'string' && detail.trim() ? detail : `${defaut} (HTTP ${statut})`;
 }
 

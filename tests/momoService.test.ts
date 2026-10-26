@@ -354,3 +354,77 @@ describe('callback()', () => {
     });
   });
 });
+
+describe('reconcilier()', () => {
+  // Le callback MTN n'arrive pas tant que le domaine n'est pas enregistré sur le compte : cette
+  // interrogation périodique est le seul filet quand le client approuve puis ferme la page.
+
+  it('tranche une transaction PENDING devenue ancienne', async () => {
+    // Le client MTN simulé lit l'horloge partagée `horloge` : on avance celle-là, sinon MTN
+    // reste éternellement en attente et la réconciliation n'a rien à trancher.
+    const { service, store } = monter({ maintenant: () => new Date(horloge) });
+    const paiement = await service.payer(COMMANDE);
+    const referenceId = (paiement.corps as { referenceId: string }).referenceId;
+
+    // Rien à faire juste après la demande : trop récente.
+    const tot = await service.reconcilier({ ageMinutes: 1 });
+    expect(tot.corps).toMatchObject({ examinees: 0, tranchees: 0 });
+
+    horloge += 10 * 60_000; // dix minutes plus tard, MTN a tranché
+    const tard = await service.reconcilier({ ageMinutes: 1 });
+    expect(tard.statut).toBe(200);
+    expect(tard.corps).toMatchObject({ examinees: 1, tranchees: 1 });
+    expect(((await store.parReferenceId(referenceId)) ?? {}).statut).toBe('PAYE');
+  });
+
+  it('applique le contrôle de montant, comme le callback', async () => {
+    let instant = 1_000_000;
+    const clientFaux: ClientMomo = {
+      demarrerPaiement: async () => {},
+      statut: async (): Promise<StatutPaiement> => ({
+        statut: 'SUCCESSFUL',
+        montant: '999999',
+        devise: 'XAF',
+        financialTransactionId: 'FT-X',
+        raison: null,
+      }),
+    };
+    const { service, store } = monter({ client: clientFaux, maintenant: () => new Date(instant) });
+    const paiement = await service.payer(COMMANDE);
+    const referenceId = (paiement.corps as { referenceId: string }).referenceId;
+
+    instant += 10 * 60_000;
+    const resultat = await service.reconcilier({ ageMinutes: 1 });
+    expect((resultat.corps as { resultats: { statut: string }[] }).resultats[0]!.statut).toBe('ANOMALIE');
+    expect(((await store.parReferenceId(referenceId)) ?? {}).statut).toBe('ANOMALIE');
+  });
+
+  it('n’interrompt pas le balayage quand une transaction échoue chez MTN', async () => {
+    let instant = 1_000_000;
+    let appels = 0;
+    const clientFaux: ClientMomo = {
+      demarrerPaiement: async () => {},
+      statut: async (): Promise<StatutPaiement> => {
+        appels += 1;
+        if (appels === 1) throw new Error('MTN injoignable');
+        return {
+          statut: 'SUCCESSFUL',
+          montant: null,
+          devise: 'XAF',
+          financialTransactionId: 'FT-Y',
+          raison: null,
+        };
+      },
+    };
+    const { service } = monter({ client: clientFaux, maintenant: () => new Date(instant) });
+    await service.payer(COMMANDE);
+    await service.payer({ ...COMMANDE, commande: 'ELB-20261001-1200-CD' });
+
+    instant += 10 * 60_000;
+    const resultat = await service.reconcilier({ ageMinutes: 1 });
+    const corps = resultat.corps as { examinees: number; resultats: { statut: string }[] };
+    expect(corps.examinees).toBe(2);
+    expect(corps.resultats.map((r) => r.statut)).toContain('ERREUR');
+    expect(corps.resultats.map((r) => r.statut)).toContain('PAYE');
+  });
+});

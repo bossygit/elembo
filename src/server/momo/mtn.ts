@@ -131,17 +131,33 @@ export function creerClientMomo(cfg: ConfigClient, opts: OptionsClient = {}): Cl
       };
       if (cfg.callbackUrl) extra['X-Callback-Url'] = cfg.callbackUrl;
 
-      const reponse = await appeler(`${cfg.baseUrl}/collection/v1_0/requesttopay`, {
-        method: 'POST',
-        headers: entetes(jeton, extra),
-        body: JSON.stringify(corps),
-      });
+      const poster = () =>
+        appeler(`${cfg.baseUrl}/collection/v1_0/requesttopay`, {
+          method: 'POST',
+          headers: entetes(jeton, extra),
+          body: JSON.stringify(corps),
+        });
+
+      let reponse = await poster();
+      let corpsErreur = reponse.status === 202 ? '' : await texte(reponse);
+
+      // Cas réel rencontré en production : MTN refuse une X-Callback-Url dont l'hôte n'est pas
+      // celui enregistré sur le compte (`HTTP 500 INVALID_CALLBACK_URL_HOST`). Ce n'est PAS un
+      // refus de paiement — c'est notre URL qui n'est pas reconnue. On réessaie sans l'en-tête :
+      // MTN notifie alors son URL enregistrée, et c'est notre interrogation directe du statut
+      // (`GET /requesttopay/{id}`) qui fait foi.
+      if (reponse.status !== 202 && extra['X-Callback-Url'] && /INVALID_CALLBACK_URL_HOST/i.test(corpsErreur)) {
+        delete extra['X-Callback-Url'];
+        reponse = await poster();
+        corpsErreur = reponse.status === 202 ? '' : await texte(reponse);
+      }
+
       // MTN répond 202 : la demande est acceptée, pas encore payée.
       if (reponse.status !== 202) {
         throw new ErreurMomo(
-          `MTN a refusé la demande de paiement (${reponse.status}).`,
+          `MTN a refusé la demande de paiement (${reponse.status})${corpsErreur ? ` : ${motifMtn(corpsErreur)}` : ''}.`,
           reponse.status,
-          await texte(reponse),
+          corpsErreur,
         );
       }
     },
@@ -168,6 +184,17 @@ export function creerClientMomo(cfg: ConfigClient, opts: OptionsClient = {}): Cl
       };
     },
   };
+}
+
+/** Extrait le code et le message d'une erreur MTN, pour que la vraie cause soit lisible. */
+export function motifMtn(corps: string): string {
+  try {
+    const data = JSON.parse(corps) as { code?: string; message?: string };
+    if (data.message) return data.code ? `${data.code} — ${data.message}` : data.message;
+    return corps.slice(0, 200);
+  } catch {
+    return corps.slice(0, 200);
+  }
 }
 
 async function texte(reponse: Response): Promise<string> {

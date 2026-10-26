@@ -3,6 +3,16 @@
 Décision : le site et le service de paiement tournent sur **Vercel**, dans le même projet Next.js.
 Il n'y a plus de service séparé, plus de tunnel Cloudflare, plus de Mac à garder allumé.
 
+**État au 26/10/2026 — en production.**
+
+| Élément | Valeur |
+|---|---|
+| Site | https://elembo.vercel.app |
+| Projet Vercel | `kitutupros-projects/elembo` (plan Hobby), région `cdg1`, dépôt GitHub connecté (déploiement à chaque push sur `main`) |
+| Paiement | `mode reel`, `env mtncongo`, `devise XAF`, journal `redis-tcp` **joignable** (`/api/sante` → 200) |
+| Base | `redis-green-plank` (intégration Redis de Vercel, variable `REDIS_URL`) |
+| Service local + tunnel Cloudflare | **arrêtés** (agent launchd supprimé) |
+
 ---
 
 ## 1. Ce qui change, et pourquoi
@@ -70,9 +80,15 @@ Les routes (`src/app/api/…/route.ts`) ne font qu'appeler `service.ts` : ce son
 | `MOMO_API_KEY` | Production | Collection API KEY |
 | `MOMO_CALLBACK_URL` | Production | `https://<domaine>/api/momo/callback` |
 | `APP_ORIGINS` | Production | `https://<domaine>` (le domaine exact, sans barre oblique finale) |
-| `UPSTASH_REDIS_REST_URL` | Production + Preview | injectée par l'intégration Redis |
-| `UPSTASH_REDIS_REST_TOKEN` | Production + Preview | idem |
+| `REDIS_URL` | Production + Preview | injectée par l'intégration Redis de Vercel (*Storage → Redis*) |
 | `MOMO_MOCK=1` | **Preview uniquement** | paiements simulés, aucune clé, aucun franc |
+
+L'intégration Redis de Vercel fournit une **connexion TCP** (`rediss://…`), pas l'API HTTP
+d'Upstash : le journal la consomme via `ioredis` (`StoreRedisUrl`). L'API REST reste supportée
+(`UPSTASH_REDIS_REST_URL` / `KV_REST_API_URL`) si l'hébergement du journal change un jour — même
+code métier, seul le transport diffère. Piège rencontré : pendant la création de la base, `REDIS_URL`
+vaut `database_provisioning_in_progress` ; la configuration refuse cette valeur et le dit
+explicitement plutôt que de démarrer sans journal.
 
 Deux règles à ne pas inverser :
 
@@ -93,8 +109,12 @@ variables Upstash : les deux noms sont lus.
 1. **Importer le dépôt** dans Vercel (`Add New… → Project → bossygit/elembo`). Framework détecté :
    Next.js. Aucune commande de build à changer (`npm run build`). Ne pas cocher d'export statique :
    `DEPLOY_TARGET=gh-pages` est réservé à l'ancien déploiement Pages.
-2. **Créer le stockage** : onglet *Storage* → Upstash Redis (offre gratuite) → *Connect to Project*.
-   Les deux variables `UPSTASH_REDIS_REST_*` sont alors ajoutées automatiquement.
+2. **Créer le stockage** : onglet *Storage* → **Redis** (intégration officielle) → *Create* →
+   effectuer les choix (`Region=cdg1`, `RAM only`, `HighAvailability=None`) → *Connect to Project*.
+   La variable `REDIS_URL` est ajoutée automatiquement, pour Production, Preview et Development.
+   En CLI : `vercel integration add redis --metadata Region=cdg1 --metadata "StorageType=RAM only"
+   --metadata HighAvailability=None` (l'acceptation des conditions du marketplace se fait une fois
+   dans le navigateur).
 3. **Renseigner les variables** du §3, puis *Redeploy* (les variables ne sont lues qu'au
    démarrage d'une nouvelle fonction).
 4. **Vérifier** :
@@ -141,6 +161,19 @@ périmée ne casse rien. Elle ne compte que pour un client externe (ancien site 
 | Chemin Redis réel (faux Upstash local, protocole REST) | écriture `HSETNX`, `HGET`, `HGETALL` ; transaction retrouvée **après redémarrage complet** ; double débit toujours refusé |
 | Redis injoignable | `503` « Journal des transactions indisponible », **aucun appel à MTN** |
 | CORS | origine listée reflétée, origine inconnue sans en-tête |
+
+Vérifications **sur la production déployée** (26/10/2026, `https://elembo.vercel.app`) :
+
+| Vérification | Résultat |
+|---|---|
+| `GET /api/sante` | `200` — `{"mode":"reel","env":"mtncongo","devise":"XAF","stockage":"redis-tcp","stockageJoignable":true}` |
+| `GET /api/momo/tarifs` | `200` — prix réellement appliqués depuis `tarifs/grille.json` |
+| `POST /api/momo/payer` avec produit inconnu | `422` « Produit inconnu » — validation **avant** tout appel MTN et avant toute écriture |
+| `POST /api/momo/callback` avec référence inconnue | `200` `{recu:true, traite:false}` — MTN ne boucle pas |
+| `PUT /api/momo/callback/<référence>` | `200` — variante par chemin opérationnelle |
+| `GET /api/momo/statut` avec référence inconnue | `404` |
+| Écriture réelle dans la base Vercel | transaction créée (`HSETNX`), passée `PAYE` (`HSET`), relue, doublon refusé, puis **entrée de test supprimée** — journal vérifié vide après coup |
+| Ancien service local + tunnel Cloudflare | arrêtés ; agent launchd `cg.smartvision.elembo.paiement` supprimé |
 
 ---
 

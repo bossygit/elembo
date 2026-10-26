@@ -93,9 +93,11 @@ Le tunnel de commande transforme un design validé en **dossier de production** 
 **Où tourne le paiement** : dans l'application elle-même — `src/server/momo/`, exposé par les routes
 `src/app/api/momo/*`, hébergé sur **Vercel**. Plus de service séparé, plus de tunnel Cloudflare,
 plus de Mac à laisser allumé : le site et l'encaissement partagent le même domaine, donc plus de
-CORS obligatoire ni d'adresse à republier. L'état des transactions vit dans **Redis** (Upstash /
-Vercel KV), parce qu'une fonction serverless n'a pas de disque ; **sans journal, le service refuse
-d'encaisser** (`503`, aucun appel à MTN). Mise en service détaillée : [`docs/vercel.md`](docs/vercel.md).
+CORS obligatoire ni d'adresse à republier. L'état des transactions vit dans **Redis** (intégration Redis de Vercel,
+variable `REDIS_URL` ; l'API REST Upstash/Vercel KV reste supportée), parce qu'une fonction
+serverless n'a pas de disque ; **sans journal, le service refuse d'encaisser** (`503`, aucun appel
+à MTN). `GET /api/sante` exécute un `PING` réel : un déploiement vert ne peut pas masquer une base
+injoignable. Mise en service détaillée : [`docs/vercel.md`](docs/vercel.md).
 
 Prix : lus dans **`tarifs/grille.json`**, la source unique, importée à la compilation par
 l'application comme par le calcul du montant. Plus de service à redémarrer après un changement de

@@ -86,7 +86,9 @@ Le tunnel de commande transforme un design validé en **dossier de production** 
   (bouton « Payer … par MTN MoMo »). Le navigateur appelle `POST /api/momo/payer` — une route de
   **la même application** — puis **sonde le statut** ; les fichiers d'impression et la fiche de
   production ne sont générés **qu'après un `PAYE` confirmé**. Un échec ou un dépassement du délai
-  de 5 minutes ne produit aucun fichier.
+  de 5 minutes ne produit aucun fichier. Le dossier (PNG + fiche) est ensuite **déposé côté
+  serveur** : il ne dépend plus du navigateur du client ni de sa connexion au moment de la
+  confirmation (voir ci-dessous).
 - **Atelier** : un repli explicite « générer les fichiers sans paiement » reste disponible
   (replié sous le bouton de paiement) pour les essais d'impression.
 
@@ -98,6 +100,18 @@ variable `REDIS_URL` ; l'API REST Upstash/Vercel KV reste supportée), parce qu'
 serverless n'a pas de disque ; **sans journal, le service refuse d'encaisser** (`503`, aucun appel
 à MTN). `GET /api/sante` exécute un `PING` réel : un déploiement vert ne peut pas masquer une base
 injoignable. Mise en service détaillée : [`docs/vercel.md`](docs/vercel.md).
+
+**Le dossier de production ne reste pas dans le navigateur** — c'était le trou : un client qui
+fermait la page après avoir payé laissait une commande encaissée sans visuel pour l'atelier. Après
+`PAYE`, l'écran envoie les PNG et les fiches vers une **archive privée** (Vercel Blob, `dossiers/<commande>/`)
+via une URL signée délivrée par `POST /api/commandes/<commande>/upload` — délivrée **uniquement si
+la transaction est `PAYE`** — puis enregistre les métadonnées par `POST /api/commandes/<commande>/fichiers`,
+qui prévient l'atelier (Telegram) et reste idempotent. L'atelier relit et télécharge par les routes
+`/api/commandes/<commande>/fichiers…` protégées par `ATELIER_TOKEN` ; l'URL de l'archive n'est jamais
+exposée au navigateur. Envoi direct navigateur → archive, donc un visuel de 15 Mo ne bute pas sur la
+limite de 4,5 Mo d'une fonction Vercel. Si l'envoi échoue, l'écran le dit et invite à transmettre les
+fichiers par WhatsApp avec la référence — jamais de faux succès. Détail et preuves :
+[`docs/vercel.md`](docs/vercel.md#6-dossier-de-production--du-paiement-à-latelier).
 
 Prix : lus dans **`tarifs/grille.json`**, la source unique, importée à la compilation par
 l'application comme par le calcul du montant. Plus de service à redémarrer après un changement de
@@ -225,7 +239,7 @@ encaissements réels faits par le tunnel), mais il n'est plus alimenté.
 
 ```bash
 npm install --include=dev   # cette machine omet les devDependencies par défaut (npm config omit=dev)
-npm test                    # vitest — 312 tests (studio, physique d'impression, tarifs, service de paiement)
+npm test                    # vitest — 339 tests (studio, impression, tarifs, paiement, dossier de production)
 npm run lint
 npm run build
 npm run dev                 # http://localhost:3000  ·  /  (configurateur 3D)  ·  /studio  (studio 2D)

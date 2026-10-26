@@ -150,17 +150,70 @@ périmée ne casse rien. Elle ne compte que pour un client externe (ancien site 
 
 ---
 
-## 6. Vérifications faites avant livraison (26/10/2026)
+## 6. Dossier de production : du paiement à l'atelier
+
+Avant ce lot, les PNG d'impression et la fiche étaient produits **dans le navigateur du client**,
+au moment où le paiement passait à `PAYE`. Si le client fermait la page, coupait le réseau ou
+perdait le téléphone, la commande était encaissée et l'atelier n'avait **rien**. C'est le trou qui
+empêchait de vendre sans être présent.
+
+Le dossier est maintenant déposé côté serveur avant d'être considéré comme reçu :
+
+```
+navigateur (canvas)                       archive privée (Vercel Blob)
+      │ 1. POST /api/commandes/<ref>/upload  ── autorise (transaction PAYE) ──► URL signée
+      │ 2. PUT des octets ───────────────────────────────────────────────────► dossiers/<ref>/…
+      │ 3. POST /api/commandes/<ref>/fichiers ── enregistre dans Redis ──► Telegram (atelier)
+      └─ 4. message : « dossier transmis à l'atelier » (ou « envoi échoué », jamais un faux succès)
+```
+
+| Route | Rôle | Protection |
+|---|---|---|
+| `POST /api/commandes/[ref]/upload` | délivre une URL signée d'envoi | transaction existante, `PAYE`, référence ↔ commande, chemin `dossiers/<ref>/`, types `image/png`/`application/json`/`text/plain`, 25 Mo max, 15 min |
+| `POST /api/commandes/[ref]/fichiers` | enregistre les métadonnées, prévient l'atelier | mêmes contrôles + bornes (6 fichiers, 60 Mo), **idempotent** : un dépôt rejoué ne duplique rien |
+| `GET /api/commandes/[ref]/fichiers` | liste les dossiers reçus | `x-atelier-token: $ATELIER_TOKEN` |
+| `GET /api/commandes/[ref]/fichiers/[nom]` | télécharge un fichier | même jeton ; l'URL de l'archive n'est jamais exposée au navigateur |
+
+Points de conception qui comptent :
+
+- **Envoi direct du navigateur vers l'archive** — une requête de fonction Vercel est plafonnée à
+  4,5 Mo de corps ; un PNG de toile fait souvent 5 à 15 Mo. Le fichier ne traverse donc jamais la
+  fonction : seule l'autorisation passe par elle (variante *presigned*, authentifiée par OIDC —
+  aucun jeton statique à stocker).
+- **Un dossier n'est enregistré que si le paiement est `PAYE`** — un fichier ne peut pas créer une
+  commande. Le premier dépôt d'une commande fait foi : rien n'est écrasé.
+- **Échec de notification ≠ échec de commande** — le fichier est archivé et journalisé ; la réponse
+  porte `notifie: false` et son motif, et `/api/sante` affiche l'état du canal.
+- **Le client garde ses téléchargements** — si l'envoi échoue après paiement, l'écran le dit
+  explicitement et l'invite à transmettre les fichiers par WhatsApp avec la référence.
+
+Variables ajoutées :
+
+| Variable | Rôle |
+|---|---|
+| `BLOB_STORE_ID` | injectée par le stockage Vercel Blob `elembo-dossiers` (accès **privé**, région `cdg1`) |
+| `ATELIER_TOKEN` | jeton des routes de consultation/téléchargement atelier |
+| `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` | avis automatique à l'atelier (facultatif : sans eux, le dépôt fonctionne, `notifie: false`) |
+
+Vérifié de bout en bout sur un serveur local (paiement MTN simulé, archive réelle, 26/10/2026) avec
+`scripts/e2e-dossier.mjs` : paiement `PAYE` → envoi de 2 fichiers vers l'archive privée →
+enregistrement `201` → rejeu `200 dejaRecu` → `401` sans jeton atelier, `200` avec → téléchargement
+**identique octet pour octet** → référence inconnue `404` → fichiers d'essai supprimés.
+
+---
+
+## 7. Vérifications faites avant livraison (26/10/2026)
 
 | Vérification | Résultat |
 |---|---|
-| `npm test` (Vitest) | **312 tests verts** — dont 47 portés/ajoutés pour le service de paiement |
+| `npm test` (Vitest) | **339 tests verts** — dont 22 pour le dossier de production (autorisation, chemins, notification) |
 | `npx tsc --noEmit` | aucun diagnostic |
 | `npm run build` | build production OK, routes `/api/momo/*` et `/api/sante` en dynamique (`ƒ`) |
 | Flux complet sur le build de production (mock) | payer → PENDING → PAYE, doublon `422`, commande payée `422`, callback par corps et par chemin, commande tableaux 2 × 40×60 monté = 33 600 FCFA |
 | Chemin Redis réel (faux Upstash local, protocole REST) | écriture `HSETNX`, `HGET`, `HGETALL` ; transaction retrouvée **après redémarrage complet** ; double débit toujours refusé |
 | Redis injoignable | `503` « Journal des transactions indisponible », **aucun appel à MTN** |
 | CORS | origine listée reflétée, origine inconnue sans en-tête |
+| Dossier de production (`scripts/e2e-dossier.mjs`) | paiement `PAYE` → 2 fichiers dans l'archive privée → `201` → rejeu `200 dejaRecu` → atelier `401`/`200` → octets identiques → inconnue `404` |
 
 Vérifications **sur la production déployée** (26/10/2026, `https://elembo.vercel.app`) :
 
@@ -177,7 +230,7 @@ Vérifications **sur la production déployée** (26/10/2026, `https://elembo.ver
 
 ---
 
-## 7. Après la bascule — nettoyage
+## 8. Après la bascule — nettoyage
 
 Ces éléments ne servent plus, mais ils sont laissés en place tant que la production Vercel n'a pas
 encaissé un vrai paiement (retour arrière possible en une minute) :
@@ -200,7 +253,7 @@ launchctl list | grep -i elembo   # doit ne rien renvoyer
 
 ---
 
-## 8. Points de vigilance
+## 9. Points de vigilance
 
 - **Plan Vercel** : l'offre Hobby est gratuite et suffisante techniquement, mais les conditions
   d'utilisation réservent Hobby aux usages non commerciaux. Pour une boutique qui encaisse, prévoir

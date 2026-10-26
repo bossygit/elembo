@@ -26,6 +26,8 @@ import { ErreurTelephone, masquerMsisdn, normaliserMsisdn } from './msisdn';
 import { ErreurCommande, calculerMontant, type Ligne, type LigneTableau, type Montant } from './pricing';
 import { ErreurMomo, type ClientMomo } from './mtn';
 import { ErreurStockage, type JournalTransactions } from './store';
+import { archiveConfiguree } from '../dossiers/archive';
+import { telegramConfigure } from '../dossiers/telegram';
 
 export type Reponse = { statut: number; corps: unknown };
 
@@ -117,6 +119,12 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
         env: config.env,
         devise: config.devise,
         stockage: config.stockage.genre,
+        // L'atelier fait partie de la chaîne : un dossier qui n'arrive nulle part est une vente
+        // perdue. On rend donc visible l'état de l'archive et du canal d'alerte.
+        atelier: {
+          archive: archiveConfiguree() ? 'blob' : 'absent',
+          notification: telegramConfigure() ? 'telegram' : 'absent',
+        },
       };
       try {
         await store.verifier();

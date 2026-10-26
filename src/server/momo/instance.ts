@@ -37,7 +37,17 @@ export async function gestionnaire(): Promise<Gestionnaire> {
 export function reinitialiser(): void {
   instance = null;
   enCours = null;
+  journalCourant = null;
 }
+
+/** Journal partagé par les routes de dépôt de fichiers (même instance que le paiement). */
+export async function journal(): Promise<JournalTransactions> {
+  await gestionnaire();
+  if (!journalCourant) throw new Error('Journal indisponible.');
+  return journalCourant;
+}
+
+let journalCourant: JournalTransactions | null = null;
 
 async function construire(): Promise<Gestionnaire> {
   let config;
@@ -49,6 +59,7 @@ async function construire(): Promise<Gestionnaire> {
   }
 
   const store = await ouvrirStore(config.stockage);
+  journalCourant = store;
   const client =
     config.mode === 'mock'
       ? creerClientMock({ delaiMs: config.delaiMockMs })

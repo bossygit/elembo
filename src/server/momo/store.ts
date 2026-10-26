@@ -22,6 +22,15 @@ export type StatutTransaction = 'PENDING' | 'PAYE' | 'ECHEC' | 'ANOMALIE';
 
 export type Evenement = { le: string; quoi: string; detail?: string };
 
+/** Fichier d'impression déposé par le navigateur du client après paiement. */
+export type FichierDepose = {
+  nom: string;
+  /** Chemin dans l'archive privée (Vercel Blob). */
+  chemin: string;
+  taille: number;
+  type: string;
+};
+
 export type Transaction = {
   referenceId: string;
   commande: string;
@@ -38,6 +47,10 @@ export type Transaction = {
   creeLe: string;
   majLe: string;
   historique: Evenement[];
+  /** Dossier de production reçu (PNG + fiche) — vide tant que le client n'a rien déposé. */
+  fichiers?: FichierDepose[];
+  /** Date du dépôt du dossier (ISO 8601). */
+  dossierLe?: string;
 };
 
 export type NouvelleTransaction = Omit<
@@ -46,7 +59,7 @@ export type NouvelleTransaction = Omit<
 >;
 
 export type PatchTransaction = Partial<
-  Pick<Transaction, 'statut' | 'financialTransactionId' | 'raison'>
+  Pick<Transaction, 'statut' | 'financialTransactionId' | 'raison' | 'fichiers' | 'dossierLe'>
 >;
 
 export interface JournalTransactions {

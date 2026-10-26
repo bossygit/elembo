@@ -23,6 +23,7 @@ import type { FitMode } from '../lib/printArea';
 import { DELIVERY, formatFcfa, makeReference } from '../lib/order/order';
 import type { DeliveryCity } from '../lib/order/order';
 import { demanderPaiement, suivrePaiement, telephonePlausible } from '../lib/payment/momo';
+import { envoyerDossier, type FichierAEnvoyer } from '../lib/payment/dossier';
 import type { Paiement } from '../lib/payment/momo';
 import { DPI_IMPRESSION, ficheFichierImpression, ficheTexte } from '../lib/products/impression';
 import { nomFichierImpression, renderVisuelPng } from '../lib/canvas/exportZone';
@@ -84,8 +85,9 @@ export default function TableauPanel({
   const conseil = design ? conseilFormat(design.width, design.height) : null;
 
   /** Génère le fichier d'impression (visuel seul, débords compris) et la fiche pour l'atelier. */
-  async function produireFichier(reference: string) {
-    if (!design) return;
+  async function produireFichier(reference: string): Promise<FichierAEnvoyer[]> {
+    if (!design) return [];
+    const aEnvoyer: FichierAEnvoyer[] = [];
     try {
       const format = formatParId(formatId)!;
       const blob = await renderVisuelPng({
@@ -99,10 +101,11 @@ export default function TableauPanel({
         offset,
         dpi: DPI_IMPRESSION,
       });
-      if (!blob) return;
+      if (!blob) return [];
       const nom = nomFichierImpression(reference, formatId, support);
       setFichierPret({ url: URL.createObjectURL(blob), nom });
       downloadBlob(blob, nom);
+      aEnvoyer.push({ nom, blob });
 
       // La fiche dit à l'atelier CE QU'IL FABRIQUE : toile seule ou montée, et la surface exacte
       // à imprimer (débords compris). Sans elle, on risque de monter un châssis sur un fichier
@@ -117,9 +120,11 @@ export default function TableauPanel({
       const nomFiche = `${reference}-FICHE-PRODUCTION.txt`;
       setFichePrete({ url: URL.createObjectURL(fichierFiche), nom: nomFiche });
       downloadBlob(fichierFiche, nomFiche);
+      aEnvoyer.push({ nom: nomFiche, blob: fichierFiche });
     } catch {
       // l'échec de génération ne remet pas en cause le paiement déjà encaissé
     }
+    return aEnvoyer;
   }
 
   async function payer() {
@@ -150,10 +155,17 @@ export default function TableauPanel({
 
       if (resultat.paiement.statut === 'PAYE') {
         setSuivi('succes');
+        const fichiers = await produireFichier(reference);
+        const depot = await envoyerDossier({
+          commande: reference,
+          referenceId: resultat.paiement.referenceId,
+          fichiers,
+        });
         setMessage(
-          `Paiement confirmé (${formatFcfa(resultat.paiement.montantFcfa)}) — commande ${reference}. L'atelier prépare votre tableau ${formatParId(formatId)!.label}, ${libelleSupport(support).toLowerCase()}.`,
+          depot.envoye
+            ? `Paiement confirmé (${formatFcfa(resultat.paiement.montantFcfa)}) — commande ${reference}. Votre tableau ${formatParId(formatId)!.label}, ${libelleSupport(support).toLowerCase()}, est transmis à l'atelier${depot.notifie ? ' (atelier prévenu)' : ''}.`
+            : `Paiement confirmé (${formatFcfa(resultat.paiement.montantFcfa)}) — commande ${reference}. Fichiers téléchargés sur cet appareil, mais l'envoi à l'atelier a échoué (${depot.motif ?? 'raison inconnue'}). Transmettez-les par WhatsApp avec la référence.`,
         );
-        await produireFichier(reference);
       } else if (resultat.expire) {
         setSuivi('expire');
       } else {

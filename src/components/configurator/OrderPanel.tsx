@@ -37,6 +37,7 @@ import {
   type Paiement,
 } from '../../lib/payment/momo';
 import type { Side } from '../../types/configurator';
+import { envoyerDossier, type FichierAEnvoyer } from '../../lib/payment/dossier';
 import { useElementImages } from './useElementImages';
 
 /** Durée maximale de suivi : MTN abandonne une demande non validée au bout de 5 minutes. */
@@ -151,8 +152,8 @@ export default function OrderPanel() {
    * production (texte + JSON). Appelée après un paiement confirmé — ou explicitement sans paiement,
    * pour les essais de l'atelier.
    */
-  async function genererFiles(ref: string) {
-    if (!product) return 0;
+  async function genererFiles(ref: string): Promise<FichierAEnvoyer[]> {
+    if (!product) return [];
     const sheet = buildProductionSheet({
       reference: ref,
       product,
@@ -164,7 +165,8 @@ export default function OrderPanel() {
       measure,
     });
 
-    let fichiers = 0;
+    const aEnvoyer: FichierAEnvoyer[] = [];
+
     for (const side of faces) {
       const area = getPrintArea(product, side);
       if (!area) continue;
@@ -174,17 +176,23 @@ export default function OrderPanel() {
       }));
       const blob = await renderPrintPng({ area, elements: dessines, measure });
       if (blob) {
-        downloadBlob(blob, sheet.faces.find((f) => f.side === side)?.fichier ?? `${ref}-${side}.png`);
-        fichiers += 1;
+        const nom = sheet.faces.find((f) => f.side === side)?.fichier ?? `${ref}-${side}.png`;
+        // Téléchargement local conservé : si l'envoi à l'atelier échoue (réseau coupé après le
+        // paiement), le client a encore ses fichiers et peut les transmettre par WhatsApp.
+        downloadBlob(blob, nom);
+        aEnvoyer.push({ nom, blob });
       }
     }
 
-    downloadBlob(
-      new Blob([productionSheetText(sheet)], { type: 'text/plain;charset=utf-8' }),
-      `${ref}-fiche-production.txt`,
-    );
-    downloadBlob(new Blob([JSON.stringify(sheet, null, 2)], { type: 'application/json' }), `${ref}-fiche-production.json`);
-    return fichiers;
+    const ficheTexteBlob = new Blob([productionSheetText(sheet)], { type: 'text/plain;charset=utf-8' });
+    downloadBlob(ficheTexteBlob, `${ref}-fiche-production.txt`);
+    aEnvoyer.push({ nom: `${ref}-fiche-production.txt`, blob: ficheTexteBlob });
+
+    const ficheJsonBlob = new Blob([JSON.stringify(sheet, null, 2)], { type: 'application/json' });
+    downloadBlob(ficheJsonBlob, `${ref}-fiche-production.json`);
+    aEnvoyer.push({ nom: `${ref}-fiche-production.json`, blob: ficheJsonBlob });
+
+    return aEnvoyer;
   }
 
   async function genererSansPaiement() {
@@ -194,7 +202,9 @@ export default function OrderPanel() {
     try {
       const fichiers = await genererFiles(ref);
       setReference(ref);
-      setMessage(`Commande ${ref} : ${fichiers} fichier(s) d’impression et la fiche de production téléchargés.`);
+      setMessage(
+        `Commande ${ref} : ${fichiers.length} fichier(s) téléchargé(s) (essai atelier, aucun paiement, rien n’est envoyé).`,
+      );
     } finally {
       setEnCours(false);
     }
@@ -229,8 +239,15 @@ export default function OrderPanel() {
       if (resultat.paiement.statut === 'PAYE') {
         setSuivi('succes');
         const fichiers = await genererFiles(ref);
+        const depot = await envoyerDossier({
+          commande: ref,
+          referenceId: resultat.paiement.referenceId,
+          fichiers,
+        });
         setMessage(
-          `Paiement confirmé (${formatFcfa(resultat.paiement.montantFcfa)}) — commande ${ref} : ${fichiers} fichier(s) d’impression et la fiche de production téléchargés.`,
+          depot.envoye
+            ? `Paiement confirmé (${formatFcfa(resultat.paiement.montantFcfa)}) — commande ${ref} : dossier de ${depot.fichiers} fichier(s) transmis à l’atelier${depot.notifie ? ', atelier prévenu' : ''}.`
+            : `Paiement confirmé (${formatFcfa(resultat.paiement.montantFcfa)}) — commande ${ref} : fichiers téléchargés sur cet appareil, mais l’envoi à l’atelier a échoué (${depot.motif ?? 'raison inconnue'}). Transmettez-les par WhatsApp avec la référence.`,
         );
       } else if (resultat.expire) {
         setSuivi('expire');

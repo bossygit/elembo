@@ -1,5 +1,11 @@
 # Mise en production — dossier de décision
 
+> **Décision révisée le 26 octobre 2026 : hébergement sur Vercel.** Le service de paiement a été
+> porté dans l'application Next.js (routes `src/app/api/momo/*`), l'état des transactions vit dans
+> Redis, et le tunnel Cloudflare disparaît. Mise en service : [`docs/vercel.md`](./vercel.md).
+> Ce document reste la référence des **exigences d'exploitation** (fichiers de production,
+> back-office, sauvegardes, supervision) : elles sont indépendantes de l'hébergeur.
+
 8 octobre 2026 — Elembo (Smart Vision SARLU)
 Objet : transformer un prototype fonctionnel en service commercial exploitable **sans
 intervention manuelle permanente**.

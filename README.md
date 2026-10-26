@@ -83,39 +83,26 @@ Le tunnel de commande transforme un design validé en **dossier de production** 
   rotation, et l'avertissement si l'élément déborde (donc rogné). Un imprimeur peut travailler
   directement avec ça.
 - **Paiement** : après validation de l'aperçu, le client paie le montant par **MTN Mobile Money**
-  (bouton « Payer … par MTN MoMo »). Le navigateur appelle le service `momo-service/`
-  (`POST /api/momo/payer`), puis **sonde le statut** ; les fichiers d'impression et la fiche de
+  (bouton « Payer … par MTN MoMo »). Le navigateur appelle `POST /api/momo/payer` — une route de
+  **la même application** — puis **sonde le statut** ; les fichiers d'impression et la fiche de
   production ne sont générés **qu'après un `PAYE` confirmé**. Un échec ou un dépassement du délai
   de 5 minutes ne produit aucun fichier.
 - **Atelier** : un repli explicite « générer les fichiers sans paiement » reste disponible
   (replié sous le bouton de paiement) pour les essais d'impression.
 
-Adresse du service : variable `NEXT_PUBLIC_MOMO_API_URL` (défaut `http://localhost:8787`). Le
-service tourne séparément (voir `momo-service/README.md`) : sans lui, le bouton de paiement
-affiche « service injoignable » et le repli atelier reste utilisable.
+**Où tourne le paiement** : dans l'application elle-même — `src/server/momo/`, exposé par les routes
+`src/app/api/momo/*`, hébergé sur **Vercel**. Plus de service séparé, plus de tunnel Cloudflare,
+plus de Mac à laisser allumé : le site et l'encaissement partagent le même domaine, donc plus de
+CORS obligatoire ni d'adresse à republier. L'état des transactions vit dans **Redis** (Upstash /
+Vercel KV), parce qu'une fonction serverless n'a pas de disque ; **sans journal, le service refuse
+d'encaisser** (`503`, aucun appel à MTN). Mise en service détaillée : [`docs/vercel.md`](docs/vercel.md).
 
-**Essais de paiement réel entre collègues** — le service doit être joignable depuis les
-navigateurs des testeurs, donc exposé publiquement (il tourne sur une machine locale) :
+Prix : lus dans **`tarifs/grille.json`**, la source unique, importée à la compilation par
+l'application comme par le calcul du montant. Plus de service à redémarrer après un changement de
+barème : un redéploiement suffit. `GET /api/momo/tarifs` renvoie les tarifs réellement appliqués par
+l'instance en cours (`chargeLe` = son démarrage) — c'est la vérification à faire avant d'envoyer un
+lien de paiement.
 
-```bash
-bash scripts/demarrer-paiement.sh
-```
-
-Le script démarre le service en **production** (`momo-service/.env.production`), ouvre un tunnel
-`cloudflared`, puis écrit l'adresse obtenue dans `api-config.js` de la branche `gh-pages` et la
-pousse. L'application lit cette adresse **à l'exécution** (`public/api-config.js`) : rebrancher la
-boutique sur un nouveau service ne demande donc ni rebuild ni redéploiement, seulement cette
-écriture. Si l'adresse est absente ou vide, l'application retombe sur la valeur compilée.
-
-L'adresse d'un tunnel rapide change à chaque redémarrage : relancer le script suffit. La machine
-qui héberge le service doit rester allumée et éveillée (`caffeinate`, activé par le script).
-
-Le catalogue (prix, frais de livraison) est lu **au démarrage du service** : après un changement
-de tarif, il faut donc redémarrer le service pour qu'il facture le nouveau barème — un service
-laissé en vie facture l'ancien (cas vécu le 06/10 : site à 200 FCFA, téléphone à 1 100). Le script
-le fait systématiquement, et `GET /api/momo/tarifs` renvoie les tarifs réellement appliqués par le
-processus en cours (`chargeLe` = date de démarrage) — c'est la vérification à faire avant d'envoyer
-le lien : `curl "$URL/api/momo/tarifs"`.
 
 Le champ `priceFcfa` du catalogue porte un **prix de test de 100 FCFA** (décidé le 05/10/2026
 pour les essais de paiement réel entre collègues ; le tarif commercial reste à arbitrer), en
@@ -192,8 +179,8 @@ recalculée selon le format choisi par le client, et le prix suit ce format.
 
 Prix en FCFA, TTC. **Barème provisoire** : il est calculé (surface imprimée + montage + préparation,
 arrondi au multiple de 500 FCFA supérieur), pas relevé sur le marché. Pour l'ajuster, modifier
-`TARIFS` dans `src/lib/products/tableaux.ts` **et** `FORMATS_TABLEAU` dans
-`momo-service/src/catalogue.ts` — `tests/coherenceCatalogues.test.ts` échoue si les deux divergent.
+`tarifs/grille.json` (les deux moteurs — application et calcul du montant côté serveur — en
+dérivent ; `tests/coherenceCatalogues.test.ts` échoue s'ils divergent).
 
 - **Remise de quantité par ligne** : 0 % (1), 5 % (2), 10 % (5), 15 % (10 et plus).
 - **Conseil de format** : la plateforme calcule la densité de la photo sur chaque format et annonce
@@ -211,49 +198,32 @@ arrondi au multiple de 500 FCFA supérieur), pas relevé sur le marché. Pour l'
   recalcule le montant comme pour le textile ; le détail de la commande est conservé dans la
   transaction (`detail`).
 
-## Service de paiement en continu (launchd)
+## Ancien service de paiement local (archive)
 
-Un agent utilisateur maintient la chaîne debout sans intervention :
+Jusqu'au 26/10/2026, le paiement tournait dans un processus séparé (`momo-service/`) sur le MacBook,
+exposé par un **tunnel Cloudflare** dont l'adresse changeait à chaque redémarrage, avec un agent
+`launchd` qui relançait service et tunnel toutes les 5 minutes et republiait l'adresse sur la
+branche `gh-pages` (`scripts/service-paiement.sh`, `scripts/installer-service-paiement.sh`,
+`scripts/demarrer-paiement.sh`).
+
+Cette chaîne n'est **plus utilisée** : le service est désormais dans l'application, sur Vercel
+(`docs/vercel.md`). Les scripts et `momo-service/` restent dans le dépôt à titre d'archive, le temps
+que la production Vercel ait encaissé un vrai paiement. Pour arrêter l'agent local :
 
 ```bash
-bash scripts/installer-service-paiement.sh     # installe (ou réinstalle) l'agent
-launchctl kickstart -k gui/$(id -u)/cg.smartvision.elembo.paiement   # forcer un passage
-tail -f ~/.elembo/service-paiement.log         # journal
-# désinstaller :
 launchctl bootout gui/$(id -u)/cg.smartvision.elembo.paiement
 rm ~/Library/LaunchAgents/cg.smartvision.elembo.paiement.plist
 ```
 
-L'agent se déclenche à l'ouverture de session puis **toutes les 5 minutes**, et
-`scripts/service-paiement.sh` fait trois choses — rien de plus si tout va bien :
-
-1. **service** : le relance s'il n'écoute plus sur le port 8787 ;
-2. **tunnel** : le recrée si son processus est absent ou si l'adresse ne répond plus — puis
-   **republie la nouvelle adresse** dans `api-config.js` sur la branche `gh-pages`. Sans cette
-   republication, un tunnel relancé laisserait le site envoyer les paiements dans le vide ;
-3. **veille** : empêche la mise en veille (sur secteur uniquement), sinon le tunnel tombe.
-
-**Tout ce que l'agent exécute vit dans `~/.elembo/`** — et c'est une contrainte de macOS, pas un
-choix : un agent launchd ne peut pas lire dans `~/Documents` (`Operation not permitted`, TCC
-mesuré sur cette machine). L'installateur entretient donc deux copies hors de Documents :
-
-| Chemin | Rôle |
-|---|---|
-| `~/.elembo/service-paiement.sh` | le superviseur (copie de `scripts/service-paiement.sh`) |
-| `~/.elembo/elembo-service/` | le service de paiement en production (copie de `momo-service/`, avec ses `.env.production` et `data/transactions.json`) |
-| `~/.elembo/elembo-pages/` | clone de la branche `gh-pages`, utilisé pour republier l'adresse |
-| `~/.elembo/tunnel-url.txt` | adresse du tunnel en service (source de vérité locale) |
-
-**Conséquences à connaître** : le registre des transactions de production est
-`~/.elembo/elembo-service/data/transactions.json` (le dossier `momo-service/data/` du dépôt ne
-reçoit plus que les essais lancés à la main) ; rejouer l'installateur après toute modification du
-service ou du superviseur, sinon la copie reste sur l'ancien code.
+Le registre historique des transactions de production reste dans
+`~/.elembo/elembo-service/data/transactions.json` — à conserver (il contient la trace des
+encaissements réels faits par le tunnel), mais il n'est plus alimenté.
 
 ## Développement
 
 ```bash
 npm install --include=dev   # cette machine omet les devDependencies par défaut (npm config omit=dev)
-npm test                    # vitest — 100 tests (zones, bornes, cadrage, store, catalogue)
+npm test                    # vitest — 312 tests (studio, physique d'impression, tarifs, service de paiement)
 npm run lint
 npm run build
 npm run dev                 # http://localhost:3000  ·  /  (configurateur 3D)  ·  /studio  (studio 2D)
@@ -261,13 +231,26 @@ npm run dev                 # http://localhost:3000  ·  /  (configurateur 3D)  
 
 ## Déploiement
 
-GitHub Pages (export statique + basePath `/elembo`) :
+**Production : Vercel** (site + routes de paiement dans le même projet Next.js).
+
+```bash
+# une fois : importer le dépôt dans Vercel, créer l'intégration Upstash Redis,
+# puis renseigner les variables de .env.example (voir docs/vercel.md)
+vercel            # aperçu (Preview) — penser à MOMO_MOCK=1 en Preview
+vercel --prod     # production
+```
+
+`vercel.json` fixe la région `cdg1` (Paris, plus proche du Congo que le défaut américain). Les
+routes `/api/momo/*` déclarent `maxDuration = 30` : MTN peut être lent, et le défaut de 10 s coupe
+un `requesttopay` un peu chargé.
+
+**Ancien déploiement : GitHub Pages** (archive, ne reçoit plus de paiements).
 
 ```bash
 bash scripts/deploy-gh-pages.sh
 ```
 
-`DEPLOY_TARGET=gh-pages npm run build` produit `out/` → copié dans `../elembo-pages` (branche `gh-pages`, `.nojekyll` inclus) → push forcé. Sans `DEPLOY_TARGET`, le build standard reste Vercel-ready.
+`DEPLOY_TARGET=gh-pages npm run build` produit `out/` → copié dans `../elembo-pages` (branche `gh-pages`, `.nojekyll` inclus) → push forcé. Ce mode n'a **pas** de routes API : les boutons de paiement y échouent. Il ne sert plus qu'à garder une trace du site statique.
 
 **Pièges intégrés (trouvés en E2E)** :
 - `NEXT_PUBLIC_BASE_PATH` préfixe les chemins `public/` dans `src/lib/products.ts` — sans lui, les mockups résolvent en 404 sous Pages et le canvas reste vide (catch silencieux). Idem pour le GLB via `resolveModelUrl()`.

@@ -1,5 +1,13 @@
 # Service de paiement MTN MoMo — Elembo
 
+> **Déplacé — 26 octobre 2026.** Le service tourne désormais DANS l'application Next.js
+> (`src/server/momo/`, routes `src/app/api/momo/*`), hébergée sur Vercel : plus de tunnel, plus de
+> Mac allumé, état des transactions dans Redis. Voir [`docs/vercel.md`](../docs/vercel.md).
+>
+> Ce dossier est conservé comme archive tant que la production Vercel n'a pas encaissé un vrai
+> paiement. **Ne pas modifier la logique ici** : elle ferait diverger deux implémentations.
+> Les tests ont été portés dans `tests/momo*.test.ts`.
+
 Ce service est la **seule** partie du système qui parle à MTN. Il existe parce qu'un site
 statique ne peut pas encaisser : la clé Collections permet d'initier des paiements au nom de
 Smart Vision, elle ne doit jamais atteindre un navigateur, et MTN a besoin d'une URL de callback

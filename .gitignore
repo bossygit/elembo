@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# …sauf le modèle, qui ne contient aucun secret et sert de référence (Vercel, dev local).
+!.env.example
 
 # vercel
 .vercel

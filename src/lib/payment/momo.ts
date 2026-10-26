@@ -40,12 +40,15 @@ export class ErreurPaiement extends Error {
 
 export function urlService(): string {
   // L'adresse définie à l'exécution (public/api-config.js) est prioritaire : elle permet de
-  // changer de service — tunnel, hébergement — sans reconstruire ni redéployer le site.
+  // pointer la boutique vers un autre service (test, bascule) sans reconstruire le site.
   const runtime = typeof window !== 'undefined'
     ? (window as unknown as { __ELEMBO_MOMO_API_URL__?: string }).__ELEMBO_MOMO_API_URL__
     : undefined;
   const configuree = (runtime ?? process.env.NEXT_PUBLIC_MOMO_API_URL ?? '').trim();
-  return (configuree || 'http://localhost:8787').replace(/\/+$/, '');
+  // Vide = MÊME ORIGINE : les routes /api/momo/* sont servies par l'application elle-même
+  // (Vercel, `next dev`). C'est le cas normal depuis la migration ; plus de tunnel, plus
+  // d'adresse à republier.
+  return configuree.replace(/\/+$/, '');
 }
 
 async function lireJson(reponse: Response): Promise<Record<string, unknown>> {

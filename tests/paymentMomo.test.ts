@@ -151,19 +151,21 @@ describe('validation du numéro côté navigateur', () => {
 });
 
 describe('adresse du service de paiement', () => {
-  it('utilise l’adresse compilée par défaut', () => {
-    expect(urlService()).toBe('http://localhost:8787');
+  it('par défaut : même origine (les routes /api/momo/* sont dans l’application)', () => {
+    // Depuis la migration Vercel, l'API est servie par le site lui-même : plus de tunnel,
+    // plus d'adresse de service à configurer.
+    expect(urlService()).toBe('');
   });
 
   it('privilégie l’adresse définie à l’exécution (public/api-config.js)', () => {
     const g = globalThis as unknown as { window?: unknown };
     try {
-      g.window = { __ELEMBO_MOMO_API_URL__: 'https://tunnel.exemple.cg/' };
-      expect(urlService()).toBe('https://tunnel.exemple.cg');
+      g.window = { __ELEMBO_MOMO_API_URL__: 'https://services.exemple.cg/' };
+      expect(urlService()).toBe('https://services.exemple.cg');
 
-      // Valeur vide : on retombe sur l'adresse compilée plutôt que d'appeler nulle part.
+      // Valeur vide : retour à la même origine.
       g.window = { __ELEMBO_MOMO_API_URL__: '   ' };
-      expect(urlService()).toBe('http://localhost:8787');
+      expect(urlService()).toBe('');
     } finally {
       delete g.window;
     }

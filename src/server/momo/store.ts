@@ -16,6 +16,8 @@
  * complet (le MSISDN est stocké normalisé, il est masqué dans les journaux).
  */
 
+import Redis from 'ioredis';
+
 export type StatutTransaction = 'PENDING' | 'PAYE' | 'ECHEC' | 'ANOMALIE';
 
 export type Evenement = { le: string; quoi: string; detail?: string };
@@ -48,6 +50,8 @@ export type PatchTransaction = Partial<
 >;
 
 export interface JournalTransactions {
+  /** Vérification de vie du stockage, non destructive (PING, lecture, écriture sonde). */
+  verifier(): Promise<void>;
   parReferenceId(referenceId: string): Promise<Transaction | undefined>;
   parCommande(commande: string): Promise<Transaction[]>;
   toutes(): Promise<Transaction[]>;
@@ -71,6 +75,7 @@ export abstract class JournalEnMemoire implements JournalTransactions {
 
   protected abstract persister(): Promise<void>;
 
+  abstract verifier(): Promise<void>;
   abstract parReferenceId(referenceId: string): Promise<Transaction | undefined>;
   abstract toutes(): Promise<Transaction[]>;
 
@@ -121,6 +126,8 @@ export abstract class JournalEnMemoire implements JournalTransactions {
 export class StoreMemoire extends JournalEnMemoire {
   protected async persister(): Promise<void> {}
 
+  async verifier(): Promise<void> {}
+
   async parReferenceId(referenceId: string): Promise<Transaction | undefined> {
     return this.transactions.get(referenceId);
   }
@@ -148,6 +155,14 @@ export class StoreFichier extends JournalEnMemoire {
     const store = new StoreFichier(fichier, maintenant);
     await store.charger();
     return store;
+  }
+
+  async verifier(): Promise<void> {
+    // Lecture du dossier : on ne crée rien, on constate que le support est utilisable.
+    const { access, mkdir } = await import('node:fs/promises');
+    const { dirname } = await import('node:path');
+    await mkdir(dirname(this.fichier), { recursive: true });
+    await access(dirname(this.fichier));
   }
 
   async charger(): Promise<void> {
@@ -184,40 +199,50 @@ export class StoreFichier extends JournalEnMemoire {
 
 /* ------------------------------------------------------------------ redis -------- */
 
-export class ErreurStockage extends Error {}
-
-type ReponseRedis = { result?: unknown; error?: string };
-
 /**
- * Stockage de production : une seule table de hachage Redis, un champ par référence.
+ * Journal de production : une seule table de hachage, un champ par référence.
  *
  * `HSETNX` sert de verrou de création (deux requêtes concurrentes ne peuvent pas enregistrer la
  * même référence). Le volume est celui d'une boutique artisanale : quelques milliers de champs,
  * `HGETALL` reste indolore.
+ *
+ * Deux transports, un seul protocole de commandes — c'est exactement le même code métier :
+ *
+ *   ExecuteurRest → API HTTP d'Upstash / Vercel KV (pas de socket, idéal si l'on revient à un
+ *                   fournisseur REST). Variables UPSTASH_REDIS_REST_URL ou KV_REST_API_URL.
+ *   ExecuteurTcp  → connexion Redis classique via `REDIS_URL`. C'est ce que fournit
+ *                   l'intégration Redis de Vercel (« redis » du marketplace).
+ *
+ * Le choix se fait dans `config.ts` ; ici, aucune connaissance de l'hébergeur.
  */
-export class StoreRedis implements JournalTransactions {
+
+export class ErreurStockage extends Error {}
+
+/** Le minimum dont le journal a besoin : exécuter une commande Redis, quelle que soit la socket. */
+export interface ExecuteurRedis {
+  executer(...args: (string | number)[]): Promise<unknown>;
+  fermer?(): Promise<void>;
+}
+
+/* ------------------------------------------------------------------ REST --------- */
+
+type ReponseRedis = { result?: unknown; error?: string };
+
+export class ExecuteurRest implements ExecuteurRedis {
   readonly url: string;
   readonly token: string;
-  readonly cle: string;
-  private readonly maintenant: () => Date;
-  private readonly fetch: typeof globalThis.fetch;
+  private readonly fetchImpl: typeof globalThis.fetch;
 
-  constructor(
-    url: string,
-    token: string,
-    options: { cle?: string; maintenant?: () => Date; fetch?: typeof globalThis.fetch } = {},
-  ) {
+  constructor(url: string, token: string, fetchImpl?: typeof globalThis.fetch) {
     this.url = url.replace(/\/+$/, '');
     this.token = token;
-    this.cle = options.cle ?? 'elembo:transactions:v1';
-    this.maintenant = options.maintenant ?? (() => new Date());
-    this.fetch = options.fetch ?? globalThis.fetch;
+    this.fetchImpl = fetchImpl ?? globalThis.fetch;
   }
 
-  private async commande(...args: (string | number)[]): Promise<unknown> {
+  async executer(...args: (string | number)[]): Promise<unknown> {
     let reponse: Response;
     try {
-      reponse = await this.fetch(this.url, {
+      reponse = await this.fetchImpl(this.url, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${this.token}`,
@@ -239,9 +264,94 @@ export class StoreRedis implements JournalTransactions {
     }
     return corps.result;
   }
+}
+
+/* ------------------------------------------------------------------ TCP ---------- */
+
+type ClientRedisMinimal = {
+  call(commande: string, ...args: (string | number)[]): Promise<unknown>;
+  ping(): Promise<string>;
+  quit?(): Promise<unknown>;
+  disconnect?(): void;
+};
+
+export class ExecuteurTcp implements ExecuteurRedis {
+  readonly url: string;
+  private readonly client: ClientRedisMinimal;
+
+  constructor(url: string, client?: ClientRedisMinimal) {
+    this.url = url;
+    if (client) {
+      this.client = client;
+      return;
+    }
+    // Import statique : la route tourne en runtime Node, `ioredis` est conservé en dépendance
+    // externe (serverExternalPackages) pour éviter que le bundler ne casse ses `require` internes.
+    this.client = new Redis(url, {
+      lazyConnect: false,
+      // Une fonction serverless peut être gelée puis réveillée : on ne veut pas qu'une commande
+      // attende indéfiniment, mais on laisse quelques tentatives avant de déclarer l'échec.
+      maxRetriesPerRequest: 2,
+      connectTimeout: 5000,
+      enableOfflineQueue: true,
+    });
+    (this.client as unknown as { on: (evt: string, fn: () => void) => void }).on?.('error', () => {
+      // Les erreurs remontent déjà par la promesse de la commande ; ce listener évite que
+      // Node considère l'émission comme non gérée et fasse tomber le processus.
+    });
+  }
+
+  async executer(...args: (string | number)[]): Promise<unknown> {
+    const [commande, ...reste] = args;
+    try {
+      return await this.client.call(String(commande), ...reste);
+    } catch (erreur) {
+      throw new ErreurStockage(
+        `Stockage des transactions en erreur : ${(erreur as Error).message}. Aucun paiement ne doit être accepté sans journal.`,
+      );
+    }
+  }
+
+  async fermer(): Promise<void> {
+    try {
+      await this.client.quit?.();
+    } catch {
+      this.client.disconnect?.();
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ journal ------ */
+
+export class JournalRedis implements JournalTransactions {
+  readonly cle: string;
+  private readonly executeur: ExecuteurRedis;
+  private readonly maintenant: () => Date;
+
+  constructor(
+    executeur: ExecuteurRedis,
+    options: { cle?: string; maintenant?: () => Date } = {},
+  ) {
+    this.executeur = executeur;
+    this.cle = options.cle ?? 'elembo:transactions:v1';
+    this.maintenant = options.maintenant ?? (() => new Date());
+  }
+
+  /** Vérification de vie du stockage (PING) — utilisée par /api/sante, non destructive. */
+  async verifier(): Promise<void> {
+    try {
+      const reponse = await this.executeur.executer('PING');
+      if (String(reponse).toUpperCase() !== 'PONG') {
+        throw new Error(`réponse inattendue : ${String(reponse)}`);
+      }
+    } catch (erreur) {
+      if (erreur instanceof ErreurStockage) throw erreur;
+      throw new ErreurStockage(`Stockage des transactions injoignable : ${(erreur as Error).message}`);
+    }
+  }
 
   async parReferenceId(referenceId: string): Promise<Transaction | undefined> {
-    const brut = await this.commande('HGET', this.cle, referenceId);
+    const brut = await this.executeur.executer('HGET', this.cle, referenceId);
     return typeof brut === 'string' ? (JSON.parse(brut) as Transaction) : undefined;
   }
 
@@ -254,12 +364,13 @@ export class StoreRedis implements JournalTransactions {
   }
 
   private async lireTout(): Promise<Transaction[]> {
-    const brut = await this.commande('HGETALL', this.cle);
-    // Upstash renvoie un objet { champ: valeur } ; certaines versions renvoient des paires.
+    const brut = await this.executeur.executer('HGETALL', this.cle);
+    // Upstash renvoie un objet { champ: valeur } ; ioredis renvoie des paires [champ, valeur…].
     if (Array.isArray(brut)) {
       const valeurs: Transaction[] = [];
       for (let i = 1; i < brut.length; i += 2) {
-        if (typeof brut[i] === 'string') valeurs.push(JSON.parse(brut[i] as string) as Transaction);
+        const v = brut[i];
+        if (typeof v === 'string') valeurs.push(JSON.parse(v) as Transaction);
       }
       return valeurs;
     }
@@ -280,7 +391,7 @@ export class StoreRedis implements JournalTransactions {
       majLe: le,
       historique: [{ le, quoi: 'demande creee' }],
     };
-    const pose = await this.commande('HSETNX', this.cle, t.referenceId, JSON.stringify(transaction));
+    const pose = await this.executeur.executer('HSETNX', this.cle, t.referenceId, JSON.stringify(transaction));
     if (Number(pose) !== 1) {
       throw new ErreurStockage(`Transaction déjà enregistrée : ${t.referenceId}`);
     }
@@ -300,7 +411,25 @@ export class StoreRedis implements JournalTransactions {
       majLe: this.maintenant().toISOString(),
       historique: evenement ? [...existante.historique, evenement] : existante.historique,
     };
-    await this.commande('HSET', this.cle, referenceId, JSON.stringify(maj));
+    await this.executeur.executer('HSET', this.cle, referenceId, JSON.stringify(maj));
     return maj;
+  }
+}
+
+/** Transport REST (Upstash / Vercel KV). */
+export class StoreRedis extends JournalRedis {
+  constructor(
+    url: string,
+    token: string,
+    options: { cle?: string; maintenant?: () => Date; fetch?: typeof globalThis.fetch } = {},
+  ) {
+    super(new ExecuteurRest(url, token, options.fetch), options);
+  }
+}
+
+/** Transport TCP — c'est celui de l'intégration Redis de Vercel (`REDIS_URL`). */
+export class StoreRedisUrl extends JournalRedis {
+  constructor(url: string, options: { cle?: string; maintenant?: () => Date } = {}) {
+    super(new ExecuteurTcp(url), options);
   }
 }

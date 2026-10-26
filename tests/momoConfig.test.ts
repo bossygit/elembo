@@ -79,6 +79,24 @@ describe('configuration du service', () => {
 });
 
 describe('stockage des transactions (le point qui change avec Vercel)', () => {
+  it('accepte REDIS_URL — l’intégration Redis de Vercel fournit une connexion TCP', () => {
+    const c = lireConfig({
+      ...CLES,
+      MOMO_ENV: 'mtncongo',
+      REDIS_URL: 'rediss://default:motdepasse@redis-1234.cdg1.redislabs.com:12345',
+    });
+    expect(c.stockage).toEqual({
+      genre: 'redis-tcp',
+      url: 'rediss://default:motdepasse@redis-1234.cdg1.redislabs.com:12345',
+    });
+  });
+
+  it('refuse une REDIS_URL de provisionnement (pas encore une URL)', () => {
+    expect(() =>
+      lireConfig({ ...CLES, MOMO_ENV: 'mtncongo', REDIS_URL: 'database_provisioning_in_progress' }),
+    ).toThrow(/provisionnement|exploitable/);
+  });
+
   // Une fonction serverless n'a pas de disque : en mode réel il FAUT un stockage externe.
   // Le refus doit être explicite, jamais un repli silencieux qui ferait perdre un encaissement.
 

@@ -109,16 +109,30 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
 
   return {
     async sante() {
-      return executer(async () => ({
-        statut: 200,
-        corps: {
-          ok: true,
-          mode: config.mode,
-          env: config.env,
-          devise: config.devise,
-          stockage: config.stockage.genre,
-        },
-      }));
+      // La santé inclut une vérification RÉELLE du journal (PING). Sans cela, un déploiement
+      // « vert » pourrait en fait refuser tous les paiements : le seul symptôme serait une
+      // commande client qui échoue. Coût : une commande Redis, aucune écriture.
+      const etat = {
+        mode: config.mode,
+        env: config.env,
+        devise: config.devise,
+        stockage: config.stockage.genre,
+      };
+      try {
+        await store.verifier();
+        return { statut: 200, corps: { ok: true, ...etat, stockageJoignable: true } };
+      } catch (erreur) {
+        journal(`journal indisponible : ${(erreur as Error).message}`);
+        return {
+          statut: 503,
+          corps: {
+            ok: false,
+            ...etat,
+            stockageJoignable: false,
+            detail: (erreur as Error).message,
+          },
+        };
+      }
     },
 
     async tarifs() {

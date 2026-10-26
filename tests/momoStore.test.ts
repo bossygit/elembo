@@ -9,7 +9,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { StoreFichier, StoreMemoire, StoreRedis } from '../src/server/momo/store';
+import {
+  JournalRedis,
+  StoreFichier,
+  StoreMemoire,
+  StoreRedis,
+  type ExecuteurRedis,
+} from '../src/server/momo/store';
 
 const NOUVELLE = {
   referenceId: '11111111-2222-4333-8444-555555555555',
@@ -159,5 +165,81 @@ describe('journal Redis (production Vercel)', () => {
     const store = storeRedis(fetchFactice);
 
     await expect(store.parReferenceId('x')).rejects.toThrow(/injoignable/);
+  });
+});
+
+describe('journal Redis par connexion TCP (REDIS_URL de l’intégration Vercel)', () => {
+  /** Faux client Redis : un objet qui répond aux commandes comme ioredis. */
+  function fauxClient() {
+    const donnees = new Map<string, string>();
+    const commandes: string[] = [];
+    return {
+      donnees,
+      commandes,
+      client: {
+        async call(commande: string, ...args: (string | number)[]): Promise<unknown> {
+          commandes.push(commande);
+          const champ = args[1] === undefined ? undefined : String(args[1]);
+          const valeur = args[2] === undefined ? undefined : String(args[2]);
+          if (commande === 'HSETNX') {
+            if (champ && donnees.has(champ)) return 0;
+            if (champ && valeur) donnees.set(champ, valeur);
+            return 1;
+          }
+          if (commande === 'HSET') {
+            if (champ && valeur) donnees.set(champ, valeur);
+            return 1;
+          }
+          if (commande === 'PING') return 'PONG';
+          if (commande === 'HGET') return champ ? (donnees.get(champ) ?? null) : null;
+          if (commande === 'HGETALL') return [...donnees.entries()].flat();
+          return null;
+        },
+        async ping() {
+          return 'PONG';
+        },
+      },
+    };
+  }
+
+  function journal(client: ReturnType<typeof fauxClient>['client']): JournalRedis {
+    // Le journal ne dépend que de l'interface d'exécution : peu importe le transport.
+    const executeur: ExecuteurRedis = {
+      executer: (...args) => client.call(String(args[0]), ...args.slice(1)),
+    };
+    return new JournalRedis(executeur);
+  }
+
+  it('écrit puis relit une transaction, et répond au PING de santé', async () => {
+    const { client, donnees } = fauxClient();
+    const store = journal(client);
+
+    await store.verifier();
+    const cree = await store.creer(NOUVELLE);
+    expect(cree.statut).toBe('PENDING');
+    expect(donnees.size).toBe(1);
+
+    await store.maj(NOUVELLE.referenceId, { statut: 'PAYE' });
+    expect((await store.parReferenceId(NOUVELLE.referenceId))?.statut).toBe('PAYE');
+    expect((await store.parCommande(NOUVELLE.commande))[0]!.statut).toBe('PAYE');
+  });
+
+  it('décode HGETALL en paires (format ioredis)', async () => {
+    const { client } = fauxClient();
+    const store = journal(client);
+    await store.creer(NOUVELLE);
+    const toutes = await store.toutes();
+    expect(toutes).toHaveLength(1);
+    expect(toutes[0]!.referenceId).toBe(NOUVELLE.referenceId);
+  });
+
+  it('remonte une erreur de stockage explicite si la commande échoue', async () => {
+    const executeur: ExecuteurRedis = {
+      executer: async () => {
+        throw new Error('connect ECONNREFUSED 127.0.0.1:6379');
+      },
+    };
+    const store = new JournalRedis(executeur);
+    await expect(store.parReferenceId('x')).rejects.toThrow(/ECONNREFUSED/);
   });
 });

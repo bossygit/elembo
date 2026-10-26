@@ -10,7 +10,13 @@ import { ErreurConfig, lireConfig } from './config';
 import { creerClientMock } from './mock-mtn';
 import { creerClientMomo } from './mtn';
 import { creerGestionnaire, type Gestionnaire } from './service';
-import { StoreFichier, StoreMemoire, StoreRedis, type JournalTransactions } from './store';
+import {
+  StoreFichier,
+  StoreMemoire,
+  StoreRedis,
+  StoreRedisUrl,
+  type JournalTransactions,
+} from './store';
 
 let instance: Gestionnaire | null = null;
 let enCours: Promise<Gestionnaire> | null = null;
@@ -62,6 +68,8 @@ async function ouvrirStore(stockage: ReturnType<typeof lireConfig>['stockage']):
   switch (stockage.genre) {
     case 'redis':
       return new StoreRedis(stockage.url, stockage.token);
+    case 'redis-tcp':
+      return new StoreRedisUrl(stockage.url);
     case 'fichier':
       return StoreFichier.ouvrir(stockage.fichier);
     case 'memoire':

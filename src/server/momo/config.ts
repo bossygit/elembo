@@ -24,7 +24,10 @@
 export type EnvironnementMomo = 'sandbox' | 'mtncongo';
 
 export type ConfigStockage =
+  /** API HTTP Upstash / Vercel KV. */
   | { genre: 'redis'; url: string; token: string }
+  /** Connexion Redis classique — ce que fournit l'intégration « redis » de Vercel (REDIS_URL). */
+  | { genre: 'redis-tcp'; url: string }
   | { genre: 'fichier'; fichier: string }
   | { genre: 'memoire' };
 
@@ -86,12 +89,25 @@ function requis(env: Record<string, string | undefined>, nom: string): string {
 
 /** Upstash (intégration directe) ou Vercel KV (Marketplace) : mêmes variables, deux noms. */
 function lireStockage(env: Record<string, string | undefined>, mode: 'mock' | 'reel'): ConfigStockage {
+  // 1) REDIS_URL : intégration Redis de Vercel (marketplace « redis »). Pendant le provisionnement,
+  //    la valeur vaut « database_provisioning_in_progress » : ce n'est pas une URL, on refuse.
+  const redisUrl = valeur(env, 'REDIS_URL');
+  if (redisUrl) {
+    if (!/^rediss?:\/\//.test(redisUrl)) {
+      throw new ErreurConfig(
+        `REDIS_URL n'est pas une URL Redis exploitable (« ${redisUrl.slice(0, 40)} »). Si la base est en cours de création, attendez la fin du provisionnement puis redéployez.`,
+      );
+    }
+    return { genre: 'redis-tcp', url: redisUrl };
+  }
+
+  // 2) API REST (Upstash direct ou Vercel KV).
   const url = valeur(env, 'UPSTASH_REDIS_REST_URL') || valeur(env, 'KV_REST_API_URL');
   const token = valeur(env, 'UPSTASH_REDIS_REST_TOKEN') || valeur(env, 'KV_REST_API_TOKEN');
   if (url && token) return { genre: 'redis', url, token };
   if (url || token) {
     throw new ErreurConfig(
-      'Stockage Redis à moitié configuré : il faut à la fois UPSTASH_REDIS_REST_URL et UPSTASH_REDIS_REST_TOKEN (ou KV_REST_API_URL / KV_REST_API_TOKEN).',
+      'Stockage Redis à moitié configuré : il faut à la fois UPSTASH_REDIS_REST_URL et UPSTASH_REDIS_REST_TOKEN (ou KV_REST_API_URL / KV_REST_API_TOKEN), ou simplement REDIS_URL.',
     );
   }
 
@@ -101,7 +117,7 @@ function lireStockage(env: Record<string, string | undefined>, mode: 'mock' | 'r
   if (mode === 'mock') return { genre: 'memoire' };
 
   throw new ErreurConfig(
-    'Aucun stockage des transactions configuré en mode réel : renseignez UPSTASH_REDIS_REST_URL et UPSTASH_REDIS_REST_TOKEN (Vercel → Storage), ou MOMO_DATA_FILE en local. Sans journal, un paiement accepté par MTN serait perdu.',
+    'Aucun stockage des transactions configuré en mode réel : connectez une base Redis au projet (Vercel → Storage, variable REDIS_URL) ou renseignez UPSTASH_REDIS_REST_URL / KV_REST_API_URL. En local, MOMO_DATA_FILE suffit. Sans journal, un paiement accepté par MTN serait perdu.',
   );
 }
 

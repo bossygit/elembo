@@ -38,6 +38,7 @@ import {
 } from '../../lib/payment/momo';
 import type { Side } from '../../types/configurator';
 import { envoyerDossier, type FichierAEnvoyer } from '../../lib/payment/dossier';
+import { expliquerMotif } from '../../lib/payment/motifs';
 import { useElementImages } from './useElementImages';
 
 /** Durée maximale de suivi : MTN abandonne une demande non validée au bout de 5 minutes. */
@@ -419,7 +420,18 @@ export default function OrderPanel() {
               Les fichiers d’impression seront générés automatiquement dès la confirmation.
             </p>
           )}
-          {suivi === 'echec' && paiement.raison && <p className="mt-1">Motif renvoyé par MTN : {paiement.raison}.</p>}
+          {suivi === 'echec' && paiement.raison && (
+            <div className="mt-1">
+              <p>
+                Motif renvoyé par MTN : <span className="font-mono text-xs break-all">{paiement.raison}</span>
+              </p>
+              {expliquerMotif(paiement.raison) && (
+                <p className="mt-1">
+                  {expliquerMotif(paiement.raison)!.constat} {expliquerMotif(paiement.raison)!.action}
+                </p>
+              )}
+            </div>
+          )}
           {suivi === 'expire' && (
             <p className="mt-1">
               Aucune validation reçue dans le délai. Relancez le paiement — aucune commande n’a été produite.

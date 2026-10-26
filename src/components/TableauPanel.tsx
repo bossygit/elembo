@@ -24,6 +24,7 @@ import { DELIVERY, formatFcfa, makeReference } from '../lib/order/order';
 import type { DeliveryCity } from '../lib/order/order';
 import { demanderPaiement, suivrePaiement, telephonePlausible } from '../lib/payment/momo';
 import { envoyerDossier, type FichierAEnvoyer } from '../lib/payment/dossier';
+import { phraseMotif } from '../lib/payment/motifs';
 import type { Paiement } from '../lib/payment/momo';
 import { DPI_IMPRESSION, ficheFichierImpression, ficheTexte } from '../lib/products/impression';
 import { nomFichierImpression, renderVisuelPng } from '../lib/canvas/exportZone';
@@ -170,6 +171,14 @@ export default function TableauPanel({
         setSuivi('expire');
       } else {
         setSuivi('echec');
+        // Le motif MTN est la seule information utile : on l'affiche, traduit, au lieu d'un
+        // « le paiement n'a pas abouti » qui laisse le client sans piste.
+        const raison = resultat.paiement.raison;
+        setErreur(
+          `Paiement non abouti${raison ? ` — ${phraseMotif(raison) ?? raison}` : ''}${
+            raison ? ` (code MTN : ${raison})` : ''
+          }`,
+        );
       }
     } catch (e) {
       setSuivi('echec');

@@ -263,6 +263,17 @@ launchctl list | grep -i elembo   # doit ne rien renvoyer
   s'appuyer sur un état en mémoire pour la vérité métier — c'est le rôle de Redis.
 - **Fuseau et horloge** : les dates des transactions sont en UTC (ISO 8601). L'affichage local est
   un problème d'affichage, jamais de stockage.
-- **Le fichier d'impression reste généré dans le navigateur du client** (inchangé par cette
-  migration). C'est le prochain chantier d'exploitation : sans envoi du fichier au serveur, une
-  commande payée peut rester sans fichier si le client ferme la page.
+- **Le fichier d'impression est déposé côté serveur** après `PAYE` (voir section 6) : une commande
+  payée ne dépend plus du navigateur. Si l'envoi échoue, l'écran le dit et propose WhatsApp.
+- **MTN n'accepte qu'une URL de callback enregistrée sur le compte.** Toute autre valeur est
+  rejetée avec `HTTP 500 INVALID_CALLBACK_URL_HOST` — même quand les identifiants sont bons. Le
+  client MTN réessaie alors automatiquement **sans** l'en-tête `X-Callback-Url`, et c'est notre
+  interrogation directe du statut qui fait foi. Pour recevoir les callbacks en temps réel, il faut
+  faire enregistrer le domaine (`elembo.vercel.app` ou le domaine final) sur le compte MTN.
+- **Réconciliation** : `GET /api/momo/reconcilier` (protégée par `CRON_SECRET`) tranche les
+  transactions restées `PENDING`. Sur Hobby, Vercel ne permet qu'**une exécution par jour** — le
+  cron est donc quotidien ; le plan Pro autorise `* * * * *`. En attendant, le navigateur sonde le
+  statut pendant 5 minutes après la demande, ce qui couvre le cas normal.
+- **Les identifiants MTN doivent être ceux de la production** (`mtncongo`), pas ceux du sandbox :
+  un mauvais jeu d'identifiants se manifeste par un `HTTP 500` **sans corps** sur `requesttopay`,
+  alors que la demande de jeton passe. Un paiement réel de bout en bout reste la seule preuve.

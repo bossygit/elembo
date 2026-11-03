@@ -14,6 +14,12 @@ intervention manuelle permanente**.
 
 ## 1. Où nous en sommes (audit de l'existant)
 
+> **Note du 3 novembre 2026** — les lignes « Vitrine », « Service de paiement », « Adresse du
+> service » et « État des transactions » ci-dessous décrivent l'architecture **d'avant** la
+> migration. Aujourd'hui : Vercel sert le site et l'API sur le même domaine, Redis porte l'état,
+> le tunnel Cloudflare est mort (agent launchd retiré le 3/11) et `gh-pages` ne sert plus qu'une
+> redirection vers `elembo.vercel.app`.
+
 | Brique | État actuel | Limite pour un service commercial |
 |---|---|---|
 | Vitrine | Export statique Next.js sur GitHub Pages, config du service lue à l'exécution (`api-config.js`) | Aucune — c'est gratuit et suffisant |

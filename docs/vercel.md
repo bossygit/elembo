@@ -11,7 +11,7 @@ Il n'y a plus de service séparé, plus de tunnel Cloudflare, plus de Mac à gar
 | Projet Vercel | `kitutupros-projects/elembo` (plan Hobby), région `cdg1`, dépôt GitHub connecté (déploiement à chaque push sur `main`) |
 | Paiement | `mode reel`, `env mtncongo`, `devise XAF`, journal `redis-tcp` **joignable** (`/api/sante` → 200) |
 | Base | `redis-green-plank` (intégration Redis de Vercel, variable `REDIS_URL`) |
-| Service local + tunnel Cloudflare | **arrêtés** (agent launchd supprimé) |
+| Service local + tunnel Cloudflare | **arrêtés et archivés** le 3/11/2026 (agent launchd déchargé et désactivé, plist dans `~/.elembo/archive/`, tunnel tué) |
 
 ---
 
@@ -226,30 +226,29 @@ Vérifications **sur la production déployée** (26/10/2026, `https://elembo.ver
 | `PUT /api/momo/callback/<référence>` | `200` — variante par chemin opérationnelle |
 | `GET /api/momo/statut` avec référence inconnue | `404` |
 | Écriture réelle dans la base Vercel | transaction créée (`HSETNX`), passée `PAYE` (`HSET`), relue, doublon refusé, puis **entrée de test supprimée** — journal vérifié vide après coup |
-| Ancien service local + tunnel Cloudflare | arrêtés ; agent launchd `cg.smartvision.elembo.paiement` supprimé |
+| Ancien service local + tunnel Cloudflare | arrêtés ; agent launchd `cg.smartvision.elembo.paiement` déchargé + désactivé (plist archivé) ; `gh-pages` redirige vers Vercel |
 
 ---
 
-## 8. Après la bascule — nettoyage
+## 8. Après la bascule — nettoyage (fait le 3 novembre 2026)
 
-Ces éléments ne servent plus, mais ils sont laissés en place tant que la production Vercel n'a pas
-encaissé un vrai paiement (retour arrière possible en une minute) :
+Ce qui a été effectivement arrêté, et comment le vérifier :
 
-- `momo-service/` — l'ancien service séparé, remplacé par `src/server/momo/`. Ses tests ont été
-  portés dans `tests/momo*.test.ts` ; le code source y est conservé à titre d'archive.
-- `scripts/service-paiement.sh`, `scripts/installer-service-paiement.sh`, `scripts/demarrer-paiement.sh`
-  — superviseur, tunnel Cloudflare, agent launchd.
-- `momo-service/.env` et `.env.production` — **contiennent les clés MTN**. Ils ne sont pas versionnés.
-  Après avoir collé les clés dans Vercel : les supprimer du disque et **faire tourner les clés**
-  chez MTN (elles ont vécu sur un poste de travail).
-- Branche `gh-pages` — l'ancien site statique. À conserver comme archive, sans plus y publier.
+- **Agent launchd** `cg.smartvision.elembo.paiement` : `disable` (persistant au redémarrage) puis
+  `bootout` ; plist déplacé dans `~/.elembo/archive/`. Vérification :
+  `launchctl list | grep -i elembo` ne renvoie rien, et le port 8787 est libre.
+- **Tunnel Cloudflare et service local** : processus tués, ancienne adresse
+  `trycloudflare.com` ne répond plus (530).
+- **Branche `gh-pages`** : purgée de l'export statique ; elle ne sert plus qu'une redirection
+  vers `elembo.vercel.app` (chemin et query string conservés) et un `robots.txt` en `Disallow`.
+  Il n'y a donc plus deux boutiques en ligne.
+- `momo-service/` et `scripts/*paiement*.sh` restent dans le dépôt **comme archives inertes** :
+  plus rien ne les démarre automatiquement.
+- `momo-service/.env` et `.env.production` — **contiennent les clés MTN**. Non versionnés.
+  À supprimer du disque et à faire tourner chez MTN.
 
-Commande d'arrêt du superviseur local :
-
-```bash
-launchctl unload ~/Library/LaunchAgents/com.elembo.paiement.plist 2>/dev/null
-launchctl list | grep -i elembo   # doit ne rien renvoyer
-```
+Pour revenir en arrière (déconseillé) : `git revert` du commit de purge sur `gh-pages` et
+rechargement du plist archivé.
 
 ---
 

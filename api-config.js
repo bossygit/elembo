@@ -7,4 +7,4 @@
 // rebrancher la boutique sur le bon service — sans build.
 //
 // Valeur vide ou fichier absent : l'application retombe sur l'adresse compilée.
-window.__ELEMBO_MOMO_API_URL__ = "https://cursor-possibility-surely-amino.trycloudflare.com";
+window.__ELEMBO_MOMO_API_URL__ = "https://exclusively-stephanie-struct-neither.trycloudflare.com";

@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { cheminArchive, envoyerDossier } from '../src/lib/payment/dossier';
+import { cheminArchive, envoyerDossier, typeArchive } from '../src/lib/payment/dossier';
 
 const COMMANDE = 'ELB-20261026-1200-AB';
 const REF = '11111111-2222-4333-8444-555555555555';
@@ -97,6 +97,43 @@ describe('envoi du dossier', () => {
 
     expect(resultat.envoye).toBe(false);
     expect(resultat.motif).toMatch(/413|interrompu/);
+  });
+
+  it('normalise le type MIME : un charset ne fait pas échouer l’envoi', async () => {
+    // Régression réelle (commande ELB-20261104-0945-OL) : le Blob de la fiche était construit avec
+    // `text/plain;charset=utf-8`, refusé par l'archive privée alors que `text/plain` est autorisé.
+    const typesVus: (string | undefined)[] = [];
+    const uploadImpl = (async (chemin: string, _blob: Blob, options: { contentType?: string }) => {
+      typesVus.push(options.contentType);
+      return { pathname: chemin, url: '' };
+    }) as unknown as typeof import('@vercel/blob/client').upload;
+
+    let corps: { fichiers: { type: string }[] } = { fichiers: [] };
+    const fetchImpl = (async (_url: string | URL | Request, init?: RequestInit) => {
+      corps = JSON.parse(String(init?.body ?? '{}'));
+      return new Response(JSON.stringify({ enregistre: true, fichiers: [{}] }), { status: 201 });
+    }) as unknown as typeof fetch;
+
+    const resultat = await envoyerDossier({
+      commande: COMMANDE,
+      referenceId: REF,
+      fichiers: [
+        { nom: 'fiche.txt', blob: new Blob(['fiche'], { type: 'text/plain;charset=utf-8' }) },
+        { nom: 'avant.png', blob: png() },
+      ],
+      uploadImpl,
+      fetchImpl,
+    });
+
+    expect(resultat.envoye).toBe(true);
+    expect(typesVus).toEqual(['text/plain', 'image/png']);
+    expect(corps.fichiers.map((f) => f.type)).toEqual(['text/plain', 'image/png']);
+  });
+
+  it('typeArchive réduit le type à son essence', () => {
+    expect(typeArchive('text/plain;charset=utf-8')).toBe('text/plain');
+    expect(typeArchive('IMAGE/PNG')).toBe('image/png');
+    expect(typeArchive('')).toBe('');
   });
 
   it('ne fait rien quand il n’y a aucun fichier', async () => {

@@ -38,6 +38,18 @@ export function cheminArchive(commande: string, nom: string): string {
   return `dossiers/${commande}/${nom}`;
 }
 
+/**
+ * Type MIME réduit à son essence : `text/plain;charset=utf-8` → `text/plain`.
+ *
+ * L'archive compare le type à la liste blanche à l'identique, paramètres compris : un `Blob`
+ * construit avec un `charset` était refusé (« Content type mismatch ») alors que son type de
+ * base était accepté. Le paramètre ne change pas la nature du fichier, seulement son encodage —
+ * on normalise donc au seul endroit par lequel passent tous les envois.
+ */
+export function typeArchive(type: string): string {
+  return (type || '').split(';')[0]!.trim().toLowerCase();
+}
+
 export async function envoyerDossier(options: OptionsEnvoi): Promise<ResultatEnvoi> {
   const { commande, referenceId, fichiers } = options;
   const envoyeur = options.uploadImpl ?? uploadVercel;
@@ -48,17 +60,19 @@ export async function envoyerDossier(options: OptionsEnvoi): Promise<ResultatEnv
   const depots: { nom: string; chemin: string; taille: number; type: string }[] = [];
   try {
     for (const fichier of fichiers) {
+      // Type normalisé une seule fois : il sert à l'autorisation d'écriture ET à l'enregistrement.
+      const type = typeArchive(fichier.blob.type);
       const resultat = await envoyeur(cheminArchive(commande, fichier.nom), fichier.blob, {
         access: 'private',
         handleUploadUrl: `/api/commandes/${encodeURIComponent(commande)}/upload`,
         clientPayload: JSON.stringify({ referenceId }),
-        contentType: fichier.blob.type || undefined,
+        contentType: type || undefined,
       });
       depots.push({
         nom: fichier.nom,
         chemin: resultat.pathname,
         taille: fichier.blob.size,
-        type: fichier.blob.type,
+        type,
       });
     }
   } catch (erreur) {

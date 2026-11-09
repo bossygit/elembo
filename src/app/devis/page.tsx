@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import DevisForm from '@/components/devis/DevisForm';
+import { devisConfigure } from '@/lib/devis/configuration';
 import { Etiquette } from '@/components/site/ui';
 
 export const metadata: Metadata = {
@@ -11,6 +12,20 @@ export const metadata: Metadata = {
 };
 
 export default function PageDevis() {
+  if (!devisConfigure) {
+    return (
+      <div className="mx-auto w-full max-w-3xl px-4 py-16 sm:px-6">
+        <Etiquette>Devis</Etiquette>
+        <h1 className="titre-editorial mt-4 text-4xl text-encre">Le formulaire sera activé prochainement.</h1>
+        <p className="mt-4 text-attenue">
+          La demande de devis en ligne nécessite la configuration Supabase de l’environnement.
+          En attendant, écrivez à store@smartvision.cg ou passez par la page contact.
+        </p>
+        <Link href="/contact" className="mt-6 inline-block underline">Nous contacter</Link>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
       <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr]">

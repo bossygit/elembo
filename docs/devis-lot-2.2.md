@@ -1,8 +1,8 @@
 # Lot 2.2 — Demandes de devis, sessions et back-office minimal
 
-État au 2026-11-09. Migration `0007_devis_suivi.sql` écrite et appliquée **uniquement**
-sur la stack Supabase locale. Elle n’est **pas** appliquée sur `elembo-staging` ni en
-production : une autorisation explicite reste nécessaire pour `db push --remote`.
+État au 2026-11-09. Migration `0007_devis_suivi.sql` écrite, testée localement puis
+appliquée sur `elembo-staging` (`db push --remote`) le 2026-11-09. Elle n’est pas
+appliquée sur un projet de production distinct.
 
 ## Parcours client
 
@@ -84,7 +84,7 @@ Voir `.env.example`.
 
 ## Limites connues
 
-- Migration 0007 non appliquée à distance.
+- Migration 0007 appliquée sur `elembo-staging` ; aucun projet Supabase de production distinct n’est configuré.
 - Aucun antivirus : les fichiers restent non analysés et non téléchargeables.
 - L’adaptateur SMS est générique ; aucun fournisseur congolais n’est branché.
 - La conversion d’un devis accepté en commande est hors lot 2.2 (lot 3.2).

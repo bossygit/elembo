@@ -35,8 +35,8 @@ production publique.
 
 Le schéma commercial, les relations, la RLS et le plan d'intégration sont décrits dans
 [`docs/supabase-architecture.md`](docs/supabase-architecture.md). Les migrations versionnées
-sont dans `supabase/migrations/` : 0001 → 0006 sont appliquées sur `elembo-staging`, la 0007
-(devis) reste locale jusqu'à autorisation explicite. Le
+sont dans `supabase/migrations/` : 0001 → 0007 sont appliquées sur `elembo-staging` depuis le
+2026-11-09. Le
 fichier [`supabase/README.md`](supabase/README.md) décrit la mise en service, les variables et
 les tests RLS.
 

@@ -2,9 +2,11 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { utilisateurStaff } from '@/server/auth/session';
+import { devisConfigure } from '@/lib/devis/configuration';
 import { deconnexion } from '../connexion/actions';
 
 export default async function LayoutAdminProtege({ children }: { children: React.ReactNode }) {
+  if (!devisConfigure) redirect('/');
   const staff = await utilisateurStaff();
   if (!staff) redirect('/admin/connexion');
 

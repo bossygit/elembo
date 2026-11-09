@@ -59,7 +59,7 @@ préférable : elle enregistre l'historique des migrations.
 | `20261109130006` | `seed_reference` | appliquée |
 
 `supabase migration list` confirme les six versions identiques en local et distant (local) ;
-`supabase db reset` reconstruit la base de zéro sans erreur, applique les six migrations puis
+`supabase db reset` reconstruit la base de zéro sans erreur, applique les sept migrations puis
 `supabase/seed.sql` (no-op documentaire).
 
 ## 3. Relations entre les tables
@@ -472,7 +472,7 @@ Aucun composant React n'exécute de SQL. Les repositories sont testables avec un
 
 | Étape | Contenu | Dépend de |
 |---|---|---|
-| 3.1a | création du projet Supabase, variables, application des 6 migrations | accès projet |
+| 3.1a | création du projet Supabase, variables, application des 7 migrations | accès projet |
 | 3.1b | clients serveur, repositories, `/api/sante` avec `select 1` | 3.1a |
 | 3.1c | tests RLS (anon/authenticated/service_role) sur base de test | 3.1a |
 | 2.2 | formulaire devis, upload signé, persistance, notifications | 3.1b |
@@ -486,7 +486,7 @@ Aucun composant React n'exécute de SQL. Les repositories sont testables avec un
 
 ### Base et RLS (instance locale vierge)
 
-- `supabase db reset` : 6 migrations appliquées, aucune erreur ;
+- `supabase db reset` : 7 migrations appliquées, aucune erreur ;
 - `supabase migration list` : versions `20261109130001` → `20261109130006` alignées ;
 - `anon` ne lit pas `clients`, `commandes`, `devis`, `paiements` ;
 - `anon` lit uniquement les produits `VALIDE` ;

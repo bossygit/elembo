@@ -33,7 +33,7 @@ un log ou une réponse HTTP.
 
 ## 3. Appliquer les migrations
 
-Les six migrations ont des versions uniques :
+Les sept migrations ont des versions uniques :
 
 ```
 20261109130001_extensions_types.sql

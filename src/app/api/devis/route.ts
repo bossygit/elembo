@@ -5,6 +5,7 @@ import { limiterOuErreur, lireJson, verifierOrigine } from '@/server/devis/http'
 import { creerDevisAtomique, ajouterFichierEnAttente } from '@/server/devis/repository';
 import { creerUrlEnvoi } from '@/server/storage/supabase';
 import { ajouterCookiesSession, creerSession } from '@/server/devis/session';
+import { devisConfigure } from '@/lib/devis/configuration';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,6 +14,7 @@ export async function POST(request: Request) {
   const refusOrigine = verifierOrigine(request);
   if (refusOrigine) return refusOrigine;
   if (!origineAutorisee(request)) return jsonErreur('Origine refusée.', 403);
+  if (!devisConfigure) return jsonErreur('Le service de devis n’est pas configuré.', 503);
 
   let corps: unknown;
   try {

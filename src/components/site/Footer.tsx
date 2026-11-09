@@ -1,5 +1,7 @@
 import Link from 'next/link';
 
+import { devisConfigure } from '@/lib/devis/configuration';
+
 import { Mail, Pin } from './Icons';
 
 const boutique = [
@@ -19,6 +21,10 @@ const atelier = [
 ];
 
 export default function Footer() {
+  const liensAtelier = devisConfigure
+    ? atelier
+    : atelier.filter((lien) => !lien.href.startsWith('/devis'));
+
   return (
     <footer className="border-t border-filet bg-creme">
       <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-14 sm:grid-cols-2 sm:px-6 lg:grid-cols-[1.4fr_0.8fr_0.8fr_1fr]">
@@ -51,7 +57,7 @@ export default function Footer() {
         <div>
           <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-encre">L’atelier</h2>
           <ul className="mt-4 space-y-2.5">
-            {atelier.map((lien) => (
+            {liensAtelier.map((lien) => (
               <li key={lien.href}>
                 <Link href={lien.href} className="text-sm text-attenue transition-colors hover:text-orange-action">
                   {lien.label}

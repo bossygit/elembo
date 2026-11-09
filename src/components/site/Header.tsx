@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
+import { devisConfigure } from '@/lib/devis/configuration';
 import { ArrowRight, Close, Menu } from './Icons';
 
 const LIENS = [
@@ -14,6 +15,8 @@ const LIENS = [
   { href: '/devis', label: 'Devis' },
   { href: '/comment-ca-marche', label: 'Comment ça marche' },
 ];
+
+const LIENS_VISIBLES = LIENS.filter((lien) => devisConfigure || !lien.href.startsWith('/devis'));
 
 function estActif(pathname: string, href: string): boolean {
   if (href === '/') return pathname === '/';
@@ -37,7 +40,7 @@ export default function Header() {
         </Link>
 
         <nav className="hidden items-center gap-6 lg:flex" aria-label="Navigation principale">
-          {LIENS.map((lien) => {
+          {LIENS_VISIBLES.map((lien) => {
             const actif = estActif(pathname, lien.href);
             return (
               <Link
@@ -81,7 +84,7 @@ export default function Header() {
       {ouvert && (
         <div id="menu-mobile" className="border-t border-filet bg-creme lg:hidden">
           <nav className="mx-auto flex w-full max-w-7xl flex-col px-4 py-3" aria-label="Navigation mobile">
-            {LIENS.map((lien) => (
+            {LIENS_VISIBLES.map((lien) => (
               <Link
                 key={lien.href}
                 href={lien.href}

@@ -124,7 +124,7 @@ npx --yes supabase@latest db push --remote --dry-run
 Attendu sur un projet neuf :
 
 - `migration list --remote` ne montre aucune migration distante ;
-- `db push --remote --dry-run` liste **exactement** les six migrations
+- `db push --remote --dry-run` liste **exactement** les migrations attendues
   `20261109130001` → `20261109130006`, sans aucune autre.
 
 Si une migration distante inconnue apparaît, ou si le nombre diffère : arrêt et analyse. Ne pas
@@ -177,7 +177,7 @@ Il sert de baseline d'avant-migration ; il ne remplace pas une sauvegarde de don
 npx --yes supabase@latest db push --remote
 ```
 
-- Pas de `--include-all` : les six migrations locales sont celles attendues.
+- Pas de `--include-all` : les migrations locales sont celles attendues.
 - Pas de `--include-seed` : le seed de référence est déjà dans la migration 0006 ;
   `supabase/seed.sql` est un no-op documentaire.
 - Ne pas utiliser `--db-url` : cela contournerait l'historique des migrations.
@@ -358,7 +358,7 @@ scripts/supabase-staging-env.sh node scripts/verifier-nettoyage-supabase.mjs
 - [ ] `.env.local` renseigné, non commité, clé service_role jamais affichée ;
 - [ ] `link` effectué, `.temp/project-ref` identique ;
 - [ ] `migration list --remote` vide ou cohérent ;
-- [ ] `db push --remote --dry-run` liste exactement six migrations ;
+- [ ] `db push --remote --dry-run` liste exactement les migrations attendues ;
 - [ ] export baseline du schéma réalisé dans `backups/` avec SHA-256 ;
 - [ ] confirmation explicite reçue ;
 - [ ] `db push --remote` réussi ;

@@ -1,7 +1,7 @@
 # Lot 2.2 — Demandes de devis : plan final (version 3)
 
-Statut : **à valider**, aucune implémentation, aucune migration 0007 appliquée.
-Les six migrations du lot 3.1 sont appliquées sur `elembo-staging`.
+Statut : **plan historique**, implémentation livrée ; migration 0007 appliquée sur `elembo-staging` le 2026-11-09.
+Les six migrations du lot 3.1 puis la 0007 sont appliquées sur `elembo-staging`.
 
 Décisions retenues : jeton + session cookie, récupération OTP, Resend optionnel, admin minimal,
 5 fichiers / 50 Mo, conversion différée au lot 3.2, migration 0007 sous réserve des points A–J

@@ -85,6 +85,10 @@ Voir `.env.example`.
 ## Limites connues
 
 - Migration 0007 appliquée sur `elembo-staging` ; aucun projet Supabase de production distinct n’est configuré.
+- La production Vercel n’a pas encore les variables Supabase : le formulaire et le suivi sont
+  volontairement masqués (`devisConfigure`) et `/admin` redirige vers l’accueil. Les activer
+  exige les variables `NEXT_PUBLIC_SUPABASE_*` et `SUPABASE_SERVICE_ROLE_KEY`, puis un
+  redéploiement.
 - Aucun antivirus : les fichiers restent non analysés et non téléchargeables.
 - L’adaptateur SMS est générique ; aucun fournisseur congolais n’est branché.
 - La conversion d’un devis accepté en commande est hors lot 2.2 (lot 3.2).

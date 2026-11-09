@@ -204,7 +204,9 @@ Fonctions `security definer`, `search_path = public, auth`, exécution réservé
 `service_role` :
 
 - `creer_devis_atomique(...)` :
-  - `pg_advisory_xact_lock(hashtextextended(idempotency_key, 0))` ;
+  - `pg_advisory_xact_lock(hashtextextended('devis:'||idempotency_key, 0))` ;
+  - `pg_advisory_xact_lock(hashtextextended('tel:'||telephone_normalise, 0))` lorsque le
+    téléphone est présent, pour sérialiser deux demandes du même numéro ;
   - retourne le devis existant si la clé existe déjà ;
   - upsert client par email (ou téléphone) ;
   - insert devis ;

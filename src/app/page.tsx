@@ -18,7 +18,7 @@ const PREUVES = [
   { titre: 'Atelier', valeur: 'Brazzaville' },
   { titre: 'Paiement', valeur: 'MTN Mobile Money' },
   { titre: 'Livraison', valeur: 'Brazzaville & Pointe-Noire' },
-  { titre: 'Délai', valeur: '1 à 3 jours selon la quantité' },
+  { titre: 'Délai', valeur: 'Confirmé dans le devis' },
 ];
 
 const ETAPES = [
@@ -291,7 +291,7 @@ export default function Home() {
                 <ArrowRight className="h-4 w-4" />
               </BoutonLien>
               <BoutonLien
-                href="/contact"
+                href="/devis?famille=SERVICES"
                 variante="secondaire"
                 className="border-creme/40 text-creme hover:bg-creme hover:text-encre"
               >

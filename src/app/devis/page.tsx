@@ -11,7 +11,12 @@ export const metadata: Metadata = {
     'Décrivez votre projet textile, impression ou communication visuelle. Smart Vision Congo vous répond avec un prix et un délai.',
 };
 
-export default function PageDevis() {
+export default async function PageDevis({
+  searchParams,
+}: {
+  searchParams: Promise<{ famille?: string; support?: string; service?: string; produit?: string }>;
+}) {
+  const { famille, support, service, produit } = await searchParams;
   if (!devisConfigure) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-16 sm:px-6">
@@ -52,7 +57,13 @@ export default function PageDevis() {
         <div className="rounded-3xl border border-filet bg-white p-6 sm:p-8">
           <h2 className="font-display text-2xl text-encre">Décrire ma demande</h2>
           <p className="mt-1 text-sm text-attenue">Les champs marqués * sont obligatoires.</p>
-          <DevisForm />
+          <DevisForm
+            key={`${famille ?? ''}-${support ?? ''}-${service ?? ''}-${produit ?? ''}`}
+            initialFamille={famille}
+            initialSupport={support}
+            initialService={service}
+            initialProduit={produit}
+          />
         </div>
       </div>
     </div>

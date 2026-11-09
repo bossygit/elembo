@@ -1,5 +1,7 @@
 import type { MetadataRoute } from 'next';
 
+import { PRODUITS_VITRINE } from '@/lib/commerce/catalogue';
+
 const BASE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://elembo.vercel.app').replace(/\/+$/, '');
 
 const ROUTES = [
@@ -12,6 +14,10 @@ const ROUTES = [
   { path: '/tableau', priority: 0.7 },
   { path: '/comment-ca-marche', priority: 0.6 },
   { path: '/contact', priority: 0.6 },
+  ...PRODUITS_VITRINE.filter((p) => p.famille === 'textile').map((p) => ({
+    path: `/textile/${p.id}`,
+    priority: 0.7,
+  })),
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

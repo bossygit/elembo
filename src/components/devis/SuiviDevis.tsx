@@ -19,6 +19,7 @@ type Devis = {
   famille: string;
   besoin: string;
   format: string | null;
+  specifications?: Record<string, unknown>;
   quantite: number | null;
   montantProposeFcfa: number | null;
   creeLe: string;
@@ -158,6 +159,21 @@ export default function SuiviDevis({ reference }: { reference: string }) {
             <dt className="text-attenue">Votre besoin</dt>
             <dd className="mt-1 whitespace-pre-wrap">{devis.besoin}</dd>
           </div>
+          {devis.specifications && Object.keys(devis.specifications).length > 0 ? (
+            <div className="sm:col-span-2">
+              <dt className="text-attenue">Précisions transmises</dt>
+              <dd className="mt-1">
+                <ul className="space-y-1 text-sm">
+                  {Object.entries(devis.specifications).map(([cle, valeur]) => (
+                    <li key={cle}>
+                      <span className="text-attenue">{cle} : </span>
+                      {Array.isArray(valeur) ? valeur.join(', ') : String(valeur)}
+                    </li>
+                  ))}
+                </ul>
+              </dd>
+            </div>
+          ) : null}
         </dl>
 
         {devis.statut === 'PROPOSE' ? (

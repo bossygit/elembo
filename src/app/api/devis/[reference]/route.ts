@@ -23,6 +23,7 @@ export async function GET(request: Request, contexte: Contexte) {
       famille: devis.famille,
       besoin: devis.besoin,
       format: devis.format,
+      specifications: devis.specifications,
       quantite: devis.quantite,
       montantProposeFcfa: devis.montant_propose_fcfa,
       creeLe: devis.cree_le,

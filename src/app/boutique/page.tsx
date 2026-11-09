@@ -47,8 +47,8 @@ export default function BoutiquePage() {
             <h2 className="titre-editorial mt-3 text-4xl text-encre sm:text-5xl">À porter, à offrir, à porter ensemble.</h2>
           </div>
           <p className="max-w-md text-sm leading-relaxed text-attenue">
-            Coton, DTF pressé à chaud, tailles S à 3XL. Quatre couleurs de base et un aperçu 3D
-            avant validation.
+            T-shirts, polos, tote bags, textiles événementiels et uniformes. Les T-shirts disposent
+            d’un aperçu 3D ; les autres produits sont cadrés sur fiche technique et BAT.
           </p>
         </div>
 
@@ -80,7 +80,7 @@ export default function BoutiquePage() {
         <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">02 · Murs & décoration</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">02 · Impression & décoration — tableaux</p>
               <h2 className="titre-editorial mt-3 text-4xl text-encre sm:text-5xl">Vos photos, en grand.</h2>
             </div>
             <p className="max-w-md text-sm leading-relaxed text-attenue">
@@ -114,7 +114,7 @@ export default function BoutiquePage() {
       <section id="impression" className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">03 · Impression graphique</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">02 · Impression & décoration — supports imprimés</p>
             <h2 className="titre-editorial mt-3 text-4xl text-encre sm:text-5xl">Le support juste, au bon format.</h2>
           </div>
           <Link
@@ -127,7 +127,7 @@ export default function BoutiquePage() {
         </div>
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {SUPPORTS_IMPRESSION.slice(0, 4).map((support) => (
+          {SUPPORTS_IMPRESSION.map((support) => (
             <article key={support.id} className="border border-filet bg-white p-5">
               <h3 className="font-display text-2xl text-encre">{support.nom}</h3>
               <p className="mt-2 text-sm leading-relaxed text-attenue">{support.description}</p>
@@ -151,7 +151,7 @@ export default function BoutiquePage() {
               toute production.
             </p>
           </div>
-          <BoutonLien href="/contact" variante="primaire" className="mt-4 shrink-0 sm:mt-0">
+          <BoutonLien href="/devis?famille=IMPRESSION" variante="primaire" className="mt-4 shrink-0 sm:mt-0">
             Demander un devis
             <ArrowRight className="h-4 w-4" />
           </BoutonLien>
@@ -161,14 +161,14 @@ export default function BoutiquePage() {
       <section className="border-t border-filet bg-encre text-creme">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-12 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange">04 · Services</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange">03 · Services créatifs</p>
             <h2 className="mt-3 font-display text-3xl text-creme">Identité visuelle, événements, commandes récurrentes.</h2>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-creme/70">
               Pour les entreprises, associations, restaurants et organisateurs : un interlocuteur
               unique, de la conception à la livraison.
             </p>
           </div>
-          <BoutonLien href="/entreprises" variante="clair" className="shrink-0">
+          <BoutonLien href="/devis?famille=SERVICES" variante="clair" className="shrink-0">
             Offre entreprise
             <ArrowRight className="h-4 w-4" />
           </BoutonLien>

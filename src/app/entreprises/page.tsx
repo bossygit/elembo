@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
+import Link from 'next/link';
 
 import { ArrowRight, Check } from '../../components/site/Icons';
 import { BoutonLien, Etiquette } from '../../components/site/ui';
@@ -44,7 +45,7 @@ export default function EntreprisesPage() {
               interlocuteur, un devis et une date.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <BoutonLien href="/contact" variante="primaire">
+              <BoutonLien href="/devis?famille=SERVICES" variante="primaire">
                 Demander une proposition
                 <ArrowRight className="h-4 w-4" />
               </BoutonLien>
@@ -89,6 +90,12 @@ export default function EntreprisesPage() {
                   </li>
                 ))}
               </ul>
+              <Link
+                href={`/devis?famille=SERVICES&service=${encodeURIComponent(service.titre)}`}
+                className="mt-5 inline-flex text-sm font-semibold text-encre underline decoration-orange decoration-2 underline-offset-4 hover:text-orange-action"
+              >
+                Demander un devis
+              </Link>
             </article>
           ))}
         </div>
@@ -147,7 +154,7 @@ export default function EntreprisesPage() {
               Écoles, restaurants, entreprises : nous pouvons organiser des commandes régulières
               avec un prix et un délai convenus à l’avance. Parlez-nous du rythme et des volumes.
             </p>
-            <BoutonLien href="/contact" variante="primaire" className="mt-6">
+            <BoutonLien href="/devis?famille=SERVICES&service=Commandes%20r%C3%A9currentes" variante="primaire" className="mt-6">
               Ouvrir le dialogue
               <ArrowRight className="h-4 w-4" />
             </BoutonLien>
@@ -164,7 +171,7 @@ export default function EntreprisesPage() {
               vers vous avec une proposition.
             </p>
           </div>
-          <BoutonLien href="/contact" variante="primaire" className="shrink-0">
+          <BoutonLien href="/devis?famille=SERVICES" variante="primaire" className="shrink-0">
             Demander une proposition
             <ArrowRight className="h-4 w-4" />
           </BoutonLien>

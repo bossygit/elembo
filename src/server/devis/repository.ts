@@ -17,6 +17,7 @@ export type DevisLigne = {
   expire_le: string | null;
   cree_le: string;
   contact_snapshot: Record<string, unknown>;
+  notes_internes: string | null;
   suivi_token_hash: string | null;
   suivi_token_expire_le: string | null;
 };

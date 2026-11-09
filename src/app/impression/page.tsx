@@ -37,7 +37,7 @@ export default function ImpressionPage() {
               finitions avec nos partenaires.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <BoutonLien href="/contact" variante="primaire">
+              <BoutonLien href="/devis?famille=IMPRESSION" variante="primaire">
                 Demander un devis
                 <ArrowRight className="h-4 w-4" />
               </BoutonLien>
@@ -102,6 +102,13 @@ export default function ImpressionPage() {
                   </li>
                 ))}
               </ul>
+              <BoutonLien
+                href={`/devis?famille=IMPRESSION&support=${encodeURIComponent(support.id)}`}
+                variante="secondaire"
+                className="mt-5 w-full"
+              >
+                Demander un devis
+              </BoutonLien>
             </article>
           ))}
         </div>
@@ -143,7 +150,7 @@ export default function ImpressionPage() {
               <li>• Mise en page de flyers, menus, brochures</li>
               <li>• Déclinaisons pour les réseaux et l’affichage</li>
             </ul>
-            <BoutonLien href="/entreprises" variante="primaire" className="mt-6">
+            <BoutonLien href="/devis?famille=SERVICES&service=Cr%C3%A9ation%20graphique" variante="primaire" className="mt-6">
               Voir l’offre création
               <ArrowRight className="h-4 w-4" />
             </BoutonLien>
@@ -192,7 +199,7 @@ export default function ImpressionPage() {
               précise, plus le devis est rapide.
             </p>
           </div>
-          <BoutonLien href="/contact" variante="clair" className="shrink-0">
+          <BoutonLien href="/devis?famille=IMPRESSION" variante="clair" className="shrink-0">
             Demander un devis
             <ArrowRight className="h-4 w-4" />
           </BoutonLien>

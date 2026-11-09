@@ -62,6 +62,20 @@ export function paiementEnLigneOuvert(statut: StatutPrix): boolean {
   return statut === 'valide' || process.env.NEXT_PUBLIC_PAIEMENT_TEST === '1';
 }
 
+export type FicheTextile = {
+  variantes: string[];
+  tailles: string[];
+  couleurs: { nom: string; hex: string }[];
+  faces: string[];
+  zones: string[];
+  technique: string;
+  delai: string;
+  minimum: string;
+  configurable3D: boolean;
+  produit3DId?: string;
+  avertissement?: string;
+};
+
 export type ProduitVitrine = {
   id: string;
   nom: string;
@@ -74,6 +88,8 @@ export type ProduitVitrine = {
   cta: string;
   prix: PrixVitrine;
   badge?: string;
+  /** Fiche commerciale détaillée pour les produits textile. */
+  fiche?: FicheTextile;
 };
 
 const tshirtRaglan = CATALOG.find((p) => p.id === 'tshirt-basic');
@@ -90,9 +106,26 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
       'Un coton épais, des couleurs franches, votre visuel en DTF pressé à chaud dans notre atelier de Brazzaville.',
     points: ['Tailles S à 3XL', '4 couleurs de base', 'Impression avant et arrière', 'Aperçu 3D avant commande'],
     image: { src: '/mockups/tshirt-studio.jpg', alt: 'T-shirt blanc personnalisable, photographié en studio' },
-    href: '/personnalisation',
-    cta: 'Personnaliser en 3D',
+    href: '/textile/tshirt-basic',
+    cta: 'Voir la fiche produit',
     prix: prixVitrine(tshirtRaglan ? prixProduit(tshirtRaglan.id) : null, statutPrixProduit('tshirt-basic')),
+    fiche: {
+      variantes: ['Coupe unisexe', 'Manches courtes raglan'],
+      tailles: ['S', 'M', 'L', 'XL', '2XL', '3XL'],
+      couleurs: [
+        { nom: 'Blanc', hex: '#FFFFFF' },
+        { nom: 'Noir', hex: '#1A1A1A' },
+        { nom: 'Rouge', hex: '#C62828' },
+        { nom: 'Bleu', hex: '#1565C0' },
+      ],
+      faces: ['Avant', 'Arrière'],
+      zones: ['Poitrine : 21 × 30 cm', 'Dos : 25 × 32,4 cm'],
+      technique: 'DTF pressé à chaud',
+      delai: '3 à 7 jours ouvrés selon la quantité',
+      minimum: '1 pièce ; tarif dégressif à partir de 10 pièces',
+      configurable3D: true,
+      produit3DId: 'tshirt-basic',
+    },
   },
   {
     id: 'tshirt-alt',
@@ -103,9 +136,153 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
       'La coupe classique pour les équipes, les événements et les uniformes. Même qualité d’impression, autre silhouette.',
     points: ['Tailles S à 3XL', '4 couleurs de base', 'Idéal quantité et événement', 'Aperçu 3D avant commande'],
     image: { src: '/mockups/tshirt-cintre.jpg', alt: 'T-shirt col rond blanc sur cintre' },
-    href: '/personnalisation',
-    cta: 'Personnaliser en 3D',
+    href: '/textile/tshirt-alt',
+    cta: 'Voir la fiche produit',
     prix: prixVitrine(tshirtColRond ? prixProduit(tshirtColRond.id) : null, statutPrixProduit('tshirt-alt')),
+    fiche: {
+      variantes: ['Col rond', 'Coupe unisexe'],
+      tailles: ['S', 'M', 'L', 'XL', '2XL', '3XL'],
+      couleurs: [
+        { nom: 'Blanc', hex: '#FFFFFF' },
+        { nom: 'Noir', hex: '#1A1A1A' },
+        { nom: 'Rouge', hex: '#C62828' },
+        { nom: 'Bleu', hex: '#1565C0' },
+      ],
+      faces: ['Avant', 'Arrière'],
+      zones: ['Poitrine : 21 × 30 cm', 'Dos : 25 × 32,4 cm'],
+      technique: 'DTF pressé à chaud',
+      delai: '3 à 7 jours ouvrés selon la quantité',
+      minimum: '1 pièce ; tarif dégressif à partir de 10 pièces',
+      configurable3D: true,
+      produit3DId: 'tshirt-alt',
+    },
+  },
+  {
+    id: 'polo-pique',
+    nom: 'Polo piqué personnalisé',
+    famille: 'textile',
+    surtitre: 'Textile · Entreprise',
+    description:
+      'Un polo propre pour les équipes terrain, l’accueil et les événements professionnels. Broderie ou marquage textile selon le visuel et la quantité.',
+    points: ['Col et boutons', 'Broderie ou DTF', 'Tailles S à 3XL', 'Devis pour les séries'],
+    image: { src: '/mockups/polo-pique.jpg', alt: 'Polo noir uni porté par un mannequin, photo d’illustration' },
+    href: '/textile/polo-pique',
+    cta: 'Voir la fiche produit',
+    prix: prixVitrine(null, 'provisoire'),
+    badge: 'Sur devis',
+    fiche: {
+      variantes: ['Manches courtes', 'Coupe homme / femme'],
+      tailles: ['S', 'M', 'L', 'XL', '2XL', '3XL'],
+      couleurs: [
+        { nom: 'Blanc', hex: '#FFFFFF' },
+        { nom: 'Noir', hex: '#1A1A1A' },
+        { nom: 'Bleu marine', hex: '#1B2A4A' },
+        { nom: 'Gris', hex: '#9E9E9E' },
+      ],
+      faces: ['Poitrine', 'Dos'],
+      zones: ['Poitrine : 9 × 9 cm (cœur)', 'Dos : 25 × 32 cm'],
+      technique: 'Broderie pour les petits marquages, DTF pour les visuels détaillés',
+      delai: '5 à 10 jours ouvrés selon la quantité',
+      minimum: '10 pièces pour la broderie ; 1 pièce possible en DTF',
+      configurable3D: false,
+      avertissement:
+        'Pas de modèle 3D fiable pour ce polo : la validation se fait sur une fiche technique et un BAT avant production.',
+    },
+  },
+  {
+    id: 'tote-bag',
+    nom: 'Tote bag personnalisé',
+    famille: 'textile',
+    surtitre: 'Textile · Événement',
+    description:
+      'Un sac en toile à votre marque, pour un lancement, un séminaire ou une boutique. Une ou deux faces imprimées selon le visuel.',
+    points: ['Toile coton', 'Anses renforcées', 'Impression 1 ou 2 faces', 'Petites et moyennes séries'],
+    image: { src: '/mockups/tote-bag.jpg', alt: 'Tote bag en toile naturelle, photo d’illustration' },
+    href: '/textile/tote-bag',
+    cta: 'Voir la fiche produit',
+    prix: prixVitrine(null, 'provisoire'),
+    badge: 'Sur devis',
+    fiche: {
+      variantes: ['Toile naturelle', 'Toile colorée'],
+      tailles: ['38 × 42 cm', '30 × 35 cm'],
+      couleurs: [
+        { nom: 'Naturel', hex: '#E8DCC8' },
+        { nom: 'Noir', hex: '#1A1A1A' },
+        { nom: 'Bleu marine', hex: '#1B2A4A' },
+      ],
+      faces: ['Face avant', 'Face arrière'],
+      zones: ['Avant : 25 × 28 cm', 'Arrière : 25 × 28 cm'],
+      technique: 'DTF pressé à chaud',
+      delai: '5 à 10 jours ouvrés selon la quantité',
+      minimum: '10 pièces',
+      configurable3D: false,
+      avertissement:
+        'Pas de modèle 3D fiable pour ce sac : la validation se fait sur une fiche technique et un BAT avant production.',
+    },
+  },
+  {
+    id: 'textile-evenement',
+    nom: 'Textile événementiel',
+    famille: 'textile',
+    surtitre: 'Textile · Événement',
+    description:
+      'T-shirts, polos ou tote bags d’un même événement, avec un visuel cohérent et des tailles réparties pour votre public.',
+    points: ['Lot multi-produits', 'Répartition des tailles', 'Visuel unique ou décliné', 'Délai cadré avec la date'],
+    image: { src: '/mockups/textile-lot.jpg', alt: 'Pile de t-shirts unis, photo d’illustration pour un lot événementiel' },
+    href: '/textile/textile-evenement',
+    cta: 'Voir la fiche produit',
+    prix: prixVitrine(null, 'provisoire'),
+    badge: 'Sur devis',
+    fiche: {
+      variantes: ['T-shirt', 'Polo', 'Tote bag', 'Lot mixte'],
+      tailles: ['XS à 3XL selon les modèles'],
+      couleurs: [
+        { nom: 'Blanc', hex: '#FFFFFF' },
+        { nom: 'Noir', hex: '#1A1A1A' },
+        { nom: 'Bleu', hex: '#1565C0' },
+        { nom: 'Rouge', hex: '#C62828' },
+      ],
+      faces: ['Avant', 'Arrière'],
+      zones: ['Poitrine', 'Dos', 'Manche sur demande'],
+      technique: 'DTF pressé à chaud',
+      delai: 'À confirmer selon la date de l’événement et la quantité',
+      minimum: '10 pièces par référence',
+      configurable3D: false,
+      avertissement:
+        'Le lot événementiel est composé après validation de la répartition des tailles ; aucun modèle 3D n’est simulé.',
+    },
+  },
+  {
+    id: 'uniforme-personnalise',
+    nom: 'Uniformes personnalisés',
+    famille: 'textile',
+    surtitre: 'Textile · Entreprise',
+    description:
+      'Une tenue cohérente pour une équipe : polo, t-shirt ou veste de travail, avec le logo et le nom de chaque collaborateur.',
+    points: ['Logo + nom individuel', 'Réassort par taille', 'Validation BAT', 'Commande récurrente possible'],
+    image: { src: '/mockups/textile-lot.jpg', alt: 'Pile de t-shirts unis, photo d’illustration pour des uniformes' },
+    href: '/textile/uniforme-personnalise',
+    cta: 'Voir la fiche produit',
+    prix: prixVitrine(null, 'provisoire'),
+    badge: 'Sur devis',
+    fiche: {
+      variantes: ['Polo', 'T-shirt', 'Veste de travail'],
+      tailles: ['S à 3XL', 'Tailles spéciales sur demande'],
+      couleurs: [
+        { nom: 'Blanc', hex: '#FFFFFF' },
+        { nom: 'Noir', hex: '#1A1A1A' },
+        { nom: 'Bleu marine', hex: '#1B2A4A' },
+        { nom: 'Gris', hex: '#9E9E9E' },
+      ],
+      faces: ['Poitrine', 'Dos', 'Manche'],
+      zones: ['Cœur : 9 × 9 cm', 'Dos : 25 × 32 cm', 'Manche : 8 × 8 cm'],
+      technique: 'Broderie ou DTF selon le support',
+      delai: '7 à 15 jours ouvrés selon la quantité et les tailles',
+      minimum: '10 pièces ; réassort possible',
+      configurable3D: false,
+      avertissement:
+        'Pas de modèle 3D fiable pour les uniformes : chaque tenue est validée sur une fiche technique et un BAT.',
+    },
   },
   {
     id: 'tableau-canvas',
@@ -226,8 +403,14 @@ export const SUPPORTS_IMPRESSION: SupportImpression[] = [
   },
   {
     id: 'brochures',
-    nom: 'Brochures & dépliants',
-    description: 'Présenter une activité, un programme ou un lieu en plusieurs volets.',
+    nom: 'Brochures',
+    description: 'Présenter une activité, un programme ou un lieu en plusieurs pages agrafées ou collées.',
+    options: ['8 à 32 pages', 'A4 / A5', 'Papier 170 à 300 g', 'Recto / recto-verso'],
+  },
+  {
+    id: 'depliants',
+    nom: 'Dépliants',
+    description: 'Un document plié qui tient dans la main et se déploie au bon moment.',
     options: ['2, 3 ou 4 volets', 'A4 plié', 'Papier 170 à 300 g', 'Recto / recto-verso'],
   },
   {
@@ -255,8 +438,18 @@ export const SERVICES_ENTREPRISE = [
     exemples: ['Équipes', 'Écoles', 'Séminaires'],
   },
   {
+    titre: 'Création graphique',
+    description: 'Un logo, une affiche, un menu ou une campagne : la conception est cadrée avant l’impression.',
+    exemples: ['Logo', 'Affiches', 'Réseaux sociaux'],
+  },
+  {
     titre: 'Communication événementielle',
     description: 'Une identité cohérente du carton d’invitation à la signalétique sur place.',
     exemples: ['Mariages', 'Conférences', 'Lancements'],
+  },
+  {
+    titre: 'Commandes récurrentes',
+    description: 'Un rythme et un budget convenus à l’avance pour les consommables, les uniformes et les supports réguliers.',
+    exemples: ['Restaurants', 'Écoles', 'Commerces'],
   },
 ];

@@ -18,6 +18,13 @@ function euros(valeur: number | null): string {
   return valeur === null ? '—' : `${valeur.toLocaleString('fr-FR')} FCFA`;
 }
 
+function valeurLisible(valeur: unknown): string {
+  if (Array.isArray(valeur)) return valeur.length ? valeur.join(', ') : '—';
+  if (typeof valeur === 'boolean') return valeur ? 'Oui' : 'Non';
+  if (valeur === null || valeur === undefined || valeur === '') return '—';
+  return String(valeur);
+}
+
 function dateCourte(valeur: string | null): string {
   if (!valeur) return '—';
   return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(
@@ -73,10 +80,31 @@ export default async function PageDetailDevis({
         <section className="rounded-2xl border border-neutral-200 bg-white p-6">
           <h2 className="text-lg font-semibold">Demande</h2>
           <dl className="mt-4 space-y-3 text-sm">
+            {devis.notes_internes ? (
+              <div>
+                <dt className="text-neutral-500">Notes internes</dt>
+                <dd className="mt-1 whitespace-pre-wrap">{devis.notes_internes}</dd>
+              </div>
+            ) : null}
             <div>
               <dt className="text-neutral-500">Besoin</dt>
               <dd className="mt-1 whitespace-pre-wrap">{devis.besoin}</dd>
             </div>
+            {Object.keys(devis.specifications ?? {}).length > 0 ? (
+              <div>
+                <dt className="text-neutral-500">Précisions de la demande</dt>
+                <dd className="mt-2">
+                  <ul className="space-y-1.5">
+                    {Object.entries(devis.specifications as Record<string, unknown>).map(([cle, valeur]) => (
+                      <li key={cle} className="flex flex-wrap gap-x-2 text-sm">
+                        <span className="text-neutral-500">{cle} :</span>
+                        <span>{valeurLisible(valeur)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </dd>
+              </div>
+            ) : null}
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <dt className="text-neutral-500">Format</dt>

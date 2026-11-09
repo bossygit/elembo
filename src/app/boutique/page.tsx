@@ -66,7 +66,7 @@ export default function BoutiquePage() {
               </p>
             </div>
             <Link
-              href="/entreprises"
+              href="/devis?famille=TEXTILE"
               className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-creme underline decoration-orange decoration-2 underline-offset-4 hover:text-orange"
             >
               Demander un devis quantité

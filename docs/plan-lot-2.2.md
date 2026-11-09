@@ -96,19 +96,28 @@ Une fusion de clients ne peut être qu'une action admin explicite, auditée, hor
    Aucun paiement dans ce lot.
 ```
 
-### Cookie de session
+### Cookie de session et révocation
 
-- Valeur : session signée HMAC (`devis_id`, `exp`), jamais le jeton brut.
-- `HttpOnly`, `Secure` en production, `SameSite=Lax`, `Path=/`, expiration 30 jours.
-- Secret serveur `DEVIS_SESSION_SECRET` (32 octets minimum), jamais `NEXT_PUBLIC_`.
-- `POST /api/devis/session` reçoit `{ reference, token }` dans le **corps JSON**, vérifie le
-  hash à temps constant, puis pose le cookie. Aucun jeton en query string.
-- `POST /api/devis` peut poser directement le cookie pour le navigateur qui a soumis ;
-  `suiviToken` est renvoyé une fois pour permettre le suivi sur un autre appareil.
+- Cookie : `sid` aléatoire 32 octets + HMAC, jamais le jeton brut ; HttpOnly, Secure en
+  production, SameSite=Lax, Path=/, expiration 30 jours.
+- La session est **étatful** : `public.devis_sessions` stocke `sha256(sid)`, `devis_id`,
+  `expire_le`, `revoque_le`, `derniere_utilisation_le`, `user_agent_hash`, `ip_hash`.
+- Chaque requête vérifie la signature HMAC puis la ligne en base :
+  `revoque_le is null` et `expire_le > now()`.
+- `POST /api/devis/session` et la vérification OTP créent une ligne de session et posent le
+  cookie. Aucun jeton initial en query string.
+- `POST /api/devis/session/logout` révoque la session courante.
+- Une décision `REFUSE`/`EXPIRE` révoque toutes les sessions du devis.
+- L'admin peut révoquer toutes les sessions d'un devis (`admin` uniquement), avec motif et
+  `journal_audit`.
+- Maximum 5 sessions actives par devis : la plus ancienne est révoquée à la sixième.
+- Un job supprime les sessions expirées depuis plus de 90 jours ; les révocations sont
+  auditées avant purge.
+- `DEVIS_SESSION_SECRET` (32 octets minimum) signe le cookie ; jamais `NEXT_PUBLIC_`.
 - Les routes publiques ne lisent jamais le jeton dans l'URL. Les logs ne doivent jamais
   journaliser le corps de `/api/devis` ni `/api/devis/session`.
-- Un cookie CSRF non-HttpOnly `elembo_devis_csrf` accompagne la session ; les POST
-  propriétaires exigent `X-CSRF-Token` (double-submit, comparaison à temps constant).
+- Cookie CSRF non-HttpOnly `elembo_devis_csrf` ; les POST propriétaires exigent
+  `X-CSRF-Token` (double-submit, temps constant).
 
 ### Récupération du suivi par OTP
 
@@ -170,6 +179,7 @@ Aucun autre package. Validation en TypeScript, emails via `fetch` Resend, Telegr
 |---|---|---|---|
 | `POST` | `/api/devis` | origine, rate-limit IP/email/téléphone, `Idempotency-Key`, honeypot | crée client + devis + notifications, pose le cookie |
 | `POST` | `/api/devis/session` | origine, rate-limit, corps `{reference,token}` | échange le jeton contre le cookie |
+| `POST` | `/api/devis/session/logout` | cookie + CSRF | révoque la session courante |
 | `POST` | `/api/devis/suivi/otp` | origine, rate-limit IP/référence/destination | demande un OTP, réponse 202 générique |
 | `POST` | `/api/devis/suivi/otp/verifier` | origine, rate-limit IP/référence | vérifie l'OTP et pose le cookie |
 | `GET` | `/api/devis/[reference]` | cookie de session | statut public, aucune note interne |
@@ -188,6 +198,8 @@ Aucun autre package. Validation en TypeScript, emails via `fetch` Resend, Telegr
 | `PATCH` | `/api/admin/devis/[id]` | admin, commercial | notes, assignation, statut contrôlé |
 | `POST` | `/api/admin/devis/[id]/proposition` | admin, commercial | montant + message, passage PROPOSE |
 | `POST` | `/api/admin/devis/[id]/decision` | admin, commercial | décision pour un accord téléphonique, avec note |
+| `POST` | `/api/admin/devis/[id]/sessions/revoquer` | admin | révoque toutes les sessions client, motif + audit |
+| `POST` | `/api/admin/devis/[id]/fichiers/[fichierId]/derogation` | admin | dérogation NON_ANALYSE, motif + audit, 60 s |
 | `GET` | `/api/admin/devis/[id]/fichiers/[fichierId]/url` | admin, commercial | URL signée 5 min, fichier vérifié |
 
 `finance` lit les devis et métadonnées, jamais les fichiers. `atelier` n'accède pas aux devis.
@@ -363,6 +375,18 @@ Fonctions `security definer`, `search_path = public, auth`, exécution réservé
 Les routes n'écrivent pas directement `devis` ou `notifications` : elles appellent ces RPC.
 `service_role` garde l'exécution ; `anon`/`authenticated` n'ont aucun `EXECUTE`.
 
+Chaque fonction `SECURITY DEFINER` respecte les règles suivantes :
+
+- `SET search_path = pg_catalog, public, auth` explicite ;
+- tous les objets sont qualifiés par schéma dans le corps ;
+- aucune requête dynamique, aucun `EXECUTE format(...)` non contrôlé ;
+- propriétaire `postgres`, jamais un rôle applicatif ;
+- `REVOKE ALL ON FUNCTION ... FROM PUBLIC, anon, authenticated` ;
+- `GRANT EXECUTE ... TO service_role` uniquement ;
+- test `has_function_privilege('anon', ..., 'EXECUTE') = false` et idem `authenticated` ;
+- test `has_function_privilege('service_role', ..., 'EXECUTE') = true` ;
+- `proconfig` vérifié pour contenir le `search_path` attendu.
+
 ### 5.5 Fichiers : analyse et quarantaine
 
 ```sql
@@ -405,6 +429,50 @@ Les anciens fichiers restent `NON_ANALYSE` ; ils ne sont ni supprimés ni rendus
 Test de migration sur clone : compter et hacher les lignes historiques avant/après ; vérifier
 que les colonnes historiques sont identiques, que les nouvelles colonnes ont les défauts
 attendus, et que le trigger journalise toujours un changement de statut.
+
+### 5.7 Sessions client révocables
+
+```sql
+create table public.devis_sessions (
+  id uuid primary key default gen_random_uuid(),
+  devis_id uuid not null references public.devis (id) on delete cascade,
+  sid_hash text not null unique,
+  cree_le timestamptz not null default now(),
+  expire_le timestamptz not null,
+  revoque_le timestamptz,
+  revoque_motif text,
+  derniere_utilisation_le timestamptz,
+  user_agent_hash text,
+  ip_hash text
+);
+
+create index devis_sessions_actives_idx
+  on public.devis_sessions (devis_id)
+  where revoque_le is null;
+
+create index devis_sessions_expire_idx
+  on public.devis_sessions (expire_le);
+
+alter table public.devis_sessions enable row level security;
+
+revoke all on public.devis_sessions from anon, authenticated;
+grant select, insert, update, delete on public.devis_sessions to service_role;
+```
+
+Aucune policy `anon`/`authenticated` : le navigateur ne lit jamais cette table. Le serveur
+service role vérifie `sid_hash`, `devis_id`, `expire_le` et `revoque_le` à chaque requête.
+
+RPC associées, toutes `SECURITY DEFINER` et réservées à `service_role` :
+
+- `creer_session_devis(devis_id, sid_hash, expire_le, user_agent_hash, ip_hash)` ;
+- `session_devis_valide(sid_hash, reference)` → `devis_id` ou null ;
+- `revoquer_session_devis(sid_hash, motif)` ;
+- `revoquer_sessions_devis(devis_id, motif)` ;
+- `nettoyer_sessions_devis()` : supprime les sessions expirées depuis plus de 90 jours,
+  jamais les sessions actives.
+
+Le cookie contient `sid` aléatoire + HMAC ; la base ne stocke que `sha256(sid)`. Une
+révocation prend effet à la requête suivante, avant l'expiration naturelle.
 
 ## 6. Contrôles et traces au niveau base
 
@@ -470,6 +538,31 @@ Sans scanner configuré :
 
 ZIP : le scanner analyse l'archive brute ; aucun dézippage, aucune exécution. Si le scanner est
 absent, le ZIP reste `NON_ANALYSE` et ne peut pas être téléchargé.
+
+### Politique de téléchargement
+
+| Statut | Client propriétaire | Staff admin/commercial | Dérogation admin |
+|---|---|---|---|
+| `PROPRE` | oui, URL 5 min | oui, URL 5 min | inutile |
+| `NON_ANALYSE` | non | non | **oui**, admin uniquement, non-ZIP, auditée |
+| `EN_ATTENTE` | non | non | **interdite** |
+| `ERREUR` | non | non | **interdite** |
+| `INFECTE` | non | non | **interdite, sans exception** |
+
+La dérogation `NON_ANALYSE` :
+
+- route `POST /api/admin/devis/[id]/fichiers/[fichierId]/derogation` ;
+- rôle `admin` uniquement ;
+- motif obligatoire (20 caractères minimum) ;
+- un seul fichier par requête, jamais de lot ;
+- URL signée 60 secondes, `download: true` ;
+- refusée pour les ZIP, `EN_ATTENTE`, `ERREUR`, `INFECTE` ;
+- maximum 3 dérogations par admin et par jour ;
+- écriture `journal_audit` : acteur, fichier, devis, statut, motif, IP hash, date ;
+- aucun paramètre `?force` sur la route de téléchargement normale.
+
+La réception d'une demande de devis ne dépend jamais de l'antivirus : sans scanner, le devis
+est créé, les notifications partent, les fichiers restent `NON_ANALYSE` et indisponibles.
 
 ### Fichiers non vérifiés ou non analysés
 
@@ -564,6 +657,7 @@ src/server/auth/supabase.ts
 src/server/devis/repository.ts
 src/server/devis/jetons.ts
 src/server/devis/session.ts
+src/server/devis/sessions.ts
 src/server/devis/otp.ts
 src/server/devis/fichiers.ts
 src/server/devis/notifications.ts
@@ -574,6 +668,7 @@ src/server/security/antivirus.ts
 src/server/storage/supabase.ts
 src/app/api/devis/route.ts
 src/app/api/devis/session/route.ts
+src/app/api/devis/session/logout/route.ts
 src/app/api/devis/suivi/otp/route.ts
 src/app/api/devis/suivi/otp/verifier/route.ts
 src/app/api/devis/[reference]/route.ts
@@ -586,12 +681,18 @@ src/app/api/admin/devis/route.ts
 src/app/api/admin/devis/[id]/route.ts
 src/app/api/admin/devis/[id]/proposition/route.ts
 src/app/api/admin/devis/[id]/decision/route.ts
+src/app/api/admin/devis/[id]/sessions/revoquer/route.ts
+src/app/api/admin/devis/[id]/fichiers/[fichierId]/derogation/route.ts
 src/app/api/admin/devis/[id]/fichiers/[fichierId]/url/route.ts
 src/app/api/cron/notifications/route.ts
 src/app/api/cron/analyser-fichiers/route.ts
 tests/devisValidation.test.ts
 tests/devisJetons.test.ts
 tests/devisSession.test.ts
+tests/devisSessions.test.ts
+tests/devisTelechargement.test.ts
+tests/devisDerogation.test.ts
+tests/devisRpcPrivileges.test.ts
 tests/devisOtp.test.ts
 tests/devisSecuritePublique.test.ts
 tests/devisRapprochement.test.ts
@@ -717,6 +818,39 @@ docs/supabase-staging.md           tests lot 2.2
 - ZIP non extrait avant/après scan ;
 - `verifie=true` mais `NON_ANALYSE` → non téléchargeable.
 
+### Politique de téléchargement
+
+- `PROPRE` : client propriétaire et staff autorisé, URL 5 min ;
+- `NON_ANALYSE` : refus client/staff ; dérogation admin seulement, non-ZIP, motif, audit ;
+- `EN_ATTENTE`, `ERREUR`, `INFECTE` : refus total, dérogation impossible ;
+- ZIP `NON_ANALYSE` : dérogation refusée ;
+- dérogation : 403 pour commercial/finance/atelier, 422 sans motif, 429 au-delà de 3/jour ;
+- `journal_audit` contient acteur, fichier, devis, motif, statut, IP hash, date ;
+- aucun `?force` sur la route normale ;
+- devis accepté même si aucun antivirus n'est configuré ; fichiers restent indisponibles.
+
+### Sessions client révocables
+
+- session valide avant révocation → 200 ;
+- logout → cookie effacé + ligne `revoque_le` → 401 ;
+- `REFUSE`/`EXPIRE` → toutes les sessions révoquées → 401 ;
+- révocation admin avec motif → 401, audit écrit ;
+- session expirée → 401 ;
+- cookie falsifié / `sid_hash` inconnu → 401 ;
+- sixième session → la plus ancienne est révoquée ;
+- `devis_sessions` : RLS activée, aucune policy anon/authenticated ;
+- `sid` brut absent de la base (seul le hash) ;
+- purge des sessions expirées > 90 jours sans toucher aux actives.
+
+### RPC SECURITY DEFINER
+
+- `anon` et `authenticated` n'ont pas `EXECUTE` ;
+- `service_role` l'a ;
+- `proconfig` contient `search_path=pg_catalog, public, auth` ;
+- propriétaire `postgres` ;
+- aucune fonction accessible directement depuis le navigateur ;
+- test sur chaque RPC : création, transition, décision, sessions, nettoyage.
+
 ### Compatibilité migration 0007
 
 - snapshot des lignes `historique_statuts_devis` avant migration ;
@@ -800,16 +934,18 @@ l'écran indique de contacter Smart Vision, sans promettre un envoi inexistant.
 
 1. Migration 0007 avec token, contact snapshot, historique prix, notifications retry,
    fichiers `statut_analyse`, compatibilité historique, fonctions RPC et index.
-2. Session cookie HMAC + `POST /api/devis/session` + OTP de récupération ; jeton jamais en URL
-   ou en clair dans un email.
+2. Session cookie HMAC + `POST /api/devis/session` + OTP de récupération ; sessions
+   révocables en base (`devis_sessions`), logout et révocation admin.
 3. Sécurité publique : Origin, CSRF double-submit, rate-limit IP/identité, fail-closed Redis,
    anti-énumération.
 4. Rapprochement client sans fusion automatique sur coordonnées contradictoires.
-5. Quarantaine logique et antivirus optionnel ; ZIP jamais extrait. Par défaut, un fichier
-   `NON_ANALYSE` n'est téléchargeable par personne. Une dérogation admin auditée est-elle
-   nécessaire pour l'exploitation sans scanner ?
+5. Quarantaine logique et antivirus optionnel ; ZIP jamais extrait. Le téléchargement est
+   interdit pour `INFECTE`, `EN_ATTENTE`, `ERREUR` ; `NON_ANALYSE` non téléchargeable par
+   défaut. Une dérogation admin auditée est-elle nécessaire pour l'exploitation sans scanner ?
 6. Back-office minimal avec Supabase Auth et `app_metadata`.
 7. Nettoyage dry-run et prédicats stricts.
+8. RPC `SECURITY DEFINER` : `search_path` explicite, `EXECUTE` réservé à `service_role`,
+   `PUBLIC/anon/authenticated` révoqués.
 
 Après validation : migration 0007 → RPC/repositories → session et OTP → routes publiques →
 upload/analyse → notifications → admin minimal → tests staging → rapport.

@@ -13,6 +13,7 @@
  */
 
 import { GRILLE } from '@/lib/tarifs/grille';
+import type { StatutPrix } from '@/lib/tarifs/grille';
 
 /** La grille brute est réexportée : les tests comparent le catalogue serveur à sa source. */
 export { GRILLE };
@@ -37,12 +38,14 @@ export type ProduitServeur = {
   id: string;
   nom: string;
   prixFcfa: number | null;
+  statutPrix: StatutPrix;
 };
 
 export const CATALOGUE: readonly ProduitServeur[] = GRILLE.produits.map((p) => ({
   id: p.id,
   nom: p.nom,
   prixFcfa: p.prixFcfa,
+  statutPrix: p.statutPrix ?? 'provisoire',
 }));
 
 export type VilleServeur = {
@@ -74,6 +77,9 @@ export function ville(id: string): VilleServeur | undefined {
 
 /** Identifiant du produit « tableau » : il ne se vend pas à la pièce mais au format. */
 export const PRODUIT_TABLEAU = 'tableau';
+
+/** Statut commercial du barème tableaux : `test` / `provisoire` interdit l'encaissement réel. */
+export const STATUT_PRIX_TABLEAUX = GRILLE.tableaux.statutPrix ?? 'provisoire';
 
 export type SupportTableauServeur = 'chassis' | 'toile-seule';
 

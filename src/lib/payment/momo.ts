@@ -1,11 +1,13 @@
-// Client du service de paiement MoMo (momo-service/).
+// Client du service de paiement MoMo, servi par la MÊME application Next.js.
+//
+// Depuis la migration Vercel, les routes /api/momo/* vivent dans ce dépôt (`src/app/api/momo`)
+// et le site partage leur origine : plus de service séparé, plus de tunnel, plus de CORS
+// obligatoire. `urlService()` renvoie une chaîne vide dans le cas normal (« même origine ») ;
+// `public/api-config.js` reste le point de bascule d'urgence vers un service externe.
 //
 // Le navigateur ne calcule AUCUN montant : il envoie ce que le client a choisi (produit, tailles,
 // quantités, ville, téléphone) et le service recalcule. Puis on SONDE le statut — le callback de
 // MTN n'est jamais la source de vérité (il est envoyé une seule fois, sans réessai).
-//
-// Le service tourne ailleurs que dans l'application (voir momo-service/README.md). Son adresse
-// vient de NEXT_PUBLIC_MOMO_API_URL ; à défaut, l'adresse de développement local.
 
 export type EtatPaiement = 'PENDING' | 'PAYE' | 'ECHEC' | 'ANOMALIE';
 

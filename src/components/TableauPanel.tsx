@@ -8,6 +8,9 @@
 // prêt pour l'atelier.
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
+import { paiementEnLigneOuvert } from '../lib/commerce/catalogue';
+import { statutPrixTableaux } from '../lib/tarifs/grille';
 import {
   FORMATS,
   TARIFS,
@@ -84,6 +87,26 @@ export default function TableauPanel({
   const total = livraison === null ? null : devis.sousTotalFcfa + livraison;
   const numeroOk = telephonePlausible(telephone);
   const conseil = design ? conseilFormat(design.width, design.height) : null;
+  const paiementOuvert = paiementEnLigneOuvert(statutPrixTableaux());
+
+  /** Génération atelier sans encaissement : conserve la capacité de produire un fichier de test. */
+  async function genererSansPaiement() {
+    setEnCours(true);
+    setErreur(null);
+    setMessage(null);
+    setFichierPret(null);
+    setFichePrete(null);
+    try {
+      const fichiers = await produireFichier(reference);
+      setMessage(
+        fichiers.length
+          ? `Essai atelier : ${fichiers.length} fichier(s) généré(s) et téléchargé(s). Aucun paiement, aucun envoi à l’atelier.`
+          : 'Aucun fichier généré : vérifiez le visuel et le format.',
+      );
+    } finally {
+      setEnCours(false);
+    }
+  }
 
   /** Génère le fichier d'impression (visuel seul, débords compris) et la fiche pour l'atelier. */
   async function produireFichier(reference: string): Promise<FichierAEnvoyer[]> {
@@ -398,19 +421,48 @@ export default function TableauPanel({
         </p>
       </dl>
 
-      <button
-        type="button"
-        onClick={payer}
-        data-testid="payer-tableau"
-        disabled={enCours || !design || total === null || !numeroOk}
-        className="mt-4 w-full rounded-xl bg-[#E85F00] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {enCours
-          ? 'Paiement en cours…'
-          : suivi === 'attente'
-            ? 'En attente de validation sur le téléphone…'
-            : `Payer ${formatFcfa(total)} par MTN MoMo`}
-      </button>
+      {paiementOuvert ? (
+        <button
+          type="button"
+          onClick={payer}
+          data-testid="payer-tableau"
+          disabled={enCours || !design || total === null || !numeroOk}
+          className="mt-4 w-full rounded-xl bg-[#E85F00] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {enCours
+            ? 'Paiement en cours…'
+            : suivi === 'attente'
+              ? 'En attente de validation sur le téléphone…'
+              : `Payer ${formatFcfa(total)} par MTN MoMo`}
+        </button>
+      ) : (
+        <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="font-semibold">Paiement en ligne pas encore ouvert pour les tableaux.</p>
+          <p className="mt-1 text-xs leading-relaxed">
+            Le barème est provisoire. Composez votre tableau et demandez un devis pour obtenir un
+            prix ferme ; aucun montant de test ne sera encaissé.
+          </p>
+          <Link href="/contact" className="mt-2 inline-flex text-xs font-semibold underline underline-offset-4">
+            Demander un devis
+          </Link>
+        </div>
+      )}
+
+      {!paiementOuvert && design && (
+        <details className="mt-3 rounded-lg border border-neutral-200 px-3 py-2">
+          <summary className="cursor-pointer text-xs text-neutral-500">
+            Atelier : générer le fichier sans paiement
+          </summary>
+          <button
+            type="button"
+            onClick={genererSansPaiement}
+            disabled={enCours}
+            className="mt-2 rounded-lg border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {enCours ? 'Génération…' : 'Générer le fichier d’impression (sans encaissement)'}
+          </button>
+        </details>
+      )}
 
       {!design && (
         <p className="mt-2 text-xs text-neutral-500">

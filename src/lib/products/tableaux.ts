@@ -1,15 +1,15 @@
 // Tableaux (impression canvas) — formats, prix et contrôle de qualité.
 //
-// Ce module est la référence du BARÈME côté navigateur. Le service de paiement en tient une
-// copie (`momo-service/src/catalogue.ts`) : `tests/coherenceCatalogues.test.ts` compare les
-// deux et échoue à la moindre divergence, comme pour les T-shirts.
+// Ce module est la référence du BARÈME côté navigateur. Les valeurs viennent de la SOURCE UNIQUE
+// `tarifs/grille.json`, lue au même endroit par le service de paiement : il n'existe plus de
+// copie dans `momo-service/`. `tests/coherenceCatalogues.test.ts` vérifie que les deux moteurs
+// (application et serveur) produisent le même prix.
 //
 // ⚠️ BARÈME PROVISOIRE — À ARBITRER PAR L'EXPLOITANT.
 // Les trois tarifs ci-dessous sont des valeurs de travail calculées sur une logique de coût
-// (surface imprimée + montage + préparation), pas un prix de marché relevé au Congo. Ils sont
-// regroupés ici pour être corrigés en un seul endroit : corriger TARIFS, puis répercuter la
-// même valeur dans `momo-service/src/catalogue.ts`. Les prix affichés sont recalculés, jamais
-// écrits en dur.
+// (surface imprimée + montage + préparation), pas un prix de marché relevé au Congo. Les prix
+// affichés sont recalculés, jamais écrits en dur. Le statut de chaque prix (test / provisoire /
+// validé) doit être explicite avant toute vente publique.
 
 import { formatsTableaux, paliersTableaux, tarifsTableaux } from '../tarifs/grille';
 import type { TarifsTableau } from '../tarifs/grille';

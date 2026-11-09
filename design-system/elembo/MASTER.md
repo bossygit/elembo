@@ -1,5 +1,12 @@
 # Design System Master File
 
+> ⚠️ **DOCUMENT GÉNÉRÉ OBSOLÈTE — NE PAS APPLIQUER.**
+> La palette « Pharmacy green + trust blue » ci-dessous a été produite automatiquement et
+> **rejetée** : elle ne correspond pas à l'identité Elembo. La référence de marque est
+> `docs/design-system-elembo.md` (orange `#E85F00`, violet `#200233`, crème `#FEFCF6`) et les
+> jetons de `src/app/globals.css`. Ce fichier est conservé pour la traçabilité du moteur qui l'a
+> généré, pas comme source de vérité.
+
 > **LOGIC:** When building a specific page, first check `design-system/pages/[page-name].md`.
 > If that file exists, its rules **override** this Master file.
 > If not, strictly follow the rules below.

@@ -2,6 +2,8 @@ import { telechargerFichier } from '@/server/dossiers/archive';
 import { normaliserFichiers, recapDossier, verifierDepot } from '@/server/dossiers/dossier';
 import { envoyerNotification, telegramConfigure } from '@/server/dossiers/telegram';
 import { journal } from '@/server/momo/instance';
+import { referenceValide } from '@/server/momo/reference';
+import { atelierAutorise } from '@/server/security/token';
 
 // Enregistrement du dossier APRÈS l'envoi des fichiers vers l'archive (voir `/upload`).
 // Le corps ne contient que des métadonnées : quelques kilo-octets, jamais les images.
@@ -11,19 +13,14 @@ export const maxDuration = 60;
 
 type Contexte = { params: Promise<{ commande: string }> };
 
-function tokenAtelier(demande: Request): string {
-  const attendu = (process.env.ATELIER_TOKEN ?? '').trim();
-  if (!attendu) return '';
-  const entete = demande.headers.get('x-atelier-token') ?? '';
-  const query = new URL(demande.url).searchParams.get('token') ?? '';
-  return entete === attendu || query === attendu ? attendu : '';
-}
-
 /** Liste des dossiers reçus pour une commande — réservé à l'atelier (ATELIER_TOKEN). */
 export async function GET(demande: Request, contexte: Contexte) {
   const { commande } = await contexte.params;
-  if (!tokenAtelier(demande)) {
+  if (!atelierAutorise(demande)) {
     return Response.json({ erreur: 'Accès atelier requis.' }, { status: 401 });
+  }
+  if (!referenceValide(commande)) {
+    return Response.json({ erreur: 'Référence de commande invalide.' }, { status: 400 });
   }
   const store = await journal();
   const toutes = await store.toutes();
@@ -56,6 +53,9 @@ export async function POST(demande: Request, contexte: Contexte) {
   const referenceId = String(corps.referenceId ?? '').trim();
   if (!referenceId) {
     return Response.json({ erreur: 'Référence de paiement manquante.' }, { status: 422 });
+  }
+  if (!referenceValide(commande)) {
+    return Response.json({ erreur: 'Référence de commande invalide.' }, { status: 400 });
   }
 
   const store = await journal();

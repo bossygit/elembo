@@ -9,6 +9,7 @@ import {
   TYPES_ACCEPTES,
 } from '@/server/dossiers/dossier';
 import { journal } from '@/server/momo/instance';
+import { referenceValide } from '@/server/momo/reference';
 
 // L'envoi passe directement du navigateur à l'archive : le corps de la requête ne traverse pas la
 // fonction (limite Vercel de 4,5 Mo). Un visuel d'impression fait souvent 5 à 15 Mo.
@@ -26,6 +27,9 @@ const VALIDITE_MS = 15 * 60 * 1000;
 
 export async function POST(demande: Request, contexte: Contexte) {
   const { commande } = await contexte.params;
+  if (!referenceValide(commande)) {
+    return Response.json({ erreur: 'Référence de commande invalide.' }, { status: 400 });
+  }
   const store = await journal();
   const corps = (await demande.json().catch(() => ({}))) as HandleUploadPresignedBody;
 

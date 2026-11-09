@@ -1,16 +1,43 @@
-# Elembo — MVP Print-on-Demand
+# Elembo — plateforme commerciale de Smart Vision Congo
 
-> **Uploadez votre design, voyez-le imprimé.** MVP de démonstration style Printful : le créateur uploade un design (PNG/JPG), choisit un produit et voit son design apparaître en direct sur un mockup.
+> **Personnalisation textile, impression graphique et communication visuelle.** Elembo réunit
+> la vitrine publique, le configurateur 3D, le tunnel de paiement MTN MoMo et le dossier de
+> production de l’atelier. Les évolutions de la plateforme sont planifiées dans
+> [`docs/plan-implementation.md`](docs/plan-implementation.md) ; l’état réel est décrit dans
+> [`docs/audit-phase1.md`](docs/audit-phase1.md).
 
-**Live : https://bossygit.github.io/elembo/**
+**Live : https://elembo.vercel.app**
 
 Par Smart Vision Congo (SARLU enregistrée en République du Congo).
 
+## Boutique publique
+
+| Page | Rôle |
+|---|---|
+| `/` | accueil commercial : promesse, familles, produits, processus, CTA |
+| `/boutique` | catalogue unifié (textile, tableaux, impression, services) |
+| `/personnalisation` | configurateur 3D et tunnel textile |
+| `/impression` | flyers, affiches, cartes, menus, brochures, documents |
+| `/entreprises` | offre B2B, identité visuelle, textiles en quantité, événements |
+| `/comment-ca-marche` | parcours, paiement, livraison, FAQ |
+| `/contact` | email atelier, préparation d’un devis |
+| `/tableau` | studio 2D prépositionné sur le tableau canvas |
+| `/studio` | studio 2D historique (outil de composition) |
+
+**Règle de prix** : un produit dont le prix n’est pas `valide` dans `tarifs/grille.json`
+affiche « Prix sur demande » et le paiement en ligne est fermé. La règle est appliquée **côté
+serveur** : un appel direct à `/api/momo/payer` est refusé (`422`) tant que le prix est `test`
+ou `provisoire`, sauf dérogation explicite `MOMO_ALLOW_TEST_PRICES=1`. Pour rouvrir le bouton
+dans un environnement de recette, poser aussi `NEXT_PUBLIC_PAIEMENT_TEST=1` — jamais en
+production publique.
+
 ## Fonctionnement
 
-- **100 % client-side** : le design reste en mémoire navigateur (ObjectURL), rien n'est stocké ni envoyé.
+- **Composition côté navigateur** : le design reste en mémoire (ObjectURL) tant que le client
+  n'a pas commandé. Il n'est envoyé qu'après un paiement confirmé, vers l'archive privée des
+  dossiers de production (`dossiers/<commande>/`) — jamais dans un stockage public.
 - **Composition canvas** : photo de mockup en fond + design dessiné dans la zone d'impression prédéfinie (coordonnées normalisées par produit, technique Printful). Mouvement libre par glisser, **clip à la zone** : ce qui dépasse ne s'imprime pas.
-- **Produits MVP** : t-shirt, casquette, tableau (canvas).
+- **Produits du studio 2D** : t-shirt, casquette (démonstration uniquement, non vendable) et tableau (canvas).
 - **Validation** : PNG/JPG, ≤ 10 Mo, ≥ 500 px (règles pures testées).
 - **Ajustements** : échelle 0,5×–1,5×, contain/stretch, réinitialisation, mode debug zone (checkbox « calage »).
 - **Export** : téléchargement du mockup rendu en PNG.
@@ -88,7 +115,8 @@ Le tunnel de commande transforme un design validé en **dossier de production** 
   production ne sont générés **qu'après un `PAYE` confirmé**. Un échec ou un dépassement du délai
   de 5 minutes ne produit aucun fichier. Le dossier (PNG + fiche) est ensuite **déposé côté
   serveur** : il ne dépend plus du navigateur du client ni de sa connexion au moment de la
-  confirmation (voir ci-dessous).
+  confirmation (voir ci-dessous). **Depuis le 9/11/2026, ce bouton n'apparaît que pour un prix
+  commercial `valide`** ; le serveur refuse de son côté tout prix `test` ou `provisoire`.
 - **Atelier** : un repli explicite « générer les fichiers sans paiement » reste disponible
   (replié sous le bouton de paiement) pour les essais d'impression.
 
@@ -124,6 +152,8 @@ Le champ `priceFcfa` du catalogue porte un **prix de test de 100 FCFA** (décid�
 pour les essais de paiement réel entre collègues ; le tarif commercial reste à arbitrer), en
 attendant le tableau de bord qui le rendra configurable ; si un prix ou des frais de livraison
 manquent, la commande est refusée avec le motif affiché plutôt que de facturer un montant inventé.
+Le statut `test` de ce prix est explicite dans `tarifs/grille.json` : il ferme le paiement en
+ligne et l'affichage public du montant.
 
 ### Polices
 
@@ -239,10 +269,10 @@ encaissements réels faits par le tunnel), mais il n'est plus alimenté.
 
 ```bash
 npm install --include=dev   # cette machine omet les devDependencies par défaut (npm config omit=dev)
-npm test                    # vitest — 339 tests (studio, impression, tarifs, paiement, dossier de production)
+npm test                    # vitest — 371 tests (studio, impression, tarifs, paiement, dossier de production)
 npm run lint
 npm run build
-npm run dev                 # http://localhost:3000  ·  /  (configurateur 3D)  ·  /studio  (studio 2D)
+npm run dev                 # http://localhost:3000  ·  / (boutique)  ·  /personnalisation (configurateur 3D)  ·  /studio (studio 2D)
 ```
 
 ## Déploiement
@@ -275,11 +305,23 @@ bash scripts/deploy-gh-pages.sh
 - **Ne jamais multiplier couleur × texture sur un panneau imprimé** : la couleur du vêtement est composée dans la texture (albédo) et le matériau du panneau reste blanc, sinon un T-shirt noir rend le visuel noir. Le matériau garde roughness/metalness/normalMap par clone.
 - La caméra ne doit réorienter le produit **que** sur demande (changement de face ou vue initiale) ; un lissage permanent annule la rotation et le zoom de l'utilisateur.
 
-## Limites du MVP (suite prévue)
+## Limites actuelles (état au 9 novembre 2026)
 
-- Modèle 3D placeholder : remplacer par un vrai T-shirt (UV correctes, textures PBR) dans `public/models/tshirt/`
-- Rendu réaliste à venir : HDR d'environnement local (`public/hdri/`), normal/roughness maps, ombres douces affinées
-- Pas de persistance des designs (Vercel Blob/Supabase en phase 2) ni de catalogue multi-produits (hoodie, tote bag… : ajout par le seul catalogue)
-- Pas de paiement (MTN MoMo / Airtel Money) ni de BAT WhatsApp
-- Photos de mockups du studio 2D placeholders (aplats, générées par `scripts/gen-mockups.mjs`) à remplacer par les visuels réels (presse VEVOR)
-- Pas de galerie de designs ni de comptes créateurs
+- **Pas encore de boutique publique** : l'accueil est le configurateur 3D. La navigation, le
+  catalogue commercial, l'impression graphique, les devis et le back-office sont planifiés dans
+  `docs/plan-implementation.md`.
+- **Prix de test en production** : T-shirts et livraison à 100 FCFA pour les essais de paiement.
+  Les tarifs commerciaux (livraison 1 000 / 2 000 FCFA, produits à arbitrer) ne sont pas encore
+  activés. Un produit sans prix validé ne doit pas être présenté comme une offre commerciale.
+- **Aucune commande persistée** : seule la transaction de paiement est conservée (référence,
+  téléphone, montant). Le nom, l'adresse et le détail textile ne sont pas encore enregistrés.
+- **Dossier généré par le navigateur** : après `PAYE`, le client envoie les PNG et la fiche vers
+  l'archive privée. S'il ferme la page avant l'envoi, l'atelier ne reçoit rien — la
+  régénération serveur est planifiée.
+- **Pas de back-office** : produits, commandes, devis, production, stock, coûts et marges ne sont
+  pas encore administrables.
+- **Paiement** : MTN MoMo uniquement. Airtel Money n'est pas intégré.
+- **Photos** : les mockups du studio 2D sont des visuels de travail à remplacer par les photos
+  réelles de l'atelier.
+- **Casquette** : présente dans le studio 2D comme support de démonstration, mais non vendable —
+  aucun accessoire de presse (mug, casquette, assiette) n'est disponible.

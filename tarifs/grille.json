@@ -5,10 +5,11 @@
   "devise": "XAF",
   "note": "SOURCE UNIQUE DES PRIX. L'application (export statique) lit ce fichier à la compilation, le service de paiement le lit à son démarrage : une seule valeur à corriger, et le montant affiché est forcément celui que le service recalcule. Un fichier vide de sens ici = commande refusée, jamais un montant inventé.",
   "produits": [
-    { "id": "tshirt-basic", "nom": "T-Shirt raglan", "prixFcfa": 100 },
-    { "id": "tshirt-alt", "nom": "T-Shirt col rond", "prixFcfa": 100 }
+    { "id": "tshirt-basic", "nom": "T-Shirt raglan", "prixFcfa": 100, "statutPrix": "test" },
+    { "id": "tshirt-alt", "nom": "T-Shirt col rond", "prixFcfa": 100, "statutPrix": "test" }
   ],
   "livraison": {
+    "statutPrix": "test",
     "delaiMaxJours": 3,
     "villes": [
       { "id": "brazzaville", "nom": "Brazzaville", "fraisFcfa": 100 },
@@ -16,6 +17,7 @@
     ]
   },
   "tableaux": {
+    "statutPrix": "provisoire",
     "tarifs": {
       "impressionToileFcfaParM2": 30000,
       "chassisFcfaParM2": 18000,

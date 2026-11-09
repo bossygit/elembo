@@ -1,26 +1,97 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Jetons de marque Elembo — mesurés dans `docs/design-system-elembo.md`.
+ * Règle : `--color-orange` est un aplat (contraste 3,46:1, grand texte seulement) ;
+ * `--color-orange-action` est le seul orange autorisé pour le texte courant (4,56:1).
+ * Pas de dégradés : la marque est un aplat vermillon, un violet profond et un crème chaud.
+ */
+@theme {
+  --color-creme: #fefcf6;
+  --color-encre: #200233;
+  --color-orange: #e85f00;
+  --color-orange-action: #c75100;
+  --color-attenue: #5b5b6b;
+  --color-filet: #e0dbd0;
+  --color-bordure: #8a86a0;
+  --color-succes: #1f6b45;
+  --color-alerte: #9a3412;
+  --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-creme);
+  color: var(--color-encre);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
+
+::selection {
+  background: #ffd9c2;
+  color: #200233;
+}
+
+/* Focus visible partout : un contour, jamais une suppression pure. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--color-orange);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Lien d'évitement : visible seulement au clavier. */
+.lien-evitement {
+  position: absolute;
+  left: 1rem;
+  top: -10rem;
+  z-index: 100;
+  background: var(--color-encre);
+  color: var(--color-creme);
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+}
+.lien-evitement:focus {
+  top: 1rem;
+}
+
+/* Titres éditoriaux : Playfair, mais jamais sur les libellés techniques. */
+.titre-editorial {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+}
+
+/* Filet décoratif : ne porte jamais d'information à lui seul. */
+.filet {
+  border-color: var(--color-filet);
+}
+
+/*
+ * Le configurateur existant utilise encore des classes `neutral-*`. On ne les réécrit pas
+ * globalement : une refonte de ses contrastes est un lot séparé, pour ne pas casser un écran
+ * qui encaisse. Les pages commerciales utilisent les jetons ci-dessus.
+ */

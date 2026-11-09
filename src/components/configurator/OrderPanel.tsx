@@ -14,8 +14,11 @@
 // catalogue, et refuse (motif affiché) si un prix ou des frais ne sont pas définis.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useConfiguratorStore } from '../../stores/configurator-store';
 import { getPrintArea, getProductById } from '../../lib/products/catalog';
+import { paiementEnLigneOuvert } from '../../lib/commerce/catalogue';
+import { statutPrixProduit } from '../../lib/tarifs/grille';
 import { compositionSize, drawComposition, elementsOfSide } from '../../lib/canvas/design-canvas';
 import { downloadBlob, renderPrintPng } from '../../lib/canvas/export';
 import {
@@ -132,6 +135,7 @@ export default function OrderPanel() {
 
   const product = getProductById(productId);
   const prixUnitaire = product?.priceFcfa ?? null;
+  const paiementOuvert = paiementEnLigneOuvert(statutPrixProduit(productId));
   const images = useElementImages(elements);
 
   // Calculs purs et bon marché : pas de mémoïsation manuelle (le compilateur React préfère ça, et
@@ -377,19 +381,36 @@ export default function OrderPanel() {
         </div>
       )}
 
-      <button
-        type="button"
-        disabled={!prete || !numeroOk || enCours || enPaiement}
-        onClick={payer}
-        data-testid="payer-momo"
-        className="rounded-xl bg-[#FFCC00] px-4 py-2.5 text-sm font-semibold text-[#200233] transition-colors hover:bg-[#E85F00] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        {enPaiement
-          ? 'En attente de validation sur le téléphone…'
-          : enCours
-            ? 'Préparation…'
-            : `Payer ${formatFcfa(totals.totalFcfa)} par MTN MoMo`}
-      </button>
+      {paiementOuvert ? (
+        <button
+          type="button"
+          disabled={!prete || !numeroOk || enCours || enPaiement}
+          onClick={payer}
+          data-testid="payer-momo"
+          className="rounded-xl bg-[#FFCC00] px-4 py-2.5 text-sm font-semibold text-[#200233] transition-colors hover:bg-[#E85F00] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {enPaiement
+            ? 'En attente de validation sur le téléphone…'
+            : enCours
+              ? 'Préparation…'
+              : `Payer ${formatFcfa(totals.totalFcfa)} par MTN MoMo`}
+        </button>
+      ) : (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="font-semibold">Paiement en ligne pas encore ouvert pour ce produit.</p>
+          <p className="mt-1 text-xs leading-relaxed">
+            Le tarif commercial est en cours de validation. Vous pouvez composer et générer un
+            aperçu, mais aucune commande ne sera facturée à un prix de test. Demandez un devis
+            pour obtenir un prix ferme et un délai engagé.
+          </p>
+          <Link
+            href="/contact"
+            className="mt-2 inline-flex text-xs font-semibold underline underline-offset-4"
+          >
+            Demander un devis →
+          </Link>
+        </div>
+      )}
 
       {paiement && (
         <div

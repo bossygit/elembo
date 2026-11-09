@@ -46,6 +46,12 @@ export type Config = {
   stockage: ConfigStockage;
   /** Délai avant qu'un paiement simulé passe à SUCCESSFUL (mode démonstration). */
   delaiMockMs: number;
+  /**
+   * Autorise l'encaissement d'un prix `test` ou `provisoire`.
+   * Faux par défaut en mode réel : un tarif non validé ne doit pas être facturé.
+   * `MOMO_ALLOW_TEST_PRICES=1` est une dérogation explicite pour une recette encadrée.
+   */
+  autoriserPrixTest: boolean;
 };
 
 const BASE_SANDBOX = 'https://sandbox.momodeveloper.mtn.com';
@@ -138,6 +144,8 @@ export function lireConfig(env: Record<string, string | undefined> = process.env
     env: envMtn,
     callbackUrl: valeur(env, 'MOMO_CALLBACK_URL') || null,
     montantSandbox: valeur(env, 'MOMO_SANDBOX_AMOUNT') || '10',
+    autoriserPrixTest:
+      mode === 'mock' || (valeur(env, 'MOMO_ALLOW_TEST_PRICES') || '').trim() === '1',
     origines: (valeur(env, 'APP_ORIGINS') || 'https://bossygit.github.io,http://localhost:3000')
       .split(',')
       .map((o) => o.trim())

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Footer from "../components/site/Footer";
+import Header from "../components/site/Header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,9 +15,30 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Elembo — Print-on-Demand local",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://elembo.vercel.app"),
+  title: {
+    default: "Elembo — Personnalisation textile & impression à Brazzaville",
+    template: "%s · Elembo",
+  },
   description:
-    "Uploadez votre design, voyez-le imprimé : t-shirts, casquettes et tableaux personnalisés, livrés à Brazzaville et Pointe-Noire. Par Smart Vision Congo.",
+    "T-shirts personnalisés, tableaux canvas, flyers et supports de communication. Smart Vision Congo fabrique à Brazzaville, avec paiement MTN Mobile Money et livraison à Brazzaville et Pointe-Noire.",
+  applicationName: "Elembo",
+  authors: [{ name: "Smart Vision Congo" }],
+  openGraph: {
+    type: "website",
+    locale: "fr_CG",
+    siteName: "Elembo",
+    title: "Elembo — Personnalisation textile & impression à Brazzaville",
+    description:
+      "Textile personnalisé, impression graphique et communication visuelle. Un aperçu avant fabrication, un atelier à Brazzaville.",
+    images: [{ url: "/mockups/tshirt-studio.jpg", width: 1600, height: 1067, alt: "T-shirt personnalisable Elembo" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Elembo — Personnalisation textile & impression à Brazzaville",
+    description: "Textile personnalisé, impression graphique et communication visuelle par Smart Vision Congo.",
+    images: ["/mockups/tshirt-studio.jpg"],
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -37,7 +60,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             bloquer l'analyse de la page (et c'est ce que la règle Next exige). */}
         <script src={`${basePath}/api-config.js`} defer />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="flex min-h-full flex-col bg-creme text-encre">
+        <a href="#contenu" className="lien-evitement">
+          Aller au contenu
+        </a>
+        <Header />
+        <main id="contenu" className="flex-1">
+          {children}
+        </main>
+        <Footer />
+      </body>
     </html>
   );
 }

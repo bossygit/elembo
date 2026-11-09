@@ -20,11 +20,12 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { CATALOGUE, FORMATS_TABLEAU, PALIERS_TABLEAU, VILLES } from './catalogue';
+import { CATALOGUE, FORMATS_TABLEAU, PALIERS_TABLEAU, PRODUIT_TABLEAU, STATUT_PRIX_TABLEAUX, VILLES, produit } from './catalogue';
 import { ErreurConfig, type Config } from './config';
 import { ErreurTelephone, masquerMsisdn, normaliserMsisdn } from './msisdn';
 import { ErreurCommande, calculerMontant, type Ligne, type LigneTableau, type Montant } from './pricing';
 import { ErreurMomo, motifMtn, type ClientMomo } from './mtn';
+import { MOTIF_REFERENCE, referenceValide } from './reference';
 import { ErreurStockage, type JournalTransactions } from './store';
 import { archiveConfiguree } from '../dossiers/archive';
 import { telegramConfigure } from '../dossiers/telegram';
@@ -55,6 +56,34 @@ export type PayloadPayer = {
 
 function texte(valeur: unknown): string {
   return typeof valeur === 'string' ? valeur.trim() : '';
+}
+
+/**
+ * Barrière de facturation : un prix `test` ou `provisoire` n'est jamais encaissé en mode réel.
+ *
+ * Le bouton de la vitrine est déjà masqué, mais cela ne protège de rien : n'importe qui peut
+ * appeler `POST /api/momo/payer` directement. La règle doit donc vivre ici, avant tout appel à
+ * MTN. `MOMO_ALLOW_TEST_PRICES=1` est la seule dérogation, explicite et côté serveur.
+ */
+function verifierPrixFacturable(corps: PayloadPayer, autoriserPrixTest: boolean): void {
+  if (autoriserPrixTest) return;
+  const produitId = texte(corps.produitId);
+
+  if (produitId === PRODUIT_TABLEAU) {
+    if (STATUT_PRIX_TABLEAUX !== 'valide') {
+      throw new ErreurCommande(
+        'Le barème des tableaux n’est pas encore validé commercialement : paiement en ligne fermé, demandez un devis.',
+      );
+    }
+    return;
+  }
+
+  const p = produit(produitId);
+  if (p && p.statutPrix !== 'valide') {
+    throw new ErreurCommande(
+      `Le prix de « ${p.nom} » n’est pas validé commercialement : paiement en ligne fermé, demandez un devis.`,
+    );
+  }
 }
 
 /** Résumé lisible de la commande, conservé avec la transaction (traçabilité atelier). */
@@ -146,7 +175,14 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
     }
 
     // SUCCESSFUL : le montant encaissé doit être exactement celui attendu.
-    if (etat.montant != null && String(etat.montant) !== String(transaction.montantEnvoye)) {
+    // Comparaison NUMÉRIQUE : MTN peut renvoyer « 100.0 » là où nous avons envoyé « 100 ».
+    // Une comparaison de chaînes produirait alors une fausse ANOMALIE sur un paiement correct.
+    const montantRecu = etat.montant == null ? null : Number(etat.montant);
+    const montantAttendu = Number(transaction.montantEnvoye);
+    if (
+      montantRecu != null &&
+      (!Number.isFinite(montantRecu) || !Number.isFinite(montantAttendu) || montantRecu !== montantAttendu)
+    ) {
       await store.maj(
         referenceId,
         { statut: 'ANOMALIE', raison: `montant recu ${etat.montant} != attendu ${transaction.montantEnvoye}` },
@@ -206,7 +242,7 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
           env: config.env,
           devise: config.devise,
           chargeLe,
-          produits: CATALOGUE.map((p) => ({ id: p.id, nom: p.nom, prixFcfa: p.prixFcfa })),
+          produits: CATALOGUE.map((p) => ({ id: p.id, nom: p.nom, prixFcfa: p.prixFcfa, statutPrix: p.statutPrix })),
           villes: VILLES.map((v) => ({
             id: v.id,
             nom: v.nom,
@@ -234,6 +270,11 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
 
         const commande = texte(corps.commande);
         if (!commande) throw new ErreurCommande('Référence de commande manquante.');
+        if (!referenceValide(commande)) {
+          throw new ErreurCommande(
+            `Référence de commande invalide : « ${commande.slice(0, 60)} » (attendu ${MOTIF_REFERENCE}).`,
+          );
+        }
 
         // Le montant est recalculé ici : le client ne fait que décrire ce qu'il a choisi.
         // La validation vient AVANT le contrôle de doublon : sur une requête mal formée, le
@@ -267,6 +308,10 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
             `Un paiement est déjà en cours pour la commande ${commande} : validez-le sur le téléphone, ou attendez son expiration (5 minutes) avant de réessayer.`,
           );
         }
+
+        // Prix non validé : refus AVANT tout appel à MTN. Le bouton masqué ne suffit pas,
+        // l'API est publique et peut être appelée directement.
+        verifierPrixFacturable(corps, config.autoriserPrixTest);
 
         const msisdn = normaliserMsisdn(texte(corps.telephone), config.env);
         const montantEnvoye = config.devise === 'XAF' ? String(montant.montantFcfa) : config.montantSandbox;
@@ -325,6 +370,7 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
 
     async callback(payload, referenceDuChemin = null) {
       return executer(async () => {
+        try {
         const corps = (payload ?? {}) as Record<string, unknown>;
         const c = corps as {
           referenceId?: unknown;
@@ -367,9 +413,29 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
         }
 
         // On ne croit pas la notification : on redemande le statut à MTN.
-        const etat = await client.statut(referenceId);
-        const statut = await trancher(referenceId, transaction, etat);
-        return { statut: 200, corps: { recu: true, traite: statut !== 'PENDING', statut } };
+        // Si cette vérification échoue (MTN indisponible, Redis en erreur), on répond quand
+        // même 200 : un 4xx/5xx fait rejouer la notification en boucle chez l'opérateur, qui
+        // n'envoie qu'une seule fois. La transaction reste PENDING et sera reprise par la
+        // réconciliation ou par l'interrogation de statut du navigateur.
+        try {
+          const etat = await client.statut(referenceId);
+          const statut = await trancher(referenceId, transaction, etat);
+          return { statut: 200, corps: { recu: true, traite: statut !== 'PENDING', statut } };
+        } catch (erreur) {
+          journal(
+            `callback non vérifié — ${referenceId} — ${(erreur as Error)?.message ?? 'erreur inconnue'} : laissé en attente`,
+          );
+          return {
+            statut: 200,
+            corps: { recu: true, traite: false, statut: 'PENDING' },
+          };
+        }
+        } catch (erreur) {
+          // Même une lecture du journal en erreur ne doit pas faire boucler MTN : le paiement
+          // sera repris par la réconciliation dès que le stockage répond de nouveau.
+          journal(`callback non traité — ${(erreur as Error)?.message ?? 'erreur inconnue'}`);
+          return { statut: 200, corps: { recu: true, traite: false } };
+        }
       });
     },
 
@@ -411,7 +477,11 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
      * Pourquoi c'est indispensable ici : MTN n'accepte qu'une URL de callback **enregistrée sur le
      * compte**. Tant que notre domaine ne l'est pas, aucun callback ne nous parvient ; sans
      * réconciliation, un client qui approuve sur son téléphone puis ferme la page laisserait une
-     * commande payée marquée PENDING. Ce balayage est déclenché par le cron Vercel (chaque minute).
+     * commande payée marquée PENDING. Ce balayage est déclenché par le cron Vercel. Sur le plan
+     * Hobby, Vercel n'autorise qu'une exécution par jour (`vercel.json` : 06:00) ; en journée, le
+     * navigateur du client interroge le statut et tranche lui-même. Un paiement validé après
+     * fermeture de l'onglet peut donc attendre le lendemain : la réconciliation manuelle
+     * (`GET /api/momo/reconcilier` avec `CRON_SECRET`) reste le recours immédiat.
      */
     async reconcilier(options) {
       return executer(async () => {

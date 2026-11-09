@@ -1,10 +1,10 @@
 'use client';
 
 // Studio : orchestrateur du MVP — produit + design + contrôles + canvas + download.
-// 100 % client-side : le design reste en mémoire navigateur, rien n'est stocké.
+// La composition est côté navigateur ; le visuel n'est envoyé qu'après un paiement confirmé.
 
 import { useRef, useState } from 'react';
-import { PRODUCTS } from '../lib/products';
+import { PRODUCTS, getProduct } from '../lib/products';
 import type { ProductDef } from '../lib/products';
 import type { FitMode } from '../lib/printArea';
 import { formatParId, zoneCmPourFormat, zonePourFormat } from '../lib/products/tableaux';
@@ -15,16 +15,19 @@ import DesignControls from './DesignControls';
 import DownloadButton from './DownloadButton';
 import TableauPanel from './TableauPanel';
 
-export default function Studio() {
-  const [product, setProduct] = useState<ProductDef>(PRODUCTS[0]);
+export default function Studio({ initialProductId = 'tshirt' }: { initialProductId?: string }) {
+  const initial = getProduct(initialProductId) ?? PRODUCTS[0];
+  const [product, setProduct] = useState<ProductDef>(initial);
   const [design, setDesign] = useState<Design | null>(null);
   const [scale, setScale] = useState(1);
   const [fitMode, setFitMode] = useState<FitMode>('contain');
   const [rotation, setRotation] = useState(0);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [showZones, setShowZones] = useState(false);
-  const [formatId, setFormatId] = useState<TableauFormatId>('30x40');
-  const [orientation, setOrientation] = useState<TableauOrientation>('portrait');
+  const [formatId, setFormatId] = useState<TableauFormatId>(initial.formatDefaut?.formatId ?? '30x40');
+  const [orientation, setOrientation] = useState<TableauOrientation>(
+    initial.formatDefaut?.orientation ?? 'portrait',
+  );
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const dragRef = useRef<{ id: number; lastX: number; lastY: number } | null>(null);
 

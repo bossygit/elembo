@@ -133,6 +133,10 @@ variables Upstash : les deux noms sont lus.
 6. **Test à 1 FCFA / 100 FCFA** en production, sur un vrai numéro : `payer` → validation sur le
    téléphone → `statut` = `PAYE` → vérifier la ligne dans Redis. C'est le seul test qui prouve la
    chaîne complète (le sandbox ne prouve pas l'encaissement réel).
+   ⚠️ Depuis le 9/11/2026, un prix `test` est refusé côté serveur : pour cette recette, poser
+   temporairement `MOMO_ALLOW_TEST_PRICES=1` **et** `NEXT_PUBLIC_PAIEMENT_TEST=1`, puis les
+   retirer immédiatement après. Sans ces deux variables, le bouton n'apparaît pas et l'API
+   répond `422` — c'est le comportement attendu hors recette.
 7. **Retirer le tunnel** : arrêter l'agent launchd et le service local une fois l'étape 6 réussie
    (voir §7).
 
@@ -206,7 +210,7 @@ enregistrement `201` → rejeu `200 dejaRecu` → `401` sans jeton atelier, `200
 
 | Vérification | Résultat |
 |---|---|
-| `npm test` (Vitest) | **339 tests verts** — dont 22 pour le dossier de production (autorisation, chemins, notification) |
+| `npm test` (Vitest) | **371 tests verts** — dont 22 pour le dossier de production (autorisation, chemins, notification) |
 | `npx tsc --noEmit` | aucun diagnostic |
 | `npm run build` | build production OK, routes `/api/momo/*` et `/api/sante` en dynamique (`ƒ`) |
 | Flux complet sur le build de production (mock) | payer → PENDING → PAYE, doublon `422`, commande payée `422`, callback par corps et par chemin, commande tableaux 2 × 40×60 monté = 33 600 FCFA |

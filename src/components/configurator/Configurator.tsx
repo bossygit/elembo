@@ -94,11 +94,11 @@ export default function Configurator() {
     <div className="mx-auto w-full max-w-7xl px-4 py-6">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <Link href="/studio" className="text-xs font-medium text-neutral-500 hover:text-[#E85F00]">
-            ← Studio 2D (photo de mockup)
+          <Link href="/boutique" className="text-xs font-medium text-neutral-500 hover:text-[#E85F00]">
+            ← Boutique
           </Link>
           <p className="mt-2 text-xs font-semibold uppercase tracking-widest text-[#E85F00]">
-            Elembo — configurateur 3D
+            Personnalisation textile
           </p>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
             {product?.name ?? 'Produit'}

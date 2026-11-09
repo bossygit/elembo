@@ -10,8 +10,16 @@
 
 import brut from '../../../tarifs/grille.json';
 
-export type ProduitTarife = { id: string; nom: string; prixFcfa: number | null };
+export type StatutPrix = 'test' | 'provisoire' | 'valide';
+
+export type ProduitTarife = { id: string; nom: string; prixFcfa: number | null; statutPrix?: StatutPrix };
 export type VilleTarifee = { id: string; nom: string; fraisFcfa: number | null };
+export type LivraisonTarifee = {
+  delaiMaxJours: number;
+  villes: VilleTarifee[];
+  /** `test` = tarif de travail, jamais présenté comme prix commercial. */
+  statutPrix?: StatutPrix;
+};
 export type TarifsTableau = {
   impressionToileFcfaParM2: number;
   chassisFcfaParM2: number;
@@ -28,8 +36,13 @@ export type Grille = {
   maj: string;
   devise: string;
   produits: ProduitTarife[];
-  livraison: { delaiMaxJours: number; villes: VilleTarifee[] };
-  tableaux: { tarifs: TarifsTableau; formats: FormatTableauTarife[]; paliers: PalierTarife[] };
+  livraison: LivraisonTarifee;
+  tableaux: {
+    statutPrix?: StatutPrix;
+    tarifs: TarifsTableau;
+    formats: FormatTableauTarife[];
+    paliers: PalierTarife[];
+  };
 };
 
 export const GRILLE = brut as Grille;
@@ -38,6 +51,24 @@ export const GRILLE = brut as Grille;
 export function prixProduit(id: string): number | null {
   const p = GRILLE.produits.find((x) => x.id === id);
   return p ? p.prixFcfa : null;
+}
+
+/**
+ * Statut commercial d'un prix de produit. Un prix `test` ou `provisoire` ne doit jamais être
+ * présenté comme une offre publique : la vitrine affiche « Prix sur demande » et propose un
+ * devis. Seul `valide` est facturable sans ambiguïté.
+ */
+export function statutPrixProduit(id: string): StatutPrix {
+  const p = GRILLE.produits.find((x) => x.id === id);
+  return p?.statutPrix ?? 'provisoire';
+}
+
+export function statutPrixLivraison(): StatutPrix {
+  return GRILLE.livraison.statutPrix ?? 'provisoire';
+}
+
+export function statutPrixTableaux(): StatutPrix {
+  return GRILLE.tableaux.statutPrix ?? 'provisoire';
 }
 
 /** Villes desservies : `fraisFcfa: null` = tarif non arbitré, la commande sera refusée. */

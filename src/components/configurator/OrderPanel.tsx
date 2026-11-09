@@ -111,6 +111,8 @@ export default function OrderPanel() {
   const [quantites, setQuantites] = useState<Record<string, number>>({ M: 1 });
   const [ville, setVille] = useState<DeliveryCity>('brazzaville');
   const [telephone, setTelephone] = useState('');
+  const [nom, setNom] = useState('');
+  const [email, setEmail] = useState('');
   const [reference, setReference] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
@@ -232,6 +234,8 @@ export default function OrderPanel() {
         lignes: lignes.map((l) => ({ taille: l.size, quantite: l.quantity })),
         villeId: ville,
         telephone,
+        nom: nom.trim() || undefined,
+        email: email.trim() || undefined,
       });
       setPaiement(demande);
       setSuivi('attente');
@@ -323,6 +327,35 @@ export default function OrderPanel() {
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label htmlFor="commande-nom" className="text-sm font-medium text-neutral-800">
+            Nom du client <span className="font-normal text-neutral-500">(facultatif)</span>
+          </label>
+          <input
+            id="commande-nom"
+            type="text"
+            autoComplete="name"
+            value={nom}
+            onChange={(e) => setNom(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-neutral-300 px-2 py-1.5 text-sm text-neutral-800"
+          />
+        </div>
+        <div>
+          <label htmlFor="commande-email" className="text-sm font-medium text-neutral-800">
+            Email <span className="font-normal text-neutral-500">(facultatif)</span>
+          </label>
+          <input
+            id="commande-email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-neutral-300 px-2 py-1.5 text-sm text-neutral-800"
+          />
+        </div>
       </div>
 
       <div>

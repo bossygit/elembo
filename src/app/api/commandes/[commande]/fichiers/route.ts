@@ -4,6 +4,7 @@ import { envoyerNotification, telegramConfigure } from '@/server/dossiers/telegr
 import { journal } from '@/server/momo/instance';
 import { referenceValide } from '@/server/momo/reference';
 import { atelierAutorise } from '@/server/security/token';
+import { attacherFichiersProduction } from '@/server/commandes/momo';
 
 // Enregistrement du dossier APRÈS l'envoi des fichiers vers l'archive (voir `/upload`).
 // Le corps ne contient que des métadonnées : quelques kilo-octets, jamais les images.
@@ -82,6 +83,14 @@ export async function POST(demande: Request, contexte: Contexte) {
     { fichiers, dossierLe: le },
     { le, quoi: 'dossier de production recu', detail: `${fichiers.length} fichier(s)` },
   );
+
+  try {
+    await attacherFichiersProduction(commande, fichiers);
+  } catch (erreur) {
+    // Le dossier Blob et le journal Redis sont la source de vérité de l'atelier. Un incident
+    // Supabase ne doit pas faire perdre le dépôt ; il sera repris administrativement.
+    console.error('Rattachement Supabase des fichiers de production :', (erreur as Error).message);
+  }
 
   // Notification : un échec ici ne remet pas en cause la commande déjà payée et déjà archivée.
   let notifie = false;

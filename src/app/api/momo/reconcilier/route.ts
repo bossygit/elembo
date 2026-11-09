@@ -1,4 +1,8 @@
 import { executer } from '@/server/momo/http';
+import {
+  commandesSupabaseConfigurees,
+  synchroniserPaiementMomo,
+} from '@/server/commandes/momo';
 
 // Réconciliation périodique des transactions restées PENDING (voir `reconcilier` dans le service).
 //
@@ -25,5 +29,32 @@ export async function GET(demande: Request) {
   const ageMinutes = Number(params.get('ageMinutes') ?? '1');
   const limite = Number(params.get('limite') ?? '50');
 
-  return executer(demande, (service) => service.reconcilier({ ageMinutes, limite }));
+  const reponse = await executer(demande, (service) => service.reconcilier({ ageMinutes, limite }));
+
+  if (commandesSupabaseConfigurees() && reponse.ok) {
+    try {
+      const corps = (await reponse.clone().json()) as {
+        resultats?: { referenceId?: string; commande?: string; statut?: string }[];
+      };
+      for (const resultat of corps.resultats ?? []) {
+        if (
+          resultat.referenceId &&
+          resultat.commande &&
+          resultat.statut &&
+          ['PENDING', 'PAYE', 'ECHEC', 'ANOMALIE'].includes(resultat.statut)
+        ) {
+          await synchroniserPaiementMomo({
+            referenceCommande: resultat.commande,
+            referenceId: resultat.referenceId,
+            statut: resultat.statut as 'PENDING' | 'PAYE' | 'ECHEC' | 'ANOMALIE',
+          });
+        }
+      }
+    } catch (erreur) {
+      // La réconciliation MTN a réussi ; une erreur Supabase sera reprise au prochain passage.
+      console.error('Synchronisation commande MTN Supabase (réconciliation) :', (erreur as Error).message);
+    }
+  }
+
+  return reponse;
 }

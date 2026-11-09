@@ -36,7 +36,7 @@ production publique.
 Le schéma commercial, les relations, la RLS et le plan d'intégration sont décrits dans
 [`docs/supabase-architecture.md`](docs/supabase-architecture.md). Les migrations versionnées
 sont dans `supabase/migrations/` : 0001 → 0007 sont appliquées sur `elembo-staging` depuis le
-2026-11-09. La migration 0008 (cycle des commandes) est locale et n’a pas été appliquée à distance. Le
+2026-11-09. Les migrations 0008 (cycle des commandes) et 0009 (commandes MTN directes) sont locales et n’ont pas été appliquées à distance. Le
 fichier [`supabase/README.md`](supabase/README.md) décrit la mise en service, les variables et
 les tests RLS.
 
@@ -290,7 +290,7 @@ encaissements réels faits par le tunnel), mais il n'est plus alimenté.
 
 ```bash
 npm install --include=dev   # cette machine omet les devDependencies par défaut (npm config omit=dev)
-npm test                    # vitest — 427 tests passés, 29 ignorés sans projet Supabase de test (intégrations)
+npm test                    # vitest — 428 tests passés, 32 ignorés sans projet Supabase de test (intégrations)
 npm run lint
 npm run build
 npm run dev                 # http://localhost:3000  ·  / (boutique)  ·  /personnalisation (configurateur 3D)  ·  /studio (studio 2D)

@@ -25,6 +25,7 @@ const fichiers = [
   '20261109130006_seed_reference.sql',
   '20261109130007_devis_suivi.sql',
   '20261109130008_commandes_cycle.sql',
+  '20261109130009_commandes_momo.sql',
 ];
 
 const tables = lire(fichiers[1]);
@@ -33,9 +34,10 @@ const rls = lire(fichiers[3]);
 const seed = lire(fichiers[5]);
 const migration7 = lire(fichiers[6]);
 const migration8 = lire(fichiers[7]);
+const migration9 = lire(fichiers[8]);
 
 describe('schéma Supabase', () => {
-  it('les huit migrations versionnées existent', () => {
+  it('les neuf migrations versionnées existent', () => {
     for (const fichier of fichiers) {
       expect(() => lire(fichier), fichier).not.toThrow();
     }
@@ -145,6 +147,17 @@ describe('schéma Supabase', () => {
     expect(migration7).toMatch(/revoke all on function .* from public, anon, authenticated/i);
     expect(migration7).toMatch(/grant execute on function .* to service_role/i);
     expect(migration7).toMatch(/devis-sessions:/i);
+  });
+
+  it('le tunnel MTN direct crée la commande avant le paiement et la synchronise', () => {
+    expect(migration9).toMatch(/create or replace function public\.creer_commande_directe/i);
+    expect(migration9).toMatch(/create or replace function public\.synchroniser_paiement_momo/i);
+    expect(migration9).toMatch(/'EN_ATTENTE_DE_PAIEMENT'/i);
+    expect(migration9).toMatch(/'MTN_MOMO'/);
+    expect(migration9).toMatch(/grant execute on function public\.creer_commande_directe/i);
+    expect(migration9).toMatch(/grant execute on function public\.synchroniser_paiement_momo/i);
+    expect(migration9).toMatch(/revoke all on function public\.creer_commande_directe/i);
+    expect(migration9).toMatch(/revoke all on function public\.synchroniser_paiement_momo/i);
   });
 
   it('le cycle commande porte paiement, production, livraison et jalons', () => {

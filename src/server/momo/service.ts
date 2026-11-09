@@ -52,6 +52,9 @@ export type PayloadPayer = {
   tableaux?: LigneTableau[];
   villeId?: string;
   telephone?: string;
+  /** Coordonnées commerciales : facultatives pour ne pas bloquer l'ancien tunnel. */
+  nom?: string;
+  email?: string;
 };
 
 function texte(valeur: unknown): string {
@@ -409,7 +412,18 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
 
         // Un paiement tranché ne se rejoue pas : le callback peut arriver plusieurs fois.
         if (transaction.statut === 'PAYE' || transaction.statut === 'ECHEC') {
-          return { statut: 200, corps: { recu: true, traite: false, statut: transaction.statut } };
+          return {
+            statut: 200,
+            corps: {
+              recu: true,
+              traite: false,
+              statut: transaction.statut,
+              referenceId,
+              commande: transaction.commande,
+              montantFcfa: transaction.montantFcfa,
+              financialTransactionId: transaction.financialTransactionId,
+            },
+          };
         }
 
         // On ne croit pas la notification : on redemande le statut à MTN.
@@ -420,7 +434,19 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
         try {
           const etat = await client.statut(referenceId);
           const statut = await trancher(referenceId, transaction, etat);
-          return { statut: 200, corps: { recu: true, traite: statut !== 'PENDING', statut } };
+          const aJour = await store.parReferenceId(referenceId);
+          return {
+            statut: 200,
+            corps: {
+              recu: true,
+              traite: statut !== 'PENDING',
+              statut,
+              referenceId,
+              commande: aJour?.commande,
+              montantFcfa: aJour?.montantFcfa,
+              financialTransactionId: aJour?.financialTransactionId ?? null,
+            },
+          };
         } catch (erreur) {
           journal(
             `callback non vérifié — ${referenceId} — ${(erreur as Error)?.message ?? 'erreur inconnue'} : laissé en attente`,

@@ -1,4 +1,8 @@
 import { executer, lireJson, preflight } from '@/server/momo/http';
+import {
+  commandesSupabaseConfigurees,
+  synchroniserDepuisCorpsMomo,
+} from '@/server/commandes/momo';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,7 +15,20 @@ export const maxDuration = 30;
  */
 async function traiter(demande: Request, reference: string | null) {
   const corps = await lireJson(demande);
-  return executer(demande, (service) => service.callback(corps, reference));
+  const reponse = await executer(demande, (service) => service.callback(corps, reference));
+
+  if (commandesSupabaseConfigurees() && reponse.ok) {
+    try {
+      const resultat = (await reponse.clone().json()) as Record<string, unknown>;
+      await synchroniserDepuisCorpsMomo(resultat);
+    } catch (erreur) {
+      // Le callback doit rester 200 même si Supabase est momentanément indisponible :
+      // la réconciliation et le suivi de statut reprendront la synchronisation.
+      console.error('Synchronisation commande MTN Supabase (callback) :', (erreur as Error).message);
+    }
+  }
+
+  return reponse;
 }
 
 export async function POST(demande: Request) {

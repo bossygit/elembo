@@ -29,6 +29,8 @@ export type DemandePaiement = {
   tableaux?: { formatId: string; support: string; quantite: number }[];
   villeId: string;
   telephone: string;
+  nom?: string;
+  email?: string;
 };
 
 export class ErreurPaiement extends Error {

@@ -86,9 +86,13 @@ uniquement à `service_role`.
 
 - La migration `20261109130008_commandes_cycle.sql` est testée en local ; elle n'est pas appliquée
   sur le projet Supabase distant.
-- Le tunnel de paiement direct du configurateur (MTN) possède son propre journal Redis et son
-  archive de production. Il n'est pas encore branché sur `commandes` : la conversion implémentée
-  ici concerne les devis acceptés. Le raccordement du paiement direct est un lot séparé.
+- Le tunnel direct du configurateur est raccordé à `commandes` par la migration 0009 : la
+  commande est créée avant l'appel MTN, puis le paiement est synchronisé depuis le statut, le
+  callback et la réconciliation. Le journal Redis et l'archive Vercel Blob restent les sources
+  de la transaction et des fichiers de production.
+- La migration 0009 n'est pas encore appliquée sur le projet Supabase distant ; l'intégration
+  directe reste donc locale tant que cette migration et les variables Supabase ne sont pas
+  configurées dans l'environnement de déploiement.
 - Aucun fournisseur d'email/SMS n'est configuré : les notifications de commande ne sont pas
   envoyées.
 - Le stock, les coûts de revient et les marges ne sont pas encore alimentés par ce parcours.

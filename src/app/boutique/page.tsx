@@ -22,21 +22,38 @@ export default function BoutiquePage() {
         <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 sm:py-20">
           <Etiquette>Boutique</Etiquette>
           <h1 className="titre-editorial mt-5 max-w-3xl text-5xl text-encre sm:text-6xl">
-            Des supports utiles, fabriqués à Brazzaville.
+            La boutique de l’atelier.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-attenue">
-            Choisissez une famille. Le textile se personnalise en ligne ; l’impression et les
-            projets sur mesure passent par un devis pour garantir le prix et le délai.
+            Trois familles, un même atelier : le textile se compose en ligne quand un modèle 3D
+            existe, l’impression et les projets sur mesure passent par un devis pour garantir le
+            prix et le délai.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <BoutonLien href="/personnalisation" variante="primaire">
-              Personnaliser un textile
+            <BoutonLien href="#textile" variante="primaire">
+              Explorer le textile
               <ArrowRight className="h-4 w-4" />
             </BoutonLien>
-            <BoutonLien href="/impression" variante="secondaire">
+            <BoutonLien href="#impression" variante="secondaire">
               Voir l’impression graphique
             </BoutonLien>
           </div>
+          <nav className="mt-8 flex flex-wrap gap-2" aria-label="Familles de la boutique">
+            {[
+              { href: '#textile', label: 'Textile' },
+              { href: '#tableaux', label: 'Tableaux' },
+              { href: '#impression', label: 'Impression' },
+              { href: '#services', label: 'Services' },
+            ].map((lien) => (
+              <Link
+                key={lien.href}
+                href={lien.href}
+                className="rounded-full border border-filet bg-white px-3.5 py-2 text-xs font-semibold text-encre transition-colors hover:border-encre hover:bg-encre hover:text-creme"
+              >
+                {lien.label}
+              </Link>
+            ))}
+          </nav>
         </div>
       </section>
 
@@ -158,7 +175,7 @@ export default function BoutiquePage() {
         </div>
       </section>
 
-      <section className="border-t border-filet bg-encre text-creme">
+      <section id="services" className="border-t border-filet bg-encre text-creme">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-12 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange">03 · Services créatifs</p>

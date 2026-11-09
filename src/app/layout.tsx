@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://elembo.vercel.app"),
   title: {
-    default: "Elembo — Personnalisation textile & impression à Brazzaville",
+    default: "Elembo — Boutique textile & impression à Brazzaville",
     template: "%s · Elembo",
   },
   description:
@@ -28,14 +28,14 @@ export const metadata: Metadata = {
     type: "website",
     locale: "fr_CG",
     siteName: "Elembo",
-    title: "Elembo — Personnalisation textile & impression à Brazzaville",
+    title: "Elembo — Boutique textile & impression à Brazzaville",
     description:
       "Textile personnalisé, impression graphique et communication visuelle. Un aperçu avant fabrication, un atelier à Brazzaville.",
     images: [{ url: "/mockups/tshirt-studio.jpg", width: 1600, height: 1067, alt: "T-shirt personnalisable Elembo" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Elembo — Personnalisation textile & impression à Brazzaville",
+    title: "Elembo — Boutique textile & impression à Brazzaville",
     description: "Textile personnalisé, impression graphique et communication visuelle par Smart Vision Congo.",
     images: ["/mockups/tshirt-studio.jpg"],
   },

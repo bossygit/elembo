@@ -26,6 +26,7 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 8.5rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -81,8 +82,14 @@ body {
 .titre-editorial {
   font-family: var(--font-display);
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   line-height: 1.02;
+  text-wrap: balance;
+}
+
+/* Une image de boutique ne casse jamais sa grille. */
+img {
+  max-width: 100%;
 }
 
 /* Filet décoratif : ne porte jamais d'information à lui seul. */

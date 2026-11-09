@@ -330,6 +330,7 @@ export const FAMILLES: {
   points: string[];
   href: string;
   cta: string;
+  image: { src: string; alt: string };
 }[] = [
   {
     id: 'textile',
@@ -340,6 +341,7 @@ export const FAMILLES: {
     points: ['Particuliers', 'Équipes & associations', 'Uniformes d’entreprise'],
     href: '/personnalisation',
     cta: 'Personnaliser un textile',
+    image: { src: '/mockups/tshirt-studio.jpg', alt: 'T-shirt blanc prêt à être personnalisé à l’atelier' },
   },
   {
     id: 'impression',
@@ -350,6 +352,7 @@ export const FAMILLES: {
     points: ['A4 / A3+ en interne', 'Finitions via partenaires', 'Quantités et délais annoncés'],
     href: '/impression',
     cta: 'Découvrir l’impression',
+    image: { src: '/mockups/cartes-impression.jpg', alt: 'Supports imprimés empilés, cartes et papeterie' },
   },
   {
     id: 'services',
@@ -360,6 +363,7 @@ export const FAMILLES: {
     points: ['Entreprises', 'Restaurants & événements', 'Écoles & associations'],
     href: '/entreprises',
     cta: 'Parler de mon projet',
+    image: { src: '/mockups/tableau-interieur.jpg', alt: 'Support mural personnalisé dans un espace professionnel' },
   },
 ];
 

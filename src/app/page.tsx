@@ -6,12 +6,13 @@ import ProductCard from '../components/site/ProductCard';
 import { ArrowRight, Check } from '../components/site/Icons';
 import { BoutonLien, Etiquette } from '../components/site/ui';
 import { FAMILLES, PRODUITS_VITRINE, SERVICES_ENTREPRISE } from '../lib/commerce/catalogue';
+import { devisConfigure } from '../lib/devis/configuration';
 import { asset } from '../lib/site/asset';
 
 export const metadata: Metadata = {
-  title: 'Personnalisation textile & impression à Brazzaville',
+  title: 'Boutique textile, impression & services à Brazzaville',
   description:
-    'T-shirts personnalisés, tableaux canvas, flyers et supports de communication. Smart Vision Congo fabrique à Brazzaville, avec paiement MTN Mobile Money et livraison locale.',
+    'Boutique atelier à Brazzaville : textile personnalisé, impression graphique et services créatifs. Aperçu avant fabrication, paiement MTN Mobile Money et livraison locale.',
 };
 
 const PREUVES = [
@@ -44,17 +45,26 @@ const ETAPES = [
   },
 ];
 
+const EXEMPLES = [
+  { src: '/mockups/tshirt-cintre.jpg', alt: 'T-shirt blanc personnalisable sur cintre', legende: 'Textile · T-shirt' },
+  { src: '/mockups/polo-pique.jpg', alt: 'Polo noir uni porté par un mannequin', legende: 'Textile · Polo' },
+  { src: '/mockups/tableau-interieur.jpg', alt: 'Tableau canvas dans un salon', legende: 'Décoration · Tableau canvas' },
+  { src: '/mockups/cartes-impression.jpg', alt: 'Cartes et supports imprimés empilés', legende: 'Impression · Papeterie' },
+];
+
 export default function Home() {
+  const lienDevis = devisConfigure ? '/devis' : '/contact';
+
   return (
     <>
       {/* ---------------------------------------------------------------- héros */}
-      <section className="relative overflow-hidden border-b border-filet">
-        <div className="mx-auto grid w-full max-w-7xl gap-12 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-24">
+      <section className="relative overflow-hidden border-b border-filet bg-[#F3EFE6]">
+        <div className="mx-auto grid w-full max-w-7xl gap-12 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:py-20">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">
-              Smart Vision Congo · Brazzaville
-            </p>
-            <h1 className="titre-editorial mt-5 text-[clamp(2.9rem,7vw,5.4rem)] text-encre">
+            <div className="flex flex-wrap items-center gap-3">
+              <Etiquette>Atelier de création · Brazzaville</Etiquette>
+            </div>
+            <h1 className="titre-editorial mt-6 max-w-2xl text-[clamp(3rem,6.7vw,5.6rem)] text-encre">
               Vos idées,
               <br />
               imprimées <span className="text-orange">ici.</span>
@@ -66,16 +76,31 @@ export default function Home() {
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <BoutonLien href="/personnalisation" variante="primaire">
-                Personnaliser un textile
+              <BoutonLien href="/boutique" variante="primaire">
+                Découvrir la boutique
                 <ArrowRight className="h-4 w-4" />
               </BoutonLien>
-              <BoutonLien href="/boutique" variante="secondaire">
-                Découvrir la boutique
+              <BoutonLien href="/personnalisation" variante="secondaire">
+                Personnaliser un textile
               </BoutonLien>
             </div>
 
-            <ul className="mt-10 grid gap-3 sm:grid-cols-2">
+            <div className="relative mt-7 overflow-hidden border border-encre bg-creme p-2 lg:hidden">
+              <Image
+                src={asset('/mockups/tshirt-studio.jpg')}
+                alt="T-shirt blanc prêt à être personnalisé, photographié en studio"
+                width={1600}
+                height={1067}
+                priority
+                sizes="100vw"
+                className="h-48 w-full object-cover"
+              />
+              <span className="absolute bottom-4 left-4 bg-encre px-2.5 py-1.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-creme">
+                Atelier · DTF pressé à chaud
+              </span>
+            </div>
+
+            <ul className="mt-9 grid gap-3 sm:grid-cols-2">
               {[
                 'Aperçu avant fabrication',
                 'Paiement MTN MoMo',
@@ -90,34 +115,54 @@ export default function Home() {
             </ul>
           </div>
 
-          <div className="relative mx-auto w-full max-w-lg lg:max-w-none">
-            <div aria-hidden className="absolute -left-4 top-10 h-32 w-32 bg-orange sm:h-44 sm:w-44" />
-            <div className="relative border border-encre bg-[#F3EFE6] p-4 sm:p-6">
-              <Image
-                src={asset('/mockups/tshirt-studio.jpg')}
-                alt="T-shirt blanc prêt à être personnalisé, photographié en studio"
-                width={1600}
-                height={1067}
-                priority
-                sizes="(min-width: 1024px) 46vw, 100vw"
-                className="h-[340px] w-full object-cover sm:h-[460px]"
-              />
-              <span className="absolute bottom-4 left-4 bg-encre px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-creme">
-                DTF · pressé à chaud
-              </span>
-            </div>
-            <div className="absolute -bottom-8 -right-3 hidden w-44 border border-encre bg-creme p-2 sm:block">
-              <Image
-                src={asset('/mockups/tableau-interieur.jpg')}
-                alt="Tableau canvas dans un salon"
-                width={1600}
-                height={2844}
-                sizes="180px"
-                className="h-32 w-full object-cover"
-              />
-              <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-attenue">
-                Tableau canvas
-              </p>
+          <div className="relative mx-auto hidden w-full max-w-xl lg:block lg:max-w-none">
+            <div aria-hidden className="absolute -left-4 top-10 h-36 w-36 bg-orange sm:h-48 sm:w-48" />
+            <div className="relative border border-encre bg-creme p-3 sm:p-4">
+              <div className="relative overflow-hidden bg-[#E9E3D7]">
+                <Image
+                  src={asset('/mockups/tshirt-studio.jpg')}
+                  alt="T-shirt blanc prêt à être personnalisé, photographié en studio"
+                  width={1600}
+                  height={1067}
+                  priority
+                  sizes="(min-width: 1024px) 44vw, 100vw"
+                  className="h-[320px] w-full object-cover sm:h-[430px]"
+                />
+                <span className="absolute left-3 top-3 bg-creme px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-encre">
+                  Collection atelier
+                </span>
+                <span className="absolute bottom-3 right-3 bg-encre px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-creme">
+                  DTF · pressé à chaud
+                </span>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <Link href="/impression" className="group relative overflow-hidden border border-filet bg-white">
+                  <Image
+                    src={asset('/mockups/cartes-impression.jpg')}
+                    alt="Cartes et supports imprimés empilés"
+                    width={800}
+                    height={533}
+                    sizes="(min-width: 1024px) 22vw, 45vw"
+                    className="h-24 w-full object-cover transition-transform duration-500 group-hover:scale-105 sm:h-28"
+                  />
+                  <span className="absolute bottom-2 left-2 bg-creme/95 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]">
+                    Impression
+                  </span>
+                </Link>
+                <Link href="/textile/polo-pique" className="group relative overflow-hidden border border-filet bg-white">
+                  <Image
+                    src={asset('/mockups/polo-pique.jpg')}
+                    alt="Polo noir uni porté par un mannequin"
+                    width={800}
+                    height={533}
+                    sizes="(min-width: 1024px) 22vw, 45vw"
+                    className="h-24 w-full object-cover transition-transform duration-500 group-hover:scale-105 sm:h-28"
+                  />
+                  <span className="absolute bottom-2 left-2 bg-creme/95 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]">
+                    Polos & équipes
+                  </span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -136,7 +181,7 @@ export default function Home() {
       </section>
 
       {/* --------------------------------------------------------------- familles */}
-      <section className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 sm:py-24">
+      <section id="familles" className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 sm:py-24">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div className="max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">Ce que nous faisons</p>
@@ -159,25 +204,41 @@ export default function Home() {
 
         <div className="mt-12 grid gap-6 lg:grid-cols-3">
           {FAMILLES.map((famille) => (
-            <article key={famille.id} className="flex flex-col border-t-2 border-encre pt-6">
-              <p className="font-mono text-xs font-semibold text-orange-action">{famille.numero}</p>
-              <h3 className="mt-3 font-display text-3xl leading-tight text-encre">{famille.titre}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-attenue">{famille.description}</p>
-              <ul className="mt-5 space-y-2">
-                {famille.points.map((point) => (
-                  <li key={point} className="flex items-start gap-2 text-xs text-attenue">
-                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-action" />
-                    <span>{point}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href={famille.href}
-                className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-encre hover:text-orange-action"
-              >
-                {famille.cta}
-                <ArrowRight className="h-4 w-4" />
+            <article key={famille.id} className="group overflow-hidden border border-filet bg-white">
+              <Link href={famille.href} className="block overflow-hidden">
+                <div className="relative aspect-[4/3] overflow-hidden bg-[#F3EFE6]">
+                  <Image
+                    src={asset(famille.image.src)}
+                    alt={famille.image.alt}
+                    width={1600}
+                    height={1067}
+                    sizes="(min-width: 1024px) 33vw, 100vw"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <span className="absolute left-4 top-4 bg-creme/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-encre">
+                    {famille.numero}
+                  </span>
+                </div>
               </Link>
+              <div className="p-6">
+                <h3 className="font-display text-3xl leading-tight text-encre">{famille.titre}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-attenue">{famille.description}</p>
+                <ul className="mt-5 space-y-2">
+                  {famille.points.map((point) => (
+                    <li key={point} className="flex items-start gap-2 text-xs text-attenue">
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-action" />
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={famille.href}
+                  className="mt-6 inline-flex items-center gap-2 rounded-full border border-encre px-4 py-2.5 text-sm font-semibold text-encre transition-colors hover:bg-encre hover:text-creme"
+                >
+                  {famille.cta}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
             </article>
           ))}
         </div>
@@ -191,14 +252,23 @@ export default function Home() {
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">Pièces populaires</p>
               <h2 className="titre-editorial mt-4 text-4xl text-encre sm:text-5xl">Ce que l’on imprime le plus.</h2>
             </div>
-            <p className="max-w-sm text-sm leading-relaxed text-attenue">
-              Les prix définitifs sont en cours de validation. Demandez un devis pour obtenir un
-              montant ferme et un délai engagé.
-            </p>
+            <div className="max-w-sm">
+              <p className="text-sm leading-relaxed text-attenue">
+                Les prix définitifs sont en cours de validation. Demandez un devis pour obtenir un
+                montant ferme et un délai engagé.
+              </p>
+              <Link
+                href="/boutique"
+                className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-encre underline decoration-orange decoration-2 underline-offset-4 hover:text-orange-action"
+              >
+                Voir tous les produits
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
 
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {PRODUITS_VITRINE.map((produit) => (
+            {PRODUITS_VITRINE.slice(0, 4).map((produit) => (
               <ProductCard key={produit.id} produit={produit} />
             ))}
           </div>
@@ -236,8 +306,8 @@ export default function Home() {
                 Ouvrir le configurateur
                 <ArrowRight className="h-4 w-4" />
               </BoutonLien>
-              <BoutonLien href="/comment-ca-marche" variante="secondaire">
-                Voir le processus
+              <BoutonLien href="/boutique#textile" variante="secondaire">
+                Voir les fiches textile
               </BoutonLien>
             </div>
           </div>
@@ -318,11 +388,11 @@ export default function Home() {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">Comment ça marche</p>
           <h2 className="titre-editorial mt-4 text-4xl text-encre sm:text-5xl">Quatre étapes, pas de surprise.</h2>
         </div>
-        <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-12 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
           {ETAPES.map((etape) => (
-            <div key={etape.numero} className="border-t border-filet pt-5">
-              <p className="font-mono text-xs font-semibold text-orange-action">{etape.numero}</p>
-              <h3 className="mt-3 text-lg font-semibold text-encre">{etape.titre}</h3>
+            <div key={etape.numero} className="border-t-2 border-encre pt-5">
+              <p className="font-display text-4xl text-orange">{etape.numero}</p>
+              <h3 className="mt-4 text-lg font-semibold text-encre">{etape.titre}</h3>
               <p className="mt-2 text-sm leading-relaxed text-attenue">{etape.texte}</p>
             </div>
           ))}
@@ -338,7 +408,7 @@ export default function Home() {
         <div className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 sm:py-24">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">Exemples de supports</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">Réalisations & exemples</p>
               <h2 className="titre-editorial mt-4 text-4xl text-encre sm:text-5xl">Ce que l’atelier peut produire.</h2>
             </div>
             <p className="max-w-sm text-xs leading-relaxed text-attenue">
@@ -347,21 +417,17 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="mt-10 grid gap-5 sm:grid-cols-3">
-            {[
-              { src: '/mockups/tshirt-cintre.jpg', alt: 'T-shirt blanc personnalisable sur cintre', legende: 'Textile · T-shirt' },
-              { src: '/mockups/tableau-interieur.jpg', alt: 'Tableau canvas dans un salon', legende: 'Décoration · Tableau canvas' },
-              { src: '/mockups/cartes-impression.jpg', alt: 'Cartes et supports imprimés empilés', legende: 'Impression · Papeterie' },
-            ].map((exemple) => (
-              <figure key={exemple.src} className="border border-filet bg-[#F3EFE6]">
-                <div className="aspect-[4/5] p-6">
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {EXEMPLES.map((exemple) => (
+              <figure key={exemple.src} className="group overflow-hidden border border-filet bg-[#F3EFE6]">
+                <div className="aspect-[4/3] overflow-hidden">
                   <Image
                     src={asset(exemple.src)}
                     alt={exemple.alt}
                     width={1600}
                     height={1067}
-                    sizes="(min-width: 640px) 33vw, 100vw"
-                    className="h-full w-full object-cover"
+                    sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 </div>
                 <figcaption className="border-t border-filet bg-white px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-attenue">
@@ -382,13 +448,13 @@ export default function Home() {
               Dites-nous ce dont vous avez besoin.
             </h2>
             <p className="mt-4 max-w-xl text-base leading-relaxed text-encre/80">
-              Un T-shirt, un tableau, un lot de flyers ou une commande d’entreprise : nous
-              revenons vers vous avec une proposition claire.
+              Un T-shirt, un polo, un lot de flyers ou une commande d’entreprise : nous revenons
+              vers vous avec une proposition claire.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <BoutonLien href="/contact" variante="primaire">
-              Nous contacter
+            <BoutonLien href={lienDevis} variante="primaire">
+              Demander un devis
               <ArrowRight className="h-4 w-4" />
             </BoutonLien>
             <BoutonLien href="/boutique" variante="secondaire">

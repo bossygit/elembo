@@ -4,6 +4,9 @@ Ce dossier contient les migrations versionnées et la configuration locale. **Au
 n'a encore été appliquée à un projet distant.** La production actuelle n'est pas touchée. Les
 migrations ont été testées sur une instance Supabase locale vierge, y compris `db reset`.
 
+La procédure complète de connexion, de validation et de retour arrière sur le projet staging est
+dans [`../docs/supabase-staging.md`](../docs/supabase-staging.md).
+
 ## 1. Créer le projet
 
 1. Créer un projet Supabase (région la plus proche : `eu-west-3` / Paris, ou `af-south-1` selon
@@ -47,7 +50,7 @@ Avec la CLI Supabase :
 npm install -g supabase
 supabase login
 supabase link --project-ref <project-ref>
-supabase db push
+supabase db push --remote
 ```
 
 Sans CLI : exécuter les fichiers de `supabase/migrations/` dans l'ordre, dans l'éditeur SQL.

@@ -42,7 +42,9 @@ les tests RLS.
 Sécurité des rôles et opérations `service_role` :
 [`docs/supabase-securite.md`](docs/supabase-securite.md). Robustesse des paiements :
 [`docs/paiements-robustesse.md`](docs/paiements-robustesse.md). Vérification des fichiers et
-conservation : [`docs/fichiers-production.md`](docs/fichiers-production.md).
+conservation : [`docs/fichiers-production.md`](docs/fichiers-production.md). Procédure de
+connexion et de validation sur le projet staging :
+[`docs/supabase-staging.md`](docs/supabase-staging.md).
 
 Principe : Postgres/Supabase est la référence commerciale ; Redis reste le journal rapide des
 paiements. Le navigateur ne parle pas directement aux tables métier : les écritures passent par

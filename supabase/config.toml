@@ -1,6 +1,6 @@
 # Configuration Supabase locale d'Elembo.
 # Le projet distant se lie avec `supabase link --project-ref <ref>` ; ce fichier sert au
-# développement local et aux migrations (`supabase db push`).
+# développement local et aux migrations (`supabase db push --remote`).
 # Ne pas mettre de secret ici : les clés vivent dans `.env.local` / Vercel.
 
 project_id = "elembo"

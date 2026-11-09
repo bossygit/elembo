@@ -41,7 +41,7 @@ Application prévue :
 ```bash
 # une fois le projet Supabase créé et lié
 supabase link --project-ref <project-ref>
-supabase db push
+supabase db push --remote
 ```
 
 Ou, sans CLI, exécuter les fichiers dans l'ordre dans l'éditeur SQL Supabase. La CLI est
@@ -433,6 +433,8 @@ serveur reste un objectif du lot 3.4, pas une condition du paiement.
 | `NEXT_PUBLIC_SUPABASE_URL` | navigateur + serveur | URL du projet |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | navigateur + serveur | clé publique, limitée par RLS |
 | `SUPABASE_SERVICE_ROLE_KEY` | **serveur uniquement** | écritures et stockage ; ne jamais exposer |
+| `SUPABASE_STAGING_PROJECT_REF` | local / CLI | garde-fou du projet de test, non secret |
+| `SUPABASE_ACCESS_TOKEN` | local / CLI | jeton de compte CLI, optionnel ; ne jamais committer |
 | `SUPABASE_DB_URL` | serveur / CLI | migrations, scripts de maintenance (optionnel) |
 | `SUPABASE_STORAGE_BUCKET_DEVIS` | serveur | `devis` |
 | `SUPABASE_STORAGE_BUCKET_PRODUCTION` | serveur | `production` |

@@ -40,6 +40,20 @@ sont dans `supabase/migrations/` : 0001 → 0007 sont appliquées sur `elembo-st
 fichier [`supabase/README.md`](supabase/README.md) décrit la mise en service, les variables et
 les tests RLS.
 
+### Commandes MTN MoMo et Supabase
+
+Le tunnel direct du configurateur crée la commande dans Supabase **avant** l'appel à MTN : la
+référence `ELB-…`, le client, les lignes, les quantités et le montant y sont enregistrés. Le
+paiement est ensuite synchronisé depuis le suivi de statut, le callback MTN et la réconciliation.
+Le paiement confirmé passe la commande `PAYEE`, mais la production reste `A_FAIRE` jusqu'à la
+prise en charge par l'atelier.
+
+L'écriture est conditionnée à la présence de `NEXT_PUBLIC_SUPABASE_URL` et
+`SUPABASE_SERVICE_ROLE_KEY` dans l'environnement serveur. Sans ces variables, le tunnel MTN
+historique continue de fonctionner sans persistance Supabase. Avec elles, la migration
+`20261109130009_commandes_momo.sql` doit être appliquée à la base cible avant le premier paiement.
+Les secrets ne sont jamais exposés au navigateur.
+
 Sécurité des rôles et opérations `service_role` :
 [`docs/supabase-securite.md`](docs/supabase-securite.md). Robustesse des paiements :
 [`docs/paiements-robustesse.md`](docs/paiements-robustesse.md). Vérification des fichiers et

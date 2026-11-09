@@ -1,10 +1,11 @@
-# Lot 2.2 — Demandes de devis : plan final (version 2)
+# Lot 2.2 — Demandes de devis : plan final (version 3)
 
 Statut : **à valider**, aucune implémentation, aucune migration 0007 appliquée.
 Les six migrations du lot 3.1 sont appliquées sur `elembo-staging`.
 
-Décisions retenues : jeton + session cookie, Resend optionnel, admin minimal, 5 fichiers / 50 Mo,
-conversion différée au lot 3.2, migration 0007 sous réserve des points A–J.
+Décisions retenues : jeton + session cookie, récupération OTP, Resend optionnel, admin minimal,
+5 fichiers / 50 Mo, conversion différée au lot 3.2, migration 0007 sous réserve des points A–J
+et des révisions de sécurité.
 
 ## 1. Constats vérifiés sur le staging
 
@@ -40,6 +41,39 @@ checksum, verifie, verifie_le, expire_le ; unique `(devis_id, nom)`.
 `devis_transition`, RLS et policy staff. Aucune création nécessaire ; la migration 0007
 l'étend pour tracer aussi les prix et la source.
 
+### Rapprochement des clients
+
+Normalisation commune :
+
+- email : trim + minuscules ; index unique existant `lower(email)` ;
+- téléphone : suppression des espaces, `+242`, `00242` et `0` initial ramenés à
+  `242XXXXXXXXX` ; stockage dans `telephone_normalise` ;
+- aucun index unique global sur le téléphone : un numéro peut être partagé ou contradictoire.
+
+Stratégie déterministe, sans fusion automatique :
+
+1. **Email connu** : réutiliser le client portant cet email. Ne jamais écraser son téléphone
+   ni son nom avec les nouvelles coordonnées ; celles-ci vont dans `devis.contact_snapshot`.
+   Si le téléphone diffère, marquer `metadata.telephone_a_verifier = true`.
+2. **Pas d'email, téléphone + nom normalisés identiques** : réutiliser le client existant.
+   C'est le seul cas de rapprochement par téléphone.
+3. **Téléphone connu mais nom différent, email différent ou plusieurs candidats** : créer un
+   nouveau client provisoire, `metadata.a_rapprocher = true`. Ne pas fusionner.
+4. **Aucun candidat** : créer un client.
+5. **Email et téléphone pointent vers deux clients différents** : conserver le client email,
+   créer le devis sous ce client, marquer `coordonnees_divergentes = true`. Ne jamais déplacer
+   ou fusionner l'autre client automatiquement.
+
+Verrous :
+
+- `pg_advisory_xact_lock` sur `devis:<idempotency_key>` ;
+- `pg_advisory_xact_lock` sur `email:<email_normalise>` si email ;
+- `pg_advisory_xact_lock` sur `tel:<telephone_normalise>` si téléphone ;
+- l'index unique email reste la garantie finale pour les emails ;
+- aucune contrainte unique téléphone, pour ne pas confondre deux personnes.
+
+Une fusion de clients ne peut être qu'une action admin explicite, auditée, hors lot 2.2.
+
 ## 2. Parcours et session de suivi
 
 ```
@@ -54,8 +88,9 @@ l'étend pour tracer aussi les prix et la source.
 4. POST /api/devis/[reference]/fichiers, avec le cookie de session
    → vérification réelle des objets, marquage verifie=true
 5. Smart Vision traite dans /admin/devis (auth Supabase, rôle app_metadata).
-6. Le client consulte /devis/[reference] avec le cookie, ou échange son jeton via
-   POST /api/devis/session sur un autre appareil.
+6. Le client consulte /devis/[reference] avec le cookie. En cas de perte du cookie ou de
+   changement d'appareil, il demande un OTP sur l'email ou le téléphone enregistré, puis
+   l'échange contre un nouveau cookie.
 7. Le client accepte/refuse ; la base trace la décision.
 8. ACCEPTE verrouille le prix ; conversion en commande différée au lot 3.2.
    Aucun paiement dans ce lot.
@@ -72,6 +107,38 @@ l'étend pour tracer aussi les prix et la source.
   `suiviToken` est renvoyé une fois pour permettre le suivi sur un autre appareil.
 - Les routes publiques ne lisent jamais le jeton dans l'URL. Les logs ne doivent jamais
   journaliser le corps de `/api/devis` ni `/api/devis/session`.
+- Un cookie CSRF non-HttpOnly `elembo_devis_csrf` accompagne la session ; les POST
+  propriétaires exigent `X-CSRF-Token` (double-submit, comparaison à temps constant).
+
+### Récupération du suivi par OTP
+
+Le jeton initial n'est jamais envoyé par email ni placé dans une URL.
+
+```
+1. Le client ouvre /devis/suivi et saisit sa référence.
+2. POST /api/devis/suivi/otp { reference }
+   → réponse 202 générique, que la référence existe ou non
+   → si le devis existe : code à 6 chiffres envoyé sur l'email enregistré
+     (Resend) ou le téléphone (adaptateur SMS/WhatsApp si configuré)
+   → code valable 10 minutes, 5 tentatives maximum
+3. POST /api/devis/suivi/otp/verifier { reference, code }
+   → vérification HMAC à temps constant
+   → succès : code invalidé, cookie de session posé
+   → échec : 401 générique ; après 5 échecs, code invalidé et 429
+```
+
+Règles :
+
+- 3 demandes d'OTP par référence et par 15 minutes ; 10 par heure et par IP ;
+- 3 demandes par heure et par destination ;
+- hash OTP stocké dans Redis uniquement (`DEVIS_OTP_SECRET` pour HMAC), TTL 10 min ;
+- aucun OTP en clair en base, dans les URL ou les logs ;
+- si Redis est indisponible : `503` générique, aucune émission ni vérification ;
+- si aucun canal n'est configuré : réponse 202 générique, aucune fausse promesse d'envoi ;
+- email OTP disponible avec Resend ; OTP téléphone derrière un adaptateur SMS/WhatsApp
+  explicitement configuré, non simulé ;
+- chaque nouvelle demande invalide le code précédent ;
+- la référence seule ne donne jamais accès au devis.
 
 ## 3. Architecture
 
@@ -101,11 +168,13 @@ Aucun autre package. Validation en TypeScript, emails via `fetch` Resend, Telegr
 
 | Méthode | Route | Protection | Usage |
 |---|---|---|---|
-| `POST` | `/api/devis` | origine, rate-limit IP/email, `Idempotency-Key`, honeypot | crée client + devis + notifications, pose le cookie |
-| `POST` | `/api/devis/session` | rate-limit, corps `{reference,token}` | échange le jeton contre le cookie |
+| `POST` | `/api/devis` | origine, rate-limit IP/email/téléphone, `Idempotency-Key`, honeypot | crée client + devis + notifications, pose le cookie |
+| `POST` | `/api/devis/session` | origine, rate-limit, corps `{reference,token}` | échange le jeton contre le cookie |
+| `POST` | `/api/devis/suivi/otp` | origine, rate-limit IP/référence/destination | demande un OTP, réponse 202 générique |
+| `POST` | `/api/devis/suivi/otp/verifier` | origine, rate-limit IP/référence | vérifie l'OTP et pose le cookie |
 | `GET` | `/api/devis/[reference]` | cookie de session | statut public, aucune note interne |
-| `POST` | `/api/devis/[reference]/fichiers` | cookie de session | vérifie et marque les fichiers |
-| `POST` | `/api/devis/[reference]/decision` | cookie de session + origine | accepte ou refuse une proposition |
+| `POST` | `/api/devis/[reference]/fichiers` | cookie + CSRF + origine | vérifie et marque les fichiers |
+| `POST` | `/api/devis/[reference]/decision` | cookie + CSRF + origine | accepte ou refuse une proposition |
 | `GET` | `/api/devis/[reference]/fichiers/[fichierId]/url` | cookie propriétaire | URL signée de téléchargement 5 min |
 
 ### Back-office
@@ -129,10 +198,69 @@ Différées : conversion en commande (3.2), relances (5), export (4).
 
 - propriétaire : cookie de session valide et `fichier.devis_id` correspondant ;
 - staff : `admin` ou `commercial` uniquement ;
-- fichier `verifie=false` : jamais listé ni signé ;
+- fichier `verifie=false` ou `statut_analyse <> 'PROPRE'` : jamais listé ni signé ;
 - chemin vérifié sous `devis/<devis_id>/` ;
 - URL signée `download: true`, expiration 5 min ;
 - aucun bucket public.
+
+### Sécurité des routes publiques
+
+**Origin**
+
+- allowlist stricte `APP_ORIGINS` + `NEXT_PUBLIC_SITE_URL` ;
+- tout POST public avec `Origin` absent ou hors liste → `403` générique ;
+- pas de wildcard CORS ;
+- `Vary: Origin`.
+
+**CSRF**
+
+- cookie de session `HttpOnly` + cookie CSRF non-HttpOnly `elembo_devis_csrf` ;
+- double-submit : `X-CSRF-Token` obligatoire sur `/fichiers` et `/decision` ;
+- comparaison à temps constant ;
+- `SameSite=Lax`, `Secure` en production, `Path=/` ;
+- les routes sans session (`/api/devis`, `/session`, OTP) utilisent Origin + rate-limit ;
+- aucun état modifié par un GET.
+
+**Rate-limit**
+
+| Route | IP | Identité |
+|---|---|---|
+| `POST /api/devis` | 5 / heure | 3 / heure par email ou téléphone normalisé |
+| `POST /api/devis/session` | 10 / heure | 5 / heure par référence |
+| `POST /api/devis/suivi/otp` | 10 / heure | 3 / 15 min par référence ; 3 / heure par destination |
+| `POST /api/devis/suivi/otp/verifier` | 20 / heure | 5 tentatives par code |
+| `/fichiers` | 20 / heure | 20 / heure par session |
+
+Identifiants hachés avant stockage Redis (pas de PII en clair dans les clés). Réponse `429`
+avec `Retry-After`, corps générique.
+
+**Fail-closed Redis**
+
+- Redis est obligatoire pour toute route publique qui écrit ou émet un OTP :
+  création de devis, session, OTP, finalisation de fichiers, décision ;
+- si Redis est indisponible ou dépasse 1 s : `503` générique, aucune écriture, aucun OTP ;
+- pas de fallback mémoire en serverless, pas de « fail-open » silencieux ;
+- alerte opérationnelle ;
+- `GET /api/devis/[reference]` peut rester disponible si le cookie est valide, car il ne crée
+  pas d'état ; il ne peut pas être utilisé pour deviner une référence.
+
+**Anti-énumération**
+
+- `POST /api/devis/suivi/otp` répond toujours `202` avec le même corps, que la référence existe
+  ou non ;
+- `POST /api/devis/session` et OTP renvoient `401` générique « référence ou code invalide » ;
+- `GET /api/devis/[reference]` avec cookie invalide → `404` générique ;
+- aucun message ne distingue « référence inconnue », « mauvais jeton » et « expiré » ;
+- délais de réponse homogènes ;
+- `Cache-Control: no-store` sur toutes les réponses publiques.
+
+**Durcissement**
+
+- corps JSON limité à 64 Ko ;
+- `Content-Type: application/json` exigé sur les POST ;
+- honeypot et délai minimal sur le formulaire ;
+- logs sans jeton, OTP, cookie, Authorization ni corps de requête ;
+- en-têtes de sécurité existants conservés (`nosniff`, frame, referrer, HSTS en production).
 
 ## 5. Migration 0007 — schéma et fonctions
 
@@ -235,6 +363,49 @@ Fonctions `security definer`, `search_path = public, auth`, exécution réservé
 Les routes n'écrivent pas directement `devis` ou `notifications` : elles appellent ces RPC.
 `service_role` garde l'exécution ; `anon`/`authenticated` n'ont aucun `EXECUTE`.
 
+### 5.5 Fichiers : analyse et quarantaine
+
+```sql
+alter table public.fichiers_devis
+  add column statut_analyse text not null default 'NON_ANALYSE'
+    check (statut_analyse in ('NON_ANALYSE', 'EN_ATTENTE', 'PROPRE', 'INFECTE', 'ERREUR')),
+  add column analyse_le timestamptz,
+  add column analyse_moteur text,
+  add constraint fichiers_devis_propre_verifie
+    check (statut_analyse <> 'PROPRE' or verifie);
+
+create index fichiers_devis_analyse_idx
+  on public.fichiers_devis (statut_analyse)
+  where statut_analyse <> 'PROPRE';
+```
+
+Les anciens fichiers restent `NON_ANALYSE` ; ils ne sont ni supprimés ni rendus publics.
+`verifie` signifie « binaire contrôlé », pas « sûr » : seule la combinaison
+`verifie = true` et `statut_analyse = 'PROPRE'` autorise une URL signée.
+
+### 5.6 Compatibilité avec l'historique existant
+
+`historique_statuts_devis` existe déjà et contient d'éventuelles lignes historiques.
+
+- `type_evenement`, `source` sont ajoutés avec des valeurs par défaut ; les anciennes lignes
+  restent lisibles avec `STATUT` / `STAFF`.
+- `ancien_montant_fcfa` et `nouveau_montant_fcfa` sont nullables ; aucune ancienne ligne n'est
+  réécrite.
+- Le trigger `devis_transition` existant n'est pas dupliqué : seule la fonction
+  `verifier_transition_devis` est remplacée par `create or replace`.
+- Les colonnes `ancien_statut`, `nouveau_statut`, `acteur`, `note`, `cree_le`, `id` ne sont
+  jamais modifiées par la migration.
+- La policy `historique_devis_select`, les grants et la RLS restent inchangés.
+- Les lignes de prix utilisent `ancien_statut = nouveau_statut = statut courant` pour respecter
+  les colonnes existantes non nulles.
+- `notifications` existantes : `prochaine_tentative` prend `now()`, les autres colonnes et
+  statuts restent intacts.
+- `devis` existants : nouvelles colonnes nulles, aucune obligation de jeton rétroactif.
+
+Test de migration sur clone : compter et hacher les lignes historiques avant/après ; vérifier
+que les colonnes historiques sont identiques, que les nouvelles colonnes ont les défauts
+attendus, et que le trigger journalise toujours un changement de statut.
+
 ## 6. Contrôles et traces au niveau base
 
 - transitions : trigger + fonction `transition_devis_autorisee` ;
@@ -275,11 +446,37 @@ Les routes n'écrivent pas directement `devis` ou `notifications` : elles appell
 - si une inspection d'archive devient nécessaire, elle sera faite plus tard avec un parseur
   borné (nombre d'entrées, taille décompressée, chemins) ; pas en 2.2.
 
-### Fichiers non vérifiés
+### Quarantaine et antivirus
 
-- jamais listés dans l'admin ;
-- jamais signés ;
-- job de nettoyage après 24 h si l'objet existe encore.
+La quarantaine est **logique** : le fichier reste dans le bucket privé, mais aucune URL signée
+n'est délivrée tant que son analyse n'est pas `PROPRE`.
+
+Workflow :
+
+1. upload signé dans `devis/<devis_id>/...` ;
+2. vérification binaire (`verifie = true`) ;
+3. `statut_analyse = 'EN_ATTENTE'` si un scanner est configuré ;
+4. le worker envoie une URL signée de lecture au scanner (`ANTIVIRUS_SCAN_URL`) ;
+5. `PROPRE` → téléchargeable par le propriétaire et le staff autorisé ;
+6. `INFECTE` → objet supprimé, ligne conservée en `INFECTE` pour audit, alerte admin ;
+7. `ERREUR` → nouvel essai avec backoff, aucun téléchargement.
+
+Sans scanner configuré :
+
+- `statut_analyse = 'NON_ANALYSE'` ;
+- badge explicite « non analysé » dans l'admin ;
+- aucune URL signée pour le client, l'atelier ou l'admin ;
+- aucun fichier n'est présenté comme sûr.
+
+ZIP : le scanner analyse l'archive brute ; aucun dézippage, aucune exécution. Si le scanner est
+absent, le ZIP reste `NON_ANALYSE` et ne peut pas être téléchargé.
+
+### Fichiers non vérifiés ou non analysés
+
+- `verifie=false` : jamais listés dans l'admin, jamais signés ;
+- `statut_analyse <> 'PROPRE'` : listés avec badge, jamais signés ;
+- job de nettoyage après 24 h pour les objets non vérifiés sans ligne active ;
+- les anciens fichiers passent `NON_ANALYSE` après migration, sans suppression.
 
 ## 8. Notifications fiables
 
@@ -358,6 +555,7 @@ src/app/admin/devis/[id]/page.tsx
 src/components/devis/DevisForm.tsx
 src/components/devis/DevisUploader.tsx
 src/components/devis/DevisStatus.tsx
+src/components/devis/OtpForm.tsx
 src/lib/devis/types.ts
 src/lib/devis/validation.ts
 src/lib/devis/format.ts
@@ -366,11 +564,18 @@ src/server/auth/supabase.ts
 src/server/devis/repository.ts
 src/server/devis/jetons.ts
 src/server/devis/session.ts
+src/server/devis/otp.ts
 src/server/devis/fichiers.ts
 src/server/devis/notifications.ts
+src/server/security/origin.ts
+src/server/security/csrf.ts
+src/server/security/rateLimit.ts
+src/server/security/antivirus.ts
 src/server/storage/supabase.ts
 src/app/api/devis/route.ts
 src/app/api/devis/session/route.ts
+src/app/api/devis/suivi/otp/route.ts
+src/app/api/devis/suivi/otp/verifier/route.ts
 src/app/api/devis/[reference]/route.ts
 src/app/api/devis/[reference]/fichiers/route.ts
 src/app/api/devis/[reference]/fichiers/[fichierId]/url/route.ts
@@ -383,11 +588,17 @@ src/app/api/admin/devis/[id]/proposition/route.ts
 src/app/api/admin/devis/[id]/decision/route.ts
 src/app/api/admin/devis/[id]/fichiers/[fichierId]/url/route.ts
 src/app/api/cron/notifications/route.ts
+src/app/api/cron/analyser-fichiers/route.ts
 tests/devisValidation.test.ts
 tests/devisJetons.test.ts
 tests/devisSession.test.ts
+tests/devisOtp.test.ts
+tests/devisSecuritePublique.test.ts
+tests/devisRapprochement.test.ts
 tests/devisApi.integration.test.ts
 tests/devisStorage.integration.test.ts
+tests/devisAntivirus.test.ts
+tests/devisMigrationCompatibilite.test.ts
 tests/devisNettoyage.test.ts
 ```
 
@@ -426,15 +637,52 @@ docs/supabase-staging.md           tests lot 2.2
 - jeton en clair absent de la base (seul le hash) ;
 - aucun jeton dans les logs ou les URL générées.
 
+### Récupération OTP
+
+- demande OTP avec référence inconnue → 202 générique, aucun code ;
+- demande avec référence connue → 202, code envoyé au canal enregistré ;
+- code valable 10 min, 5 tentatives, usage unique ;
+- code faux → 401 générique ; 5 échecs → 429 et code invalidé ;
+- code expiré → 401 générique ;
+- code correct → cookie de session posé, code supprimé ;
+- nouvelle demande invalide l'ancien code ;
+- Redis indisponible → 503, aucun code émis ;
+- aucun OTP en clair dans Redis (hash), logs ou base ;
+- email OTP réel seulement si Resend configuré ; téléphone seulement si adaptateur configuré ;
+- anti-énumération : même délai et même corps pour référence existante ou non.
+
+### Sécurité des routes publiques
+
+- Origin absent ou hors allowlist → 403 sur tous les POST ;
+- `X-CSRF-Token` absent/mauvais sur `/fichiers` et `/decision` → 403 ;
+- cookie CSRF non-HttpOnly, session HttpOnly ;
+- rate-limit IP et identité (email/téléphone) → 429 avec `Retry-After` ;
+- Redis arrêté → 503 sur création, session, OTP, fichiers et décision ;
+- aucune écriture partielle en cas de 503 ;
+- réponses anti-énumération identiques ;
+- corps > 64 Ko refusé ;
+- `Cache-Control: no-store`.
+
+### Rapprochement des clients
+
+- email existant → même client, téléphone non écrasé, snapshot conservé ;
+- téléphone + nom identiques sans email → même client ;
+- téléphone connu mais nom/email différents → nouveau client provisoire, aucun merge ;
+- plusieurs candidats téléphone → nouveau client, flag `a_rapprocher` ;
+- email et téléphone vers deux clients → client email, flag `coordonnees_divergentes` ;
+- aucun écrasement silencieux de coordonnées ;
+- verrous consultatifs email/téléphone : deux requêtes simultanées ne créent pas de doublon
+  pour le même email.
+
 ### Autorisations
 
-- propriétaire peut lire son devis et télécharger ses fichiers vérifiés ;
+- propriétaire peut lire son devis et télécharger ses fichiers `verifie=true` et `PROPRE` ;
 - client B ne peut pas lire/télécharger le devis A ;
 - anon ne lit ni `devis` ni `fichiers_devis` ;
 - commercial/admin lisent ; finance lit métadonnées ; atelier refusé ;
 - route admin avec rôle incorrect → 403 ;
 - `service_role` utilisé seulement après garde ;
-- fichier `verifie=false` non signable ;
+- fichier `verifie=false` ou `statut_analyse <> 'PROPRE'` non signable ;
 - chemin d'un autre devis refusé.
 
 ### Statuts, prix, décisions
@@ -458,6 +706,28 @@ docs/supabase-staging.md           tests lot 2.2
 - ZIP avec entrées `../` → stocké opaque, jamais extrait ; test de non-extraction ;
 - fichier non vérifié → non listé, non signé ;
 - URL signée expirée → refus.
+
+### Antivirus et quarantaine
+
+- fichier `NON_ANALYSE` → badge admin, aucune URL signée ;
+- scanner absent → reste `NON_ANALYSE`, aucun faux « propre » ;
+- scanner configuré et propre → `PROPRE`, URL signée ;
+- scanner infecté → `INFECTE`, objet supprimé, ligne conservée, alerte ;
+- scanner en erreur → `ERREUR`, retry backoff, aucune URL ;
+- ZIP non extrait avant/après scan ;
+- `verifie=true` mais `NON_ANALYSE` → non téléchargeable.
+
+### Compatibilité migration 0007
+
+- snapshot des lignes `historique_statuts_devis` avant migration ;
+- après migration, mêmes `id`, `devis_id`, `ancien_statut`, `nouveau_statut`, `acteur`,
+  `note`, `cree_le` ;
+- nouvelles colonnes avec `STATUT`/`STAFF` pour les anciennes lignes ;
+- policy `historique_devis_select`, RLS et grants inchangés ;
+- trigger `devis_transition` toujours unique et fonctionnel ;
+- `notifications` existantes conservées ;
+- `devis` existants sans jeton restent lisibles ;
+- `fichiers_devis` existants passent `NON_ANALYSE` sans suppression.
 
 ### Buckets et URL signées
 
@@ -502,10 +772,15 @@ Nouvelles :
 |---|---|---|
 | `NEXT_PUBLIC_SITE_URL` | oui | liens de suivi |
 | `DEVIS_SESSION_SECRET` | oui | signature HMAC du cookie, 32+ octets |
+| `DEVIS_OTP_SECRET` | oui | HMAC des codes OTP, 32+ octets |
+| `DEVIS_OTP_TTL_SECONDS` | non (600) | validité OTP |
+| `DEVIS_OTP_MAX_ATTEMPTS` | non (5) | tentatives OTP |
 | `DEVIS_NOTIFY_EMAIL` | oui pour l'alerte staff | destinataire |
-| `RESEND_API_KEY` | non | email réel ; sinon outbox |
+| `RESEND_API_KEY` | non | notifications email et OTP email ; sans lui, outbox et OTP email indisponibles |
 | `DEVIS_EMAIL_FROM` | si Resend | expéditeur vérifié |
+| `SMS_API_URL` / `SMS_API_KEY` / `SMS_SENDER` | non | OTP téléphone, adaptateur explicite ; sans lui, OTP téléphone indisponible |
 | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | non | alerte staff |
+| `ANTIVIRUS_SCAN_URL` / `ANTIVIRUS_API_KEY` | non | analyse antivirus ; sans lui, `NON_ANALYSE` |
 | `DEVIS_TOKEN_TTL_DAYS` | non (30) | jeton de suivi |
 | `DEVIS_SESSION_TTL_DAYS` | non (30) | cookie |
 | `DEVIS_UPLOAD_URL_TTL_SECONDS` | non (600) | URL d'envoi |
@@ -514,17 +789,27 @@ Nouvelles :
 | `DEVIS_MAX_TOTAL_MB` | non (50) | volume cumulé |
 | `DEVIS_RATE_LIMIT_PER_HOUR` | non (5) | rate-limit |
 
-`DEVIS_SESSION_SECRET` ne doit jamais être préfixé `NEXT_PUBLIC_`, loggé ou commité.
+`DEVIS_SESSION_SECRET` et `DEVIS_OTP_SECRET` ne doivent jamais être préfixés `NEXT_PUBLIC_`,
+loggés ou commités. `SMS_API_KEY` et `ANTIVIRUS_API_KEY` restent serveur uniquement.
+
+Sans `DEVIS_SESSION_SECRET`, les routes de suivi refusent de démarrer. Sans canal OTP
+configuré (Resend ou adaptateur SMS), la récupération après perte de cookie reste indisponible :
+l'écran indique de contacter Smart Vision, sans promettre un envoi inexistant.
 
 ## 14. Points à valider
 
 1. Migration 0007 avec token, contact snapshot, historique prix, notifications retry,
-   fonctions RPC et index.
-2. Session cookie HMAC + `POST /api/devis/session` (jeton dans le corps, jamais en URL).
-3. Back-office minimal avec Supabase Auth et `app_metadata`.
-4. ZIP accepté uniquement comme source opaque, jamais extrait.
-5. Nettoyage dry-run et prédicats stricts.
-6. Resend optionnel ; outbox visible sans provider.
+   fichiers `statut_analyse`, compatibilité historique, fonctions RPC et index.
+2. Session cookie HMAC + `POST /api/devis/session` + OTP de récupération ; jeton jamais en URL
+   ou en clair dans un email.
+3. Sécurité publique : Origin, CSRF double-submit, rate-limit IP/identité, fail-closed Redis,
+   anti-énumération.
+4. Rapprochement client sans fusion automatique sur coordonnées contradictoires.
+5. Quarantaine logique et antivirus optionnel ; ZIP jamais extrait. Par défaut, un fichier
+   `NON_ANALYSE` n'est téléchargeable par personne. Une dérogation admin auditée est-elle
+   nécessaire pour l'exploitation sans scanner ?
+6. Back-office minimal avec Supabase Auth et `app_metadata`.
+7. Nettoyage dry-run et prédicats stricts.
 
-Après validation : migration 0007 → RPC/repositories → session et routes publiques →
-upload/vérification → notifications → admin minimal → tests staging → rapport.
+Après validation : migration 0007 → RPC/repositories → session et OTP → routes publiques →
+upload/analyse → notifications → admin minimal → tests staging → rapport.

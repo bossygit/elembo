@@ -36,7 +36,7 @@ production publique.
 Le schéma commercial, les relations, la RLS et le plan d'intégration sont décrits dans
 [`docs/supabase-architecture.md`](docs/supabase-architecture.md). Les migrations versionnées
 sont dans `supabase/migrations/` : 0001 → 0007 sont appliquées sur `elembo-staging` depuis le
-2026-11-09. Le
+2026-11-09. La migration 0008 (cycle des commandes) est locale et n’a pas été appliquée à distance. Le
 fichier [`supabase/README.md`](supabase/README.md) décrit la mise en service, les variables et
 les tests RLS.
 
@@ -339,8 +339,9 @@ bash scripts/deploy-gh-pages.sh
 - **Dossier généré par le navigateur** : après `PAYE`, le client envoie les PNG et la fiche vers
   l'archive privée. S'il ferme la page avant l'envoi, l'atelier ne reçoit rien — la
   régénération serveur est planifiée.
-- **Back-office minimal** : `/admin/devis` permet de traiter les demandes de devis ; la gestion
-  complète des produits, commandes, production, stock, coûts et marges reste à développer.
+- **Back-office** : `/admin/devis` traite les demandes et `/admin/commandes` suit le cycle
+  commercial (paiement, production, contrôle qualité, livraison, clôture). Les fonctions stock,
+  coûts et marges restent à développer. Voir [`docs/commandes-cycle.md`](docs/commandes-cycle.md).
 - **Devis** : parcours public, sessions, OTP, upload vérifié et notifications sont implémentés ;
   voir [`docs/devis-lot-2.2.md`](docs/devis-lot-2.2.md).
 - **Paiement** : MTN MoMo uniquement. Airtel Money n'est pas intégré.

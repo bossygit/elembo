@@ -13,6 +13,17 @@ type Fichier = {
   telechargementDisponible: boolean;
 };
 
+type Commande = {
+  reference: string;
+  statut: string;
+  statutPaiement: string;
+  statutProduction: string;
+  statutLivraison: string;
+  totalFcfa: number;
+  creeLe: string;
+  livraisonPrevueLe: string | null;
+};
+
 type Devis = {
   reference: string;
   statut: string;
@@ -24,7 +35,47 @@ type Devis = {
   montantProposeFcfa: number | null;
   creeLe: string;
   expireLe: string | null;
+  commande?: Commande | null;
   fichiers: Fichier[];
+};
+
+const LIBELLES_COMMANDE: Record<string, string> = {
+  BROUILLON: 'Brouillon',
+  EN_ATTENTE_DE_VALIDATION: 'En attente de votre validation',
+  EN_ATTENTE_DE_PAIEMENT: 'En attente de paiement',
+  PAYEE: 'Paiement confirmé',
+  A_PRODUIRE: 'À produire',
+  EN_PRODUCTION: 'En production',
+  CONTROLE_QUALITE: 'En contrôle qualité',
+  PRETE: 'Prête',
+  EN_LIVRAISON: 'En livraison',
+  LIVREE: 'Livrée',
+  ANNULEE: 'Annulée',
+  REMBOURSEMENT_A_TRAITER: 'Remboursement à traiter',
+};
+
+const LIBELLES_PRODUCTION: Record<string, string> = {
+  A_FAIRE: 'À produire',
+  EN_COURS: 'En cours',
+  TERMINE: 'Terminé',
+  BLOQUE: 'Bloqué',
+  ANNULE: 'Annulé',
+};
+
+const LIBELLES_LIVRAISON: Record<string, string> = {
+  A_LIVRER: 'À livrer',
+  EN_LIVRAISON: 'En livraison',
+  LIVREE: 'Livrée',
+  ECHEC: 'Échec',
+};
+
+const LIBELLES_PAIEMENT: Record<string, string> = {
+  EN_ATTENTE: 'En attente',
+  PAYE: 'Confirmé',
+  ECHEC: 'Échec',
+  ANOMALIE: 'À vérifier',
+  REMBOURSE: 'Remboursé',
+  NON_REQUIS: 'Non requis',
 };
 
 const LIBELLES: Record<string, string> = {
@@ -198,6 +249,56 @@ export default function SuiviDevis({ reference }: { reference: string }) {
         ) : null}
         {erreur ? <p className="mt-4 text-sm text-red-700">{erreur}</p> : null}
       </div>
+
+      {devis.commande ? (
+        <div className="rounded-2xl border border-encre/15 bg-encre p-6 text-creme">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-creme/60">Commande</p>
+              <h3 className="mt-1 font-mono text-xl">{devis.commande.reference}</h3>
+            </div>
+            <span className="rounded-full border border-creme/30 px-3 py-1 text-xs font-medium">
+              {LIBELLES_COMMANDE[devis.commande.statut] ?? devis.commande.statut}
+            </span>
+          </div>
+          <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-creme/60">Montant total</dt>
+              <dd className="mt-1 text-lg font-semibold">
+                {devis.commande.totalFcfa.toLocaleString('fr-FR')} FCFA
+              </dd>
+            </div>
+            <div>
+              <dt className="text-creme/60">Paiement</dt>
+              <dd className="mt-1">
+                {LIBELLES_PAIEMENT[devis.commande.statutPaiement] ?? devis.commande.statutPaiement}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-creme/60">Production</dt>
+              <dd className="mt-1">{LIBELLES_PRODUCTION[devis.commande.statutProduction] ?? devis.commande.statutProduction}</dd>
+            </div>
+            <div>
+              <dt className="text-creme/60">Livraison</dt>
+              <dd className="mt-1">{LIBELLES_LIVRAISON[devis.commande.statutLivraison] ?? devis.commande.statutLivraison}</dd>
+            </div>
+            {devis.commande.livraisonPrevueLe ? (
+              <div className="sm:col-span-2">
+                <dt className="text-creme/60">Livraison prévue</dt>
+                <dd className="mt-1">
+                  {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' }).format(
+                    new Date(`${devis.commande.livraisonPrevueLe}T12:00:00`),
+                  )}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+          <p className="mt-5 border-t border-creme/20 pt-4 text-xs leading-relaxed text-creme/70">
+            Le paiement et la fabrication sont suivis séparément. Votre commande ne passe en
+            production qu’après confirmation du paiement et prise en charge par l’atelier.
+          </p>
+        </div>
+      ) : null}
 
       <div className="rounded-2xl border border-filet bg-white p-6">
         <h3 className="font-semibold">Vos pièces jointes</h3>

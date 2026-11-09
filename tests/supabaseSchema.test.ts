@@ -24,6 +24,7 @@ const fichiers = [
   '20261109130005_storage.sql',
   '20261109130006_seed_reference.sql',
   '20261109130007_devis_suivi.sql',
+  '20261109130008_commandes_cycle.sql',
 ];
 
 const tables = lire(fichiers[1]);
@@ -31,9 +32,10 @@ const fonctions = lire(fichiers[2]);
 const rls = lire(fichiers[3]);
 const seed = lire(fichiers[5]);
 const migration7 = lire(fichiers[6]);
+const migration8 = lire(fichiers[7]);
 
 describe('schéma Supabase', () => {
-  it('les sept migrations versionnées existent', () => {
+  it('les huit migrations versionnées existent', () => {
     for (const fichier of fichiers) {
       expect(() => lire(fichier), fichier).not.toThrow();
     }
@@ -143,6 +145,23 @@ describe('schéma Supabase', () => {
     expect(migration7).toMatch(/revoke all on function .* from public, anon, authenticated/i);
     expect(migration7).toMatch(/grant execute on function .* to service_role/i);
     expect(migration7).toMatch(/devis-sessions:/i);
+  });
+
+  it('le cycle commande porte paiement, production, livraison et jalons', () => {
+    expect(migration8).toMatch(/create type public\.mode_paiement_commande/i);
+    expect(migration8).toMatch(/add column if not exists mode_paiement/i);
+    expect(migration8).toMatch(/add column if not exists contact_snapshot/i);
+    expect(migration8).toMatch(/add column if not exists valide_le/i);
+    expect(migration8).toMatch(/add column if not exists controle_qualite_le/i);
+    expect(migration8).toMatch(/add column if not exists livraison_demarree_le/i);
+    expect(migration8).toMatch(/add column if not exists cloture_le/i);
+    expect(migration8).toMatch(/create or replace function public\.creer_commande_depuis_devis/i);
+    expect(migration8).toMatch(/create or replace function public\.transitionner_commande/i);
+    expect(migration8).toMatch(/create or replace function public\.confirmer_paiement_manuel/i);
+    expect(migration8).toMatch(/grant execute on function public\.creer_commande_depuis_devis/i);
+    expect(migration8).toMatch(/grant execute on function public\.transitionner_commande/i);
+    expect(migration8).toMatch(/grant execute on function public\.confirmer_paiement_manuel/i);
+    expect(migration8).toMatch(/revoke all on function public\.creer_commande_depuis_devis/i);
   });
 
   it('le seed ne fabrique ni stock ni prix commercial', () => {

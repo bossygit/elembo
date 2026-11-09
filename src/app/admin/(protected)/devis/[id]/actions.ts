@@ -10,6 +10,12 @@ import {
   transitionnerDevis,
 } from '@/server/devis/repository';
 import { creerUrlTelechargement } from '@/server/storage/supabase';
+import {
+  MODES_PAIEMENT,
+  commandeDuDevis,
+  creerCommandeDepuisDevis,
+  type ModePaiement,
+} from '@/server/commandes/repository';
 
 async function staffAutorise(roles: string[]): Promise<{ sub: string | null }> {
   const staff = await utilisateurStaff();
@@ -104,4 +110,45 @@ export async function telechargerFichier(formData: FormData): Promise<void> {
   }
   const url = await creerUrlTelechargement(fichier.chemin, 60);
   redirect(url);
+}
+
+export async function creerCommande(formData: FormData): Promise<void> {
+  const staff = await staffAutorise(['admin', 'commercial']);
+  const id = texte(formData, 'devis_id');
+  const mode = texte(formData, 'mode_paiement') as ModePaiement;
+  const livraison = Number(texte(formData, 'livraison'));
+  const ville = texte(formData, 'ville').slice(0, 120) || null;
+  const adresse = texte(formData, 'adresse').slice(0, 300) || null;
+  const dateLivraison = texte(formData, 'livraison_prevue');
+
+  if (!id || !MODES_PAIEMENT.some((m) => m.id === mode) || !Number.isSafeInteger(livraison) || livraison < 0) {
+    redirect(`/admin/devis/${id}?erreur=commande_invalide`);
+  }
+  if (dateLivraison && !/^\d{4}-\d{2}-\d{2}$/.test(dateLivraison)) {
+    redirect(`/admin/devis/${id}?erreur=date_livraison`);
+  }
+
+  try {
+    const existante = await commandeDuDevis(id);
+    if (existante) redirect(`/admin/commandes/${existante.id}?ok=existante`);
+
+    const commande = await creerCommandeDepuisDevis({
+      devisId: id,
+      modePaiement: mode,
+      livraisonFcfa: livraison,
+      ville,
+      adresse,
+      livraisonPrevueLe: dateLivraison || null,
+      idempotencyKey: `devis:${id}:commande`,
+      acteur: staff.sub,
+    });
+    revalidatePath('/admin/commandes');
+    revalidatePath(`/admin/devis/${id}`);
+    redirect(`/admin/commandes/${commande.id}?ok=creee`);
+  } catch (erreur) {
+    // redirect() lève une exception spéciale Next : ne pas la transformer en message d'erreur.
+    if (typeof erreur === 'object' && erreur !== null && 'digest' in erreur) throw erreur;
+    const message = erreur instanceof Error ? erreur.message.slice(0, 300) : 'Création refusée';
+    redirect(`/admin/devis/${id}?erreur=${encodeURIComponent(message)}`);
+  }
 }

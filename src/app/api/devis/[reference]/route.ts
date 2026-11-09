@@ -1,5 +1,6 @@
 import { devisDepuisSession } from '@/server/devis/session';
 import { devisParId, fichiersDuDevis } from '@/server/devis/repository';
+import { commandeDuDevis } from '@/server/commandes/repository';
 import { jsonErreur } from '@/server/security/http';
 
 export const runtime = 'nodejs';
@@ -15,6 +16,7 @@ export async function GET(request: Request, contexte: Contexte) {
   const devis = await devisParId(devisId);
   if (!devis || devis.reference !== reference) return jsonErreur('Devis introuvable.', 404);
   const fichiers = await fichiersDuDevis(devisId);
+  const commande = await commandeDuDevis(devisId);
 
   return Response.json(
     {
@@ -26,6 +28,18 @@ export async function GET(request: Request, contexte: Contexte) {
       specifications: devis.specifications,
       quantite: devis.quantite,
       montantProposeFcfa: devis.montant_propose_fcfa,
+      commande: commande
+        ? {
+            reference: commande.reference,
+            statut: commande.statut,
+            statutPaiement: commande.statut_paiement,
+            statutProduction: commande.statut_production,
+            statutLivraison: commande.statut_livraison,
+            totalFcfa: commande.total_fcfa,
+            creeLe: commande.cree_le,
+            livraisonPrevueLe: commande.livraison_prevue_le,
+          }
+        : null,
       creeLe: devis.cree_le,
       expireLe: devis.expire_le,
       fichiers: fichiers.map((f) => ({

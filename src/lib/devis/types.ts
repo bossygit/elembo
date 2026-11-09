@@ -51,6 +51,16 @@ export type DevisPublic = {
   montantProposeFcfa: number | null;
   creeLe: string;
   expireLe: string | null;
+  commande?: {
+    reference: string;
+    statut: string;
+    statutPaiement: string;
+    statutProduction: string;
+    statutLivraison: string;
+    totalFcfa: number;
+    creeLe: string;
+    livraisonPrevueLe: string | null;
+  } | null;
   fichiers: {
     id: string;
     nom: string;

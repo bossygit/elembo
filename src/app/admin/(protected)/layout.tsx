@@ -21,6 +21,9 @@ export default async function LayoutAdminProtege({ children }: { children: React
             <Link href="/admin/devis" className="text-sm text-neutral-600 hover:text-black">
               Devis
             </Link>
+            <Link href="/admin/commandes" className="text-sm text-neutral-600 hover:text-black">
+              Commandes
+            </Link>
           </div>
           <div className="flex items-center gap-4 text-sm">
             <span className="text-neutral-500">

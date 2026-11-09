@@ -3,8 +3,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { clientDuDevis, devisParId, fichiersDuDevis } from '@/server/devis/repository';
+import { MODES_PAIEMENT, commandeDuDevis } from '@/server/commandes/repository';
 import {
   changerStatut,
+  creerCommande,
   deciderPourClient,
   proposerDevis,
   revoquerSessions,
@@ -45,6 +47,7 @@ export default async function PageDetailDevis({
   if (!devis) notFound();
   const client = await clientDuDevis(devis.client_id);
   const fichiers = await fichiersDuDevis(id);
+  const commande = await commandeDuDevis(id);
   const peutDecider = devis.statut === 'PROPOSE';
 
   return (
@@ -185,6 +188,73 @@ export default async function PageDetailDevis({
           </ul>
         )}
       </section>
+
+      {devis.statut === 'ACCEPTE' ? (
+        <section className="mt-6 rounded-2xl border border-green-200 bg-green-50 p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">Transmission à l’atelier</h2>
+              <p className="mt-1 max-w-2xl text-sm text-green-900/80">
+                Une commande distincte est créée avec sa propre référence, ses fichiers et son cycle
+                de production. Le paiement confirmé ne déclenche pas automatiquement la fabrication.
+              </p>
+            </div>
+            {commande ? (
+              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-green-900">
+                {commande.statut}
+              </span>
+            ) : null}
+          </div>
+
+          {commande ? (
+            <div className="mt-4 flex flex-wrap items-center gap-4 rounded-xl border border-green-200 bg-white p-4 text-sm">
+              <p className="font-mono font-semibold">{commande.reference}</p>
+              <p className="text-neutral-600">
+                Total : {commande.total_fcfa.toLocaleString('fr-FR')} FCFA
+              </p>
+              <Link href={`/admin/commandes/${commande.id}`} className="font-semibold underline">
+                Ouvrir la commande
+              </Link>
+            </div>
+          ) : (
+            <form action={creerCommande} className="mt-4 grid gap-4 rounded-xl border border-green-200 bg-white p-4 sm:grid-cols-2">
+              <input type="hidden" name="devis_id" value={id} />
+              <label className="block text-sm">
+                Mode de paiement prévu
+                <select name="mode_paiement" defaultValue="MTN_MOMO" className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2" required>
+                  {MODES_PAIEMENT.map((mode) => (
+                    <option key={mode.id} value={mode.id}>{mode.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm">
+                Frais de livraison (FCFA)
+                <input type="number" name="livraison" min="0" step="1" defaultValue="0" className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2" required />
+              </label>
+              <label className="block text-sm">
+                Ville de livraison
+                <input type="text" name="ville" maxLength={120} defaultValue={client?.ville ?? 'Brazzaville'} className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2" />
+              </label>
+              <label className="block text-sm">
+                Date de livraison souhaitée
+                <input type="date" name="livraison_prevue" className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2" />
+              </label>
+              <label className="block text-sm sm:col-span-2">
+                Adresse de livraison
+                <input type="text" name="adresse" maxLength={300} className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2" />
+              </label>
+              <div className="sm:col-span-2">
+                <button type="submit" className="rounded-xl bg-green-700 px-4 py-2.5 text-sm font-semibold text-white">
+                  Créer la commande
+                </button>
+                <p className="mt-2 text-xs text-neutral-500">
+                  La commande sera créée en brouillon. Aucun paiement n’est encaissé par cette action.
+                </p>
+              </div>
+            </form>
+          )}
+        </section>
+      ) : null}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <section className="rounded-2xl border border-neutral-200 bg-white p-6">

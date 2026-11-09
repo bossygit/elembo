@@ -501,6 +501,12 @@ Aucun composant React n'exécute de SQL. Les repositories sont testables avec un
 Résultat : `tests/supabaseRls.integration.test.ts` (5) +
 `tests/supabaseLifecycle.integration.test.ts` (13) = **18 tests verts** sur base locale.
 `tests/supabaseSchema.test.ts` ajoute 14 garde-fous statiques. Total Supabase : **32 tests**.
+`tests/routesSecurite.test.ts` ajoute 7 tests de routes API et de garde `service_role`.
+
+### Nettoyage
+
+`scripts/verifier-nettoyage-supabase.mjs` : 0 client, 0 commande, 0 produit, 0 dépense et
+0 utilisateur Auth de test après la suite.
 
 ### Domaine
 
@@ -515,8 +521,8 @@ Résultat : `tests/supabaseRls.integration.test.ts` (5) +
 
 ### Recette globale
 
-- `npm test` : **399 tests passés, 18 ignorés** sans projet Supabase de test ;
-- avec `SUPABASE_TEST_*` : **417 tests passés, 0 ignorés** ;
+- `npm test` : **407 tests passés, 18 ignorés** sans projet Supabase de test ;
+- avec `SUPABASE_TEST_*` : **425 tests passés, 0 ignorés** ;
 - `npm run lint` : 0 erreur, 2 avertissements préexistants ;
 - `npm run build` : OK, Next.js 16.3.6 ;
 - aucun paiement réel, aucune clé de production modifiée.

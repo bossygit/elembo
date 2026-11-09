@@ -210,7 +210,7 @@ enregistrement `201` → rejeu `200 dejaRecu` → `401` sans jeton atelier, `200
 
 | Vérification | Résultat |
 |---|---|
-| `npm test` (Vitest) | **399 tests verts + 18 tests d’intégration ignorés** (projet Supabase de test non fourni) — dont 22 pour le dossier de production (autorisation, chemins, notification) |
+| `npm test` (Vitest) | **407 tests verts + 18 tests d’intégration ignorés** (projet Supabase de test non fourni) — dont 22 pour le dossier de production (autorisation, chemins, notification) |
 | `npx tsc --noEmit` | aucun diagnostic |
 | `npm run build` | build production OK, routes `/api/momo/*` et `/api/sante` en dynamique (`ƒ`) |
 | Flux complet sur le build de production (mock) | payer → PENDING → PAYE, doublon `422`, commande payée `422`, callback par corps et par chemin, commande tableaux 2 × 40×60 monté = 33 600 FCFA |

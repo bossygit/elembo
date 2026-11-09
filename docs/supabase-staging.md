@@ -179,9 +179,11 @@ Commande recommandée, avec le garde-fou d'environnement :
 
 ```bash
 scripts/supabase-staging-env.sh npm test -- supabase
+scripts/supabase-staging-env.sh node scripts/verifier-nettoyage-supabase.mjs
 ```
 
-Ou directement :
+Attendu : **32 tests Supabase verts** (18 intégration + 14 schéma), puis cinq compteurs à zéro
+pour les clients, commandes, produits, dépenses et utilisateurs de test.
 
 ```bash
 scripts/supabase-staging-env.sh npx vitest run \
@@ -217,6 +219,7 @@ Le script `supabase-staging-env.sh` retire en plus `MOMO_ENV`, `MOMO_SUBSCRIPTIO
 ```bash
 scripts/supabase-staging-env.sh npx vitest run tests/supabaseRls.integration.test.ts \
   tests/supabaseLifecycle.integration.test.ts --reporter=verbose
+scripts/supabase-staging-env.sh node scripts/verifier-nettoyage-supabase.mjs
 ```
 
 Contrôles :
@@ -305,6 +308,7 @@ Puis arrêt et présentation. Après confirmation seulement :
 npx --yes supabase@latest db push --remote
 npx --yes supabase@latest migration list --remote
 scripts/supabase-staging-env.sh npm test -- supabase
+scripts/supabase-staging-env.sh node scripts/verifier-nettoyage-supabase.mjs
 ```
 
 ## 12. Checklist de validation

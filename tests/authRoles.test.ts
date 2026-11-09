@@ -59,8 +59,22 @@ describe('rôles staff', () => {
     });
     for (const route of avecServiceRole) {
       const contenu = readFileSync(route, 'utf8');
-      expect(contenu, `${route} doit importer exigerRole/roleDepuisClaims`).toMatch(
-        /exigerRole|roleDepuisClaims/,
+      expect(contenu, `${route} doit importer avecGardeRole/exigerRole`).toMatch(
+        /avecGardeRole|exigerRole|roleDepuisClaims/,
+      );
+      expect(contenu, `${route} ne doit pas être un composant client`).not.toMatch(
+        /['"]use client['"]/,
+      );
+    }
+  });
+
+  it('toute future route /api/admin est protégée par un garde de rôle', () => {
+    const routes = fichiersTs(join(process.cwd(), 'src/app/api')).filter((f) => f.endsWith('route.ts'));
+    const adminRoutes = routes.filter((f) => f.includes('/api/admin/'));
+    for (const route of adminRoutes) {
+      const contenu = readFileSync(route, 'utf8');
+      expect(contenu, `${route} doit importer avecGardeRole/exigerRole`).toMatch(
+        /avecGardeRole|exigerRole|roleDepuisClaims/,
       );
     }
   });

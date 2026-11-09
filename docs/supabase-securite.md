@@ -86,6 +86,27 @@ Sur base locale vierge, `tests/supabaseLifecycle.integration.test.ts` (13 tests)
 `tests/supabaseRls.integration.test.ts` (5 tests) vérifie `anon` et les lectures de base.
 Total Supabase : **32 tests verts** lors de la revue (18 intégration + 14 garde-fous de schéma).
 
+### Routes API serveur
+
+`tests/routesSecurite.test.ts` (7 tests) couvre les routes existantes et le modèle des futures
+routes `service_role` :
+
+- `GET /api/commandes/[commande]/fichiers` : 401 sans jeton, 401 avec jeton en query string,
+  401 avec mauvais jeton, 400 avec référence invalide après authentification ;
+- `GET /api/momo/reconcilier` : 401 sans `CRON_SECRET`, 401 avec un mauvais secret ;
+- `avecGardeRole` : 401 sans claims ou si la lecture échoue, 403 pour un rôle insuffisant ou
+  un rôle placé dans `user_metadata`, 200 pour le rôle attendu.
+
+`tests/authRoles.test.ts` vérifie en plus que toute route contenant `service_role` ou
+`SUPABASE_SERVICE_ROLE_KEY` importe un garde, n'est pas un composant client, et que toute future
+route `/api/admin/` est protégée.
+
+### Nettoyage
+
+`scripts/verifier-nettoyage-supabase.mjs` vérifie après les tests qu'il ne reste aucun client,
+commande, produit, dépense ou utilisateur Auth de test. Exécution locale de la revue :
+**0 résidu** sur les cinq contrôles.
+
 ## 5. Risques encore ouverts
 
 - **Pas de projet Supabase hébergé** : les tests sont locaux. Le comportement hébergé (réseau,

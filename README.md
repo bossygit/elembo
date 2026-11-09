@@ -288,7 +288,7 @@ encaissements réels faits par le tunnel), mais il n'est plus alimenté.
 
 ```bash
 npm install --include=dev   # cette machine omet les devDependencies par défaut (npm config omit=dev)
-npm test                    # vitest — 399 tests passés, 18 ignorés sans projet Supabase de test (studio, impression, tarifs, paiement, dossier, schéma Supabase, RLS, cycle de vie)
+npm test                    # vitest — 407 tests passés, 18 ignorés sans projet Supabase de test (studio, impression, tarifs, paiement, dossier, schéma Supabase, RLS, cycle de vie)
 npm run lint
 npm run build
 npm run dev                 # http://localhost:3000  ·  / (boutique)  ·  /personnalisation (configurateur 3D)  ·  /studio (studio 2D)

@@ -19,10 +19,32 @@ export async function lireJson(request: Request): Promise<unknown> {
   if (Number.isFinite(longueur) && longueur > MAX_CORPS_JSON) {
     throw new Error('CORPS_TROP_GRAND');
   }
-  const texte = await request.text();
-  if (texte.length > MAX_CORPS_JSON) throw new Error('CORPS_TROP_GRAND');
+  if (!request.body) throw new Error('JSON_INVALIDE');
+
+  const lecteur = request.body.getReader();
+  const morceaux: Uint8Array[] = [];
+  let total = 0;
+
+  while (true) {
+    const { done, value } = await lecteur.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_CORPS_JSON) {
+      await lecteur.cancel();
+      throw new Error('CORPS_TROP_GRAND');
+    }
+    morceaux.push(value);
+  }
+
+  const octets = new Uint8Array(total);
+  let position = 0;
+  for (const morceau of morceaux) {
+    octets.set(morceau, position);
+    position += morceau.byteLength;
+  }
+
   try {
-    return JSON.parse(texte) as unknown;
+    return JSON.parse(new TextDecoder().decode(octets)) as unknown;
   } catch {
     throw new Error('JSON_INVALIDE');
   }

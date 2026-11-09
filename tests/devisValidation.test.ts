@@ -8,6 +8,7 @@ import {
 import { creerJetonSuivi, hashJeton } from '@/server/devis/jetons';
 import { genererCodeOtp, hacherOtp } from '@/server/devis/otp';
 import { comparerSecret, origineAutorisee } from '@/server/security/http';
+import { lireJson } from '@/server/devis/http';
 
 function demande(extra: Record<string, unknown> = {}) {
   return {
@@ -148,6 +149,22 @@ describe('contrôles HTTP', () => {
       if (ancienne === undefined) delete process.env.APP_ORIGINS;
       else process.env.APP_ORIGINS = ancienne;
     }
+  });
+
+  it('lit un JSON borné et refuse un corps trop grand', async () => {
+    const petit = new Request('https://elembo.test/api/devis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ a: 1 }),
+    });
+    await expect(lireJson(petit)).resolves.toEqual({ a: 1 });
+
+    const grand = new Request('https://elembo.test/api/devis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texte: 'x'.repeat(70 * 1024) }),
+    });
+    await expect(lireJson(grand)).rejects.toThrow('CORPS_TROP_GRAND');
   });
 
   it('valide le format email', () => {

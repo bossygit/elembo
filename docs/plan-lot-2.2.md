@@ -1,172 +1,144 @@
-# Lot 2.2 — Demandes de devis : plan d'implémentation
+# Lot 2.2 — Demandes de devis : plan final (version 2)
 
-Statut : **plan à valider**, aucune implémentation, aucune migration 0007 appliquée.
-Les six migrations du lot 3.1 sont déjà appliquées sur `elembo-staging`.
+Statut : **à valider**, aucune implémentation, aucune migration 0007 appliquée.
+Les six migrations du lot 3.1 sont appliquées sur `elembo-staging`.
 
-## 1. Constats sur le staging hébergé
+Décisions retenues : jeton + session cookie, Resend optionnel, admin minimal, 5 fichiers / 50 Mo,
+conversion différée au lot 3.2, migration 0007 sous réserve des points A–J.
 
-### Buckets Supabase Storage
+## 1. Constats vérifiés sur le staging
 
-| Bucket | Public | Taille max | Types autorisés |
+### Buckets
+
+| Bucket | Public | Limite | Types |
 |---|---:|---:|---|
-| `devis` | non | 25 MiB (26 214 400 octets) | PDF, PNG, JPEG, WEBP, ZIP |
-| `production` | non | 50 MiB (52 428 800 octets) | PDF, PNG, JPEG, JSON, TXT |
-
-Vérification effectuée via l'API Storage avec le service role :
-
-- `devis` et `production` existent ;
-- `public = false` pour les deux ;
-- les limites de taille et les types MIME correspondent au schéma prévu.
+| `devis` | non | 25 MiB (26 214 400 o) | PDF, PNG, JPEG, WEBP, ZIP |
+| `production` | non | 50 MiB (52 428 800 o) | PDF, PNG, JPEG, JSON, TXT |
 
 ### Politiques Storage
 
-- `storage.objects` a la RLS **activée**.
-- **Aucune politique** `anon` ou `authenticated` n'existe sur `storage.objects`.
-- Conséquence voulue : aucun accès direct aux objets ; le serveur utilise le service role et
-  délivre des URL signées à durée limitée.
-- Un appel `anon` à `POST /storage/v1/object/list/devis` retourne `200 []` sur les buckets
-  vides : la RLS filtre toutes les lignes. Aucun nom, aucune métadonnée d'objet n'est exposé.
-- Aucun bucket public, aucune politique permissive à ajouter.
+- `storage.objects` : RLS activée.
+- Aucune politique `anon` ou `authenticated` : accès direct refusé.
+- Un `POST anon /storage/v1/object/list/devis` retourne `200 []` sur bucket vide : la RLS
+  filtre toutes les lignes, aucun nom d'objet n'est exposé.
+- Les URL signées sont le seul chemin d'envoi et de téléchargement.
 
-### Tables existantes
+### Tables
 
-`clients` :
-- `id`, `user_id` optionnel, `type_client`, `nom`, `societe`, `email`, `telephone`,
-  `telephone_normalise`, `adresse`, `ville`, `notes`, `metadata`, timestamps ;
-- index unique sur `lower(email)` lorsque l'email est présent ;
-- index sur téléphone et téléphone normalisé.
+`clients` : nom, societe, email, telephone, telephone_normalise, type_client, metadata ;
+index unique sur `lower(email)` si email.
 
-`devis` :
-- `reference` unique `DEV-…`, `client_id`, `famille` (`TEXTILE`, `TABLEAUX`, `IMPRESSION`,
-  `SERVICES`), `besoin`, `format`, `quantite`, `specifications` JSONB, `statut`,
-  `montant_propose_fcfa`, `prix_valide`, `prix_verrouille`, `date_relance`, `expire_le`,
-  `assigne_a`, `source`, `notes_internes`, `idempotency_key`, timestamps ;
-- statuts actuels : `NOUVEAU`, `EN_ANALYSE`, `PROPOSE`, `ACCEPTE`, `REFUSE`, `EXPIRE` ;
-- transitions autorisées en base :
-  `NOUVEAU → EN_ANALYSE|REFUSE|EXPIRE`,
-  `EN_ANALYSE → PROPOSE|REFUSE|EXPIRE`,
-  `PROPOSE → ACCEPTE|REFUSE|EXPIRE` ;
-- un devis `ACCEPTE` exige un montant, force `prix_valide` et `prix_verrouille`, et interdit
-  ensuite la modification du montant.
+`devis` : reference `DEV-…`, client_id, famille, besoin, format, quantite, specifications,
+statut, montant_propose_fcfa, prix_valide, prix_verrouille, expire_le, assigne_a, source,
+notes_internes, idempotency_key.
 
-`fichiers_devis` :
-- `devis_id`, `nom`, `chemin`, `type_mime`, `taille_octets`, `type_fichier`, `fournisseur`,
-  `checksum`, `verifie`, `verifie_le`, `expire_le`, timestamps ;
-- contrainte unique `(devis_id, nom)` ;
-- RLS : lecture par `devis_accessible(devis_id)` (client propriétaire ou staff autorisé).
+`fichiers_devis` : devis_id, nom, chemin, type_mime, taille_octets, type_fichier, fournisseur,
+checksum, verifie, verifie_le, expire_le ; unique `(devis_id, nom)`.
 
-## 2. Parcours complet d'une demande
+`historique_statuts_devis` : **existe déjà** (vérifié sur le staging), avec `devis_id`,
+`ancien_statut`, `nouveau_statut`, `acteur`, `note`, `cree_le`, trigger
+`devis_transition`, RLS et policy staff. Aucune création nécessaire ; la migration 0007
+l'étend pour tracer aussi les prix et la source.
+
+## 2. Parcours et session de suivi
 
 ```
-1. Le client ouvre /devis
-   → choisit une famille : textile, impression, services
-   → le formulaire affiche les champs spécifiques
-   → il peut joindre des fichiers (facultatif)
-   → il accepte le traitement de ses données
-
+1. Le client ouvre /devis, choisit la famille et remplit le formulaire.
 2. POST /api/devis
-   → validation serveur (champs, types, tailles, origine, limitation de débit)
-   → upsert client par email ou téléphone
-   → INSERT devis (statut NOUVEAU, montant NULL, source SITE)
-   → génération d'un jeton de suivi (hash stocké, jamais le clair en base)
-   → INSERT notifications : confirmation client + alerte Smart Vision
-   → réponse { reference, suiviToken, uploads[] }
-
-3. Le navigateur envoie chaque fichier directement à Supabase Storage
-   → URL signée d'envoi, bucket devis, chemin devis/<devis_id>/<uuid>-<nom>
-   → aucune image ne traverse une fonction Vercel
-
-4. POST /api/devis/[reference]/fichiers
-   → jeton de suivi vérifié
-   → le serveur liste les objets, vérifie taille, signature binaire, extension et SHA-256
-   → marque fichiers_devis.verifie = true
-   → notification « pièces reçues » à Smart Vision, idempotente
-
-5. Smart Vision ouvre /admin/devis
-   → consulte la demande, les fichiers et l'historique
-   → passe EN_ANALYSE, saisit une proposition et un montant
-   → le devis passe PROPOSE et une notification client est créée
-
-6. Le client consulte /devis/[reference] avec son jeton
-   → voit le statut, le montant proposé et les messages publics
-   → accepte ou refuse
-   → transition ACCEPTE ou REFUSE, historique et notification
-
-7. Un devis ACCEPTE conserve son prix verrouillé
-   → la transformation en commande est réservée au lot 3.2
-   → aucun paiement n'est déclenché dans le lot 2.2
+   → transaction PostgreSQL atomique : client + devis + notifications
+   → idempotence par devis.idempotency_key
+   → jeton de suivi généré, seul son SHA-256 est stocké
+   → Set-Cookie de session signée (HttpOnly, Secure, SameSite=Lax)
+   → réponse { reference, suiviToken } (jamais dans l'URL)
+3. Le client envoie les fichiers directement dans le bucket devis via URL signée.
+4. POST /api/devis/[reference]/fichiers, avec le cookie de session
+   → vérification réelle des objets, marquage verifie=true
+5. Smart Vision traite dans /admin/devis (auth Supabase, rôle app_metadata).
+6. Le client consulte /devis/[reference] avec le cookie, ou échange son jeton via
+   POST /api/devis/session sur un autre appareil.
+7. Le client accepte/refuse ; la base trace la décision.
+8. ACCEPTE verrouille le prix ; conversion en commande différée au lot 3.2.
+   Aucun paiement dans ce lot.
 ```
 
-## 3. Architecture proposée
+### Cookie de session
 
-### Séparation
+- Valeur : session signée HMAC (`devis_id`, `exp`), jamais le jeton brut.
+- `HttpOnly`, `Secure` en production, `SameSite=Lax`, `Path=/`, expiration 30 jours.
+- Secret serveur `DEVIS_SESSION_SECRET` (32 octets minimum), jamais `NEXT_PUBLIC_`.
+- `POST /api/devis/session` reçoit `{ reference, token }` dans le **corps JSON**, vérifie le
+  hash à temps constant, puis pose le cookie. Aucun jeton en query string.
+- `POST /api/devis` peut poser directement le cookie pour le navigateur qui a soumis ;
+  `suiviToken` est renvoyé une fois pour permettre le suivi sur un autre appareil.
+- Les routes publiques ne lisent jamais le jeton dans l'URL. Les logs ne doivent jamais
+  journaliser le corps de `/api/devis` ni `/api/devis/session`.
+
+## 3. Architecture
 
 ```
-src/app/devis/*                    pages publiques
-src/app/admin/devis/*              pages de traitement (rôle staff)
-src/app/api/devis/*                API publique
-src/app/api/admin/devis/*          API protégée
-src/server/devis/*                 validation, repository, jetons, fichiers
-src/server/storage/supabase.ts     URL signées et vérification d'objets
-src/server/notifications/*         outbox + envoi email/Telegram
-src/server/auth/*                  claims Supabase et garde de rôle
-src/server/supabase/client.ts      clients serveur service_role / anon
+src/app/devis/*                       pages publiques
+src/app/admin/devis/*                 back-office minimal
+src/app/api/devis/*                   API publique
+src/app/api/admin/devis/*             API protégée
+src/server/devis/*                    validation, repository, jetons, fichiers
+src/server/supabase/client.ts         clients service_role et anon
+src/server/auth/supabase.ts           vérification du JWT staff
+src/server/auth/route.ts              avecGardeRole
+src/server/storage/supabase.ts        URL signées et métadonnées Storage
+src/server/notifications/*            outbox, Resend, Telegram
 ```
 
-Règles :
+Dépendances ajoutées :
 
-- aucun composant client n'importe un module `server` ni la clé `service_role` ;
-- toutes les écritures passent par une route serveur ;
-- les lectures publiques passent par le jeton de suivi, jamais par une simple référence ;
-- le service role est utilisé uniquement dans les repositories serveur, après contrôle du rôle
-  ou du jeton ;
-- les fichiers ne sont jamais exposés par un bucket public.
+- `@supabase/supabase-js` : PostgREST, Storage, Auth ;
+- `@supabase/ssr` : session cookie du back-office Next.js App Router.
 
-### Dépendance supplémentaire
+Aucun autre package. Validation en TypeScript, emails via `fetch` Resend, Telegram existant.
 
-Ajouter `@supabase/supabase-js` (client officiel, serveur uniquement) pour :
-
-- PostgREST et Storage ;
-- vérification du JWT staff via `auth.getUser()` ;
-- création d'URL signées d'envoi et de téléchargement.
-
-Pas d'autre dépendance : validation avec les helpers TypeScript existants, envoi email par
-`fetch` vers Resend si configuré, Telegram via le module existant.
-
-## 4. Routes API
+## 4. Routes API définitives
 
 ### Publiques
 
-| Méthode | Route | Protection | Rôle |
+| Méthode | Route | Protection | Usage |
 |---|---|---|---|
-| `POST` | `/api/devis` | origine, rate-limit IP/email, `Idempotency-Key`, honeypot | créer client + devis + URLs d'envoi |
-| `GET` | `/api/devis/[reference]` | en-tête `x-devis-token` | statut public, aucune note interne |
-| `POST` | `/api/devis/[reference]/fichiers` | `x-devis-token` | vérifier et marquer les fichiers |
-| `POST` | `/api/devis/[reference]/decision` | `x-devis-token` | accepter ou refuser une proposition |
+| `POST` | `/api/devis` | origine, rate-limit IP/email, `Idempotency-Key`, honeypot | crée client + devis + notifications, pose le cookie |
+| `POST` | `/api/devis/session` | rate-limit, corps `{reference,token}` | échange le jeton contre le cookie |
+| `GET` | `/api/devis/[reference]` | cookie de session | statut public, aucune note interne |
+| `POST` | `/api/devis/[reference]/fichiers` | cookie de session | vérifie et marque les fichiers |
+| `POST` | `/api/devis/[reference]/decision` | cookie de session + origine | accepte ou refuse une proposition |
+| `GET` | `/api/devis/[reference]/fichiers/[fichierId]/url` | cookie propriétaire | URL signée de téléchargement 5 min |
 
-Le jeton de suivi est un secret de 32 octets, transmis une seule fois au client, stocké
-uniquement sous forme de SHA-256, avec expiration (30 jours par défaut). Il voyage dans un
-en-tête, jamais dans l'URL.
-
-### Admin
+### Back-office
 
 | Méthode | Route | Rôles | Usage |
 |---|---|---|---|
-| `GET` | `/api/admin/devis` | admin, commercial, finance | liste, filtres statut/date/famille, pagination |
+| `POST` | `/api/admin/session` | public, rate-limit | login Supabase Auth, pose les cookies staff |
+| `POST` | `/api/admin/session/logout` | staff | déconnexion |
+| `GET` | `/api/admin/devis` | admin, commercial, finance | liste, filtres, pagination |
 | `GET` | `/api/admin/devis/[id]` | admin, commercial, finance | détail, historique, fichiers |
-| `PATCH` | `/api/admin/devis/[id]` | admin, commercial | notes internes, assignation, statut contrôlé |
+| `PATCH` | `/api/admin/devis/[id]` | admin, commercial | notes, assignation, statut contrôlé |
 | `POST` | `/api/admin/devis/[id]/proposition` | admin, commercial | montant + message, passage PROPOSE |
-| `GET` | `/api/admin/devis/[id]/fichiers/[fichierId]/url` | admin, commercial | URL signée de téléchargement 5 min |
+| `POST` | `/api/admin/devis/[id]/decision` | admin, commercial | décision pour un accord téléphonique, avec note |
+| `GET` | `/api/admin/devis/[id]/fichiers/[fichierId]/url` | admin, commercial | URL signée 5 min, fichier vérifié |
 
-Routes volontairement différées :
+`finance` lit les devis et métadonnées, jamais les fichiers. `atelier` n'accède pas aux devis.
 
-- `POST /api/admin/devis/[id]/convertir` → lot 3.2 (commande avant paiement) ;
-- relances automatiques → lot 5 ;
-- export CSV → lot 4.
+Différées : conversion en commande (3.2), relances (5), export (4).
 
-## 5. Modifications de schéma proposées
+### Contrôle d'accès aux fichiers
 
-Une migration `20261109130007_devis_suivi.sql` est nécessaire pour le suivi public :
+- propriétaire : cookie de session valide et `fichier.devis_id` correspondant ;
+- staff : `admin` ou `commercial` uniquement ;
+- fichier `verifie=false` : jamais listé ni signé ;
+- chemin vérifié sous `devis/<devis_id>/` ;
+- URL signée `download: true`, expiration 5 min ;
+- aucun bucket public.
+
+## 5. Migration 0007 — schéma et fonctions
+
+Fichier : `supabase/migrations/20261109130007_devis_suivi.sql`.
+
+### 5.1 Devis : suivi
 
 ```sql
 alter table public.devis
@@ -185,104 +157,191 @@ create index devis_suivi_token_expire_idx
   where suivi_token_expire_le is not null;
 ```
 
-Justification :
+### 5.2 Historique des statuts et des prix
 
-- `suivi_token_hash` : suivi et décision client sans compte, sans exposer la référence seule ;
-- `suivi_token_expire_le` : expiration et nettoyage ;
-- `contact_snapshot` : fige les coordonnées au moment de la demande, même si le client est
-  modifié plus tard.
+`historique_statuts_devis` existe ; la migration l'étend :
 
-Aucune modification de `fichiers_devis` n'est nécessaire : les colonnes `verifie`, `verifie_le`,
-`expire_le`, `checksum` et `fournisseur` existent déjà.
+```sql
+alter table public.historique_statuts_devis
+  add column type_evenement text not null default 'STATUT'
+    check (type_evenement in ('STATUT', 'PRIX', 'DECISION', 'NOTE')),
+  add column ancien_montant_fcfa integer,
+  add column nouveau_montant_fcfa integer,
+  add column source text not null default 'STAFF'
+    check (source in ('STAFF', 'CLIENT', 'SYSTEME'));
 
-Aucune modification de `clients` n'est nécessaire. L'upsert utilisera l'email ou le téléphone
-normalisé ; l'index unique email existant protège les doublons.
+create index historique_devis_evenements_idx
+  on public.historique_statuts_devis (devis_id, cree_le desc);
+```
 
-`tests/supabaseSchema.test.ts` devra inclure la migration 0007 et vérifier les nouveaux champs.
-Les tests RLS existants restent valables.
+Le trigger `verifier_transition_devis` est remplacé pour :
 
-## 6. Upload sécurisé et conservation
+- valider la transition ;
+- exiger un montant pour `PROPOSE` et `ACCEPTE` ;
+- verrouiller le prix après `ACCEPTE` ;
+- écrire une ligne `STATUT` (ou `DECISION` pour une décision client) ;
+- écrire une ligne `PRIX` si `montant_propose_fcfa` change ;
+- lire l'acteur dans `auth.uid()` ou `current_setting('app.acteur_id', true)` ;
+- lire la source dans `current_setting('app.source', true)`, défaut `STAFF`.
 
-### Envoi
+### 5.3 Notifications : reprise
 
-- bucket privé `devis` ;
-- chemin imposé `devis/<devis_id>/<uuid>-<nom-assaini>` ;
-- URL signée d'envoi valable 10 minutes, `upsert: false`, taille et types bornés par le bucket ;
-- maximum 5 fichiers par demande, 50 Mo cumulés ;
-- types : PDF, PNG, JPEG, WEBP, ZIP ; SVG, HTML et exécutables refusés.
+```sql
+alter table public.notifications
+  add column prochaine_tentative timestamptz not null default now(),
+  add column derniere_tentative timestamptz;
 
-### Vérification après envoi
+create index notifications_a_envoyer_idx
+  on public.notifications (statut, prochaine_tentative)
+  where statut in ('A_ENVOYER', 'ECHEC');
+```
 
-Le serveur :
+`notifications.cle_idempotence` existe déjà et reste la garantie anti-doublon.
 
-1. liste l'objet et vérifie son existence ;
-2. compare la taille annoncée et la limite ;
-3. lit les premiers octets et vérifie la signature PNG/JPEG/PDF/ZIP/WEBP ;
-4. vérifie que l'extension correspond au contenu ;
-5. calcule le SHA-256 et le compare au checksum fourni ;
-6. passe `verifie = true` et `verifie_le = now()`.
+### 5.4 Fonctions atomiques et contrôlées
 
-Un fichier non vérifié ne compte pas dans la complétude et n'est jamais téléchargé par
-l'atelier.
+Fonctions `security definer`, `search_path = public, auth`, exécution réservée à
+`service_role` :
 
-### Conservation
+- `creer_devis_atomique(...)` :
+  - `pg_advisory_xact_lock(hashtextextended(idempotency_key, 0))` ;
+  - retourne le devis existant si la clé existe déjà ;
+  - upsert client par email (ou téléphone) ;
+  - insert devis ;
+  - insert notifications client + staff avec `on conflict (cle_idempotence) do nothing` ;
+  - toute erreur annule l'ensemble.
 
-- `expire_le = now() + 90 jours` à la création ;
-- un devis converti en commande conserve ses pièces selon la politique de la commande ;
-- les fichiers orphelins (aucune ligne `fichiers_devis`) sont supprimés par un job ;
-- toute suppression est auditée.
+- `transitionner_devis(devis_id, nouveau_statut, montant, note, acteur, source)` :
+  - `select ... for update` sur le devis ;
+  - vérifie la transition avec `transition_devis_autorisee` ;
+  - exige le montant pour `PROPOSE`/`ACCEPTE` ;
+  - met à jour le statut et le prix dans la même transaction ;
+  - le trigger écrit l'historique et le prix ;
+  - écrit `journal_audit` avec l'acteur.
 
-## 7. Confirmation client et notification Smart Vision
+- `decider_devis_public(devis_id, decision, source='CLIENT')` :
+  - réservé au serveur après validation du cookie ;
+  - seulement `PROPOSE → ACCEPTE|REFUSE` ;
+  - aucune modification de prix ;
+  - trace `source = CLIENT`.
 
-Table `notifications` existante :
+- `lister_devis_a_nettoyer(dry_run boolean)` :
+  - retourne uniquement les devis/fichiers éligibles (voir section 9) ;
+  - ne supprime rien en mode dry-run ;
+  - ne touche jamais un devis `ACCEPTE`, lié à une commande, ou un fichier encore référencé.
 
-- `canal` : EMAIL, TELEGRAM, WHATSAPP ;
-- `statut` : A_ENVOYER, ENVOYEE, ECHEC, ANNULEE ;
-- `cle_idempotence` unique.
+Les routes n'écrivent pas directement `devis` ou `notifications` : elles appellent ces RPC.
+`service_role` garde l'exécution ; `anon`/`authenticated` n'ont aucun `EXECUTE`.
 
-Événements :
+## 6. Contrôles et traces au niveau base
 
-| Événement | Destinataire | Clé d'idempotence |
-|---|---|---|
-| Demande reçue | client, si email | `devis:<id>:client-recu` |
-| Demande reçue | Smart Vision | `devis:<id>:staff-recu` |
-| Pièces reçues | Smart Vision | `devis:<id>:staff-fichiers` |
-| Proposition envoyée | client | `devis:<id>:client-proposition` |
-| Décision client | Smart Vision | `devis:<id>:staff-decision` |
+- transitions : trigger + fonction `transition_devis_autorisee` ;
+- montant : `PROPOSE` et `ACCEPTE` l'exigent ; `ACCEPTE` verrouille ;
+- acceptation/refus : RPC avec `for update`, donc deux décisions concurrentes ne peuvent pas
+  gagner toutes les deux ;
+- prix : toute variation écrit une ligne `PRIX` avec ancien/nouveau montant, acteur et source ;
+- notes/assignation : `journal_audit` via la route admin ;
+- idempotence : `devis.idempotency_key` unique + verrou consultatif + notifications
+  `cle_idempotence` unique ;
+- aucun accès navigateur en écriture.
 
-Stratégie :
+## 7. Upload, formats et URL signées
 
-1. insérer l'outbox en base, dans la même transaction que le devis ;
-2. tenter un envoi immédiat (Resend pour l'email, Telegram existant) ;
-3. en cas d'échec, laisser `A_ENVOYER` avec `tentatives` et `derniere_erreur` ;
-4. un cron de notification rejoue les lignes échues.
+### Configuration vérifiée
 
-Sans `RESEND_API_KEY`, aucun email n'est annoncé comme envoyé : la ligne reste dans l'outbox et
-est visible dans l'admin. Sans `TELEGRAM_BOT_TOKEN`, la notification staff reste également dans
-l'outbox.
+- `devis` privé, 25 MiB, PDF/PNG/JPEG/WEBP/ZIP ;
+- `production` privé, 50 MiB, PDF/PNG/JPEG/JSON/TXT ;
+- `storage.objects` RLS activée, 0 politique directe ;
+- URL d'envoi : 10 min ; URL de téléchargement : 5 min.
 
-## 8. Statuts et règles
+### Règles
 
-| Transition | Acteur | Condition |
-|---|---|---|
-| `NOUVEAU → EN_ANALYSE` | admin/commercial | — |
-| `NOUVEAU → REFUSE` | admin/commercial | motif obligatoire |
-| `EN_ANALYSE → PROPOSE` | admin/commercial | montant > 0, message public |
-| `EN_ANALYSE → REFUSE` | admin/commercial | motif obligatoire |
-| `PROPOSE → ACCEPTE` | client avec jeton ou admin avec note | montant présent |
-| `PROPOSE → REFUSE` | client avec jeton ou admin | — |
-| `NOUVEAU/EN_ANALYSE/PROPOSE → EXPIRE` | job ou admin | date d'expiration atteinte |
+- 5 fichiers maximum, 50 Mo cumulés, 25 MiB par fichier ;
+- chemin `devis/<devis_id>/<uuid>-<nom-assaini>` ;
+- refus des noms avec `..`, slash, caractères de contrôle, double extension dangereuse ;
+- vérification par signature binaire, extension, taille, checksum SHA-256 ;
+- `verifie=true` seulement après contrôle ; sinon invisible et non signable ;
+- téléchargement en `Content-Disposition: attachment`, `X-Content-Type-Options: nosniff` ;
+- aucun SVG.
 
-Règles :
+### ZIP
 
-- aucun prix n'est calculé automatiquement pour un devis ;
-- le montant est saisi par Smart Vision et validé avant `PROPOSE` ;
-- `ACCEPTE` verrouille le prix (trigger existant) ;
-- aucune transition ne peut sauter une étape ;
-- chaque transition écrit `historique_statuts_devis` ;
-- un devis accepté n'est pas encore une commande : la conversion appartient au lot 3.2.
+- accepté uniquement comme `SOURCE` de devis, jamais dans `production` ;
+- **jamais extrait ni exécuté** côté serveur ;
+- un seul ZIP par demande ;
+- stocké et servi en pièce jointe opaque ;
+- si une inspection d'archive devient nécessaire, elle sera faite plus tard avec un parseur
+  borné (nombre d'entrées, taille décompressée, chemins) ; pas en 2.2.
 
-## 9. Fichiers du projet
+### Fichiers non vérifiés
+
+- jamais listés dans l'admin ;
+- jamais signés ;
+- job de nettoyage après 24 h si l'objet existe encore.
+
+## 8. Notifications fiables
+
+- outbox `notifications` dans la même transaction que le devis ;
+- clés :
+  `devis:<id>:client-recu`, `devis:<id>:staff-recu`,
+  `devis:<id>:staff-fichiers`, `devis:<id>:client-proposition`,
+  `devis:<id>:staff-decision` ;
+- worker `GET /api/cron/notifications` protégé par `CRON_SECRET` ;
+- réclamation `for update skip locked`, lots de 50 ;
+- backoff 1, 5, 15, 60, 360, 1440 minutes ;
+- `ENVOYEE` seulement après succès du fournisseur ;
+- Resend : en-tête `Idempotency-Key` = `cle_idempotence` ;
+- Telegram : `message_id` conservé dans `metadata`, pas de renvoi si déjà `ENVOYEE` ;
+- sans fournisseur, la ligne reste `A_ENVOYER` et est visible dans l'admin ;
+- aucun email annoncé comme envoyé sans provider.
+
+## 9. Nettoyage limité aux ressources éligibles
+
+Un devis est éligible seulement si :
+
+- `statut in ('NOUVEAU','EN_ANALYSE','PROPOSE','REFUSE','EXPIRE')` ;
+- `expire_le < now()` ;
+- aucune commande liée (`commandes.devis_id is null`) ;
+- aucun fichier `verifie=true` encore nécessaire à un devis actif.
+
+Un fichier est éligible seulement si :
+
+- `fichiers_devis.expire_le < now()` ;
+- son devis est terminal (`REFUSE`, `EXPIRE`) ou supprimé ;
+- aucune commande ne le référence ;
+- l'objet existe encore dans le bucket.
+
+Un objet orphelin est éligible si :
+
+- aucun `fichiers_devis.chemin` ne le référence ;
+- il est plus vieux que 24 h ;
+- son chemin est sous `devis/` (jamais `production/`).
+
+Le job :
+
+1. calcule la liste en dry-run ;
+2. vérifie chaque chemin ;
+3. supprime l'objet Storage ;
+4. supprime la ligne ;
+5. écrit `journal_audit`.
+
+Aucun `DELETE` global, aucun `LIKE` large, aucun objet `production` dans le lot 2.2.
+
+## 10. Back-office minimal et authentification
+
+- Supabase Auth pour le staff ; pas d'inscription publique.
+- Création des comptes dans le dashboard Supabase, rôle dans `app_metadata` :
+  `admin`, `commercial`, `finance`, `atelier`.
+- `@supabase/ssr` gère les cookies de session côté serveur.
+- `/admin/connexion` : email + mot de passe, rate-limit.
+- `POST /api/admin/session` : `signInWithPassword`, cookies HttpOnly, pas de mot de passe loggé.
+- Layout `/admin` : vérifie la session et le rôle côté serveur.
+- Chaque route API refait `avecGardeRole` ; le middleware seul ne suffit pas.
+- `admin`/`commercial` : traitement des devis ; `finance` : lecture ; `atelier` : aucun accès.
+- Un compte sans rôle `app_metadata` est refusé, même authentifié.
+- Test d'élévation `commercial → admin` via `PUT /auth/v1/user` : rôle inchangé.
+
+## 11. Fichiers du projet
 
 ### Nouveaux
 
@@ -290,6 +349,8 @@ Règles :
 supabase/migrations/20261109130007_devis_suivi.sql
 src/app/devis/page.tsx
 src/app/devis/[reference]/page.tsx
+src/app/devis/suivi/page.tsx
+src/app/admin/connexion/page.tsx
 src/app/admin/devis/page.tsx
 src/app/admin/devis/[id]/page.tsx
 src/components/devis/DevisForm.tsx
@@ -302,114 +363,166 @@ src/server/supabase/client.ts
 src/server/auth/supabase.ts
 src/server/devis/repository.ts
 src/server/devis/jetons.ts
+src/server/devis/session.ts
 src/server/devis/fichiers.ts
 src/server/devis/notifications.ts
 src/server/storage/supabase.ts
 src/app/api/devis/route.ts
+src/app/api/devis/session/route.ts
 src/app/api/devis/[reference]/route.ts
 src/app/api/devis/[reference]/fichiers/route.ts
+src/app/api/devis/[reference]/fichiers/[fichierId]/url/route.ts
 src/app/api/devis/[reference]/decision/route.ts
+src/app/api/admin/session/route.ts
+src/app/api/admin/session/logout/route.ts
 src/app/api/admin/devis/route.ts
 src/app/api/admin/devis/[id]/route.ts
 src/app/api/admin/devis/[id]/proposition/route.ts
+src/app/api/admin/devis/[id]/decision/route.ts
 src/app/api/admin/devis/[id]/fichiers/[fichierId]/url/route.ts
+src/app/api/cron/notifications/route.ts
 tests/devisValidation.test.ts
 tests/devisJetons.test.ts
+tests/devisSession.test.ts
 tests/devisApi.integration.test.ts
 tests/devisStorage.integration.test.ts
+tests/devisNettoyage.test.ts
 ```
 
 ### Modifiés
 
 ```
-package.json / package-lock.json        + @supabase/supabase-js
-.env.example                            variables devis et notifications
-README.md                               lien vers le formulaire
-src/components/site/Header.tsx          entrée « Devis »
-src/app/entreprises/page.tsx             CTA vers /devis
-src/app/contact/page.tsx                 CTA vers /devis
-tests/supabaseSchema.test.ts             sept migrations, nouveaux champs
-tests/authRoles.test.ts                  routes /api/devis et /api/admin/devis
-docs/supabase-architecture.md            flux devis mis à jour
-docs/supabase-securite.md                accès aux fichiers devis
-docs/supabase-staging.md                 tests staging lot 2.2
+package.json / package-lock.json   @supabase/supabase-js, @supabase/ssr
+.env.example                       variables devis, session, notifications
+README.md                          lien vers /devis
+src/components/site/Header.tsx     entrée Devis
+src/app/entreprises/page.tsx       CTA /devis
+src/app/contact/page.tsx           CTA /devis
+tests/supabaseSchema.test.ts       sept migrations, nouvelles colonnes
+tests/authRoles.test.ts            routes devis et admin
+docs/supabase-architecture.md      flux devis, sessions, RPC
+docs/supabase-securite.md          cookies, fichiers, service_role
+docs/supabase-staging.md           tests lot 2.2
 ```
 
-## 10. Scénarios de tests
+## 12. Tests complémentaires
 
-### Unitaires
+### Atomicité et idempotence
 
-- validation des champs par famille (textile, impression, services) ;
-- email, téléphone congolais, quantité, besoin, format ;
-- noms de fichiers, extensions, signatures, tailles, checksum ;
-- génération/vérification du jeton de suivi (hash, expiration, timing-safe) ;
-- machine à états côté application, en complément du trigger.
+- deux `POST /api/devis` simultanés avec la même `Idempotency-Key` → un seul client, un seul
+  devis, notifications uniques ;
+- une erreur d'insertion notification annule client + devis ;
+- même clé après succès → même référence, aucun doublon ;
+- client existant par email réutilisé.
 
-### Intégration staging
+### Session et jeton
 
-- `POST /api/devis` crée client + devis + notifications, sans montant ;
-- double envoi avec la même `Idempotency-Key` → même devis, pas de doublon ;
-- client existant par email/téléphone → réutilisé, pas dupliqué ;
-- `GET /api/devis/[reference]` sans jeton → 401 ; mauvais jeton → 404 ; bon jeton → statut ;
-- client A ne lit pas le devis de client B ;
+- jeton jamais accepté en query string ;
+- `POST /api/devis/session` avec bon jeton pose un cookie `HttpOnly; Secure; SameSite=Lax` ;
+- cookie absent/expiré/falsifié → 401 ;
+- cookie d'un autre devis → 404 ;
+- jeton en clair absent de la base (seul le hash) ;
+- aucun jeton dans les logs ou les URL générées.
+
+### Autorisations
+
+- propriétaire peut lire son devis et télécharger ses fichiers vérifiés ;
+- client B ne peut pas lire/télécharger le devis A ;
 - anon ne lit ni `devis` ni `fichiers_devis` ;
-- commercial/finance lisent les devis, atelier non ;
-- `PATCH` admin refuse une transition invalide ;
+- commercial/admin lisent ; finance lit métadonnées ; atelier refusé ;
+- route admin avec rôle incorrect → 403 ;
+- `service_role` utilisé seulement après garde ;
+- fichier `verifie=false` non signable ;
+- chemin d'un autre devis refusé.
+
+### Statuts, prix, décisions
+
+- transitions valides et invalides ;
 - `PROPOSE` sans montant refusé ;
+- `ACCEPTE` sans montant refusé ;
 - `ACCEPTE` verrouille le prix ;
-- upload signé : mauvais type MIME, fichier trop gros, chemin `../`, contenu mensonger,
-  checksum incorrect → refusés ;
-- fichier d'un autre devis → URL refusée ;
-- URL de téléchargement expirée → refusée ;
-- notifications créées une seule fois (clé d'idempotence) ;
-- nettoyage des devis, fichiers et utilisateurs de test → vérificateur à zéro.
+- décision concurrente : une seule gagne ;
+- historique `STATUT`, `PRIX`, `DECISION` avec acteur/source ;
+- changement de prix tracé même sans changement de statut ;
+- acceptation/refus client avec source `CLIENT`.
 
-### Stockage
+### Fichiers malveillants
 
-- bucket `devis` privé ;
-- `anon` ne peut ni lister ni télécharger un objet réel ;
-- `authenticated` non staff ne peut pas télécharger le fichier d'un autre client ;
-- service role seul crée les URL signées ;
-- suppression d'un fichier de test après la suite.
+- extension `.jpg` avec contenu PNG → refus ;
+- fichier HTML/SVG → refus ;
+- nom `../`, `logo.png.exe`, `logo.exe.png` → refus ;
+- taille > 25 MiB → refus ;
+- checksum incorrect → refus ;
+- ZIP avec entrées `../` → stocké opaque, jamais extrait ; test de non-extraction ;
+- fichier non vérifié → non listé, non signé ;
+- URL signée expirée → refus.
+
+### Buckets et URL signées
+
+- `devis` et `production` privés, limites/types conformes ;
+- `anon` ne liste/télécharge aucun objet réel ;
+- URL upload 10 min, download 5 min (décoder `exp` du jeton signé ou tester la constante) ;
+- service role seul crée les URL.
+
+### Notifications
+
+- outbox créée dans la transaction ;
+- clé d'idempotence unique ;
+- échec provider → `A_ENVOYER` + backoff ;
+- rejeu ne crée pas de doublon ;
+- sans Resend, aucun statut `ENVOYEE` mensonger.
+
+### Nettoyage
+
+- devis expiré non converti supprimé ;
+- devis ACCEPTE ou lié à une commande conservé ;
+- fichier actif conservé ;
+- objet orphelin de plus de 24 h supprimé ;
+- objet `production/` jamais touché ;
+- dry-run sans suppression ;
+- audit écrit.
 
 ### Non-régression
 
+- 32 tests Supabase existants ;
 - `npm test`, `npm run lint`, `npm run build` ;
-- les 32 tests Supabase existants restent verts ;
-- aucun paiement MTN, aucune migration destructive, aucun `db reset --remote`.
+- aucun paiement MTN, aucun `db reset --remote`.
 
-## 11. Variables d'environnement supplémentaires
+## 13. Variables d'environnement
 
-À ajouter à `.env.example` et à Vercel Preview/Production selon validation :
+Existantes : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+`SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET_DEVIS`,
+`SUPABASE_STORAGE_BUCKET_PRODUCTION`, `APP_ORIGINS`.
+
+Nouvelles :
 
 | Variable | Obligatoire | Usage |
 |---|---|---|
-| `NEXT_PUBLIC_SITE_URL` | oui | liens de suivi dans les emails |
-| `DEVIS_NOTIFY_EMAIL` | oui pour l'alerte staff | destinataire Smart Vision |
-| `RESEND_API_KEY` | non | envoi email réel ; sans lui, outbox seulement |
+| `NEXT_PUBLIC_SITE_URL` | oui | liens de suivi |
+| `DEVIS_SESSION_SECRET` | oui | signature HMAC du cookie, 32+ octets |
+| `DEVIS_NOTIFY_EMAIL` | oui pour l'alerte staff | destinataire |
+| `RESEND_API_KEY` | non | email réel ; sinon outbox |
 | `DEVIS_EMAIL_FROM` | si Resend | expéditeur vérifié |
-| `TELEGRAM_BOT_TOKEN` | non | alerte staff existante |
-| `TELEGRAM_CHAT_ID` | non | destinataire Telegram |
-| `DEVIS_TOKEN_TTL_DAYS` | non (30) | expiration du jeton de suivi |
-| `DEVIS_MAX_FILES` | non (5) | nombre de pièces |
+| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | non | alerte staff |
+| `DEVIS_TOKEN_TTL_DAYS` | non (30) | jeton de suivi |
+| `DEVIS_SESSION_TTL_DAYS` | non (30) | cookie |
+| `DEVIS_UPLOAD_URL_TTL_SECONDS` | non (600) | URL d'envoi |
+| `DEVIS_DOWNLOAD_URL_TTL_SECONDS` | non (300) | URL de téléchargement |
+| `DEVIS_MAX_FILES` | non (5) | pièces |
 | `DEVIS_MAX_TOTAL_MB` | non (50) | volume cumulé |
-| `DEVIS_RATE_LIMIT_PER_HOUR` | non (5) | limitation par IP/email |
+| `DEVIS_RATE_LIMIT_PER_HOUR` | non (5) | rate-limit |
 
-Les variables Supabase existantes restent inchangées. Aucune clé ne doit être préfixée
-`NEXT_PUBLIC_` sauf l'URL et la clé anon.
+`DEVIS_SESSION_SECRET` ne doit jamais être préfixé `NEXT_PUBLIC_`, loggé ou commité.
 
-## 12. Points à valider avant implémentation
+## 14. Points à valider
 
-1. **Suivi client par jeton** plutôt que par simple référence : accepté ?
-2. **Email** : Resend est-il disponible ? Sinon, l'outbox et l'écran de confirmation
-   suffisent-ils au lancement ?
-3. **Admin minimal** : une liste et une fiche de traitement suffisent pour 2.2, le back-office
-   complet restant au lot 3.3 ?
-4. **Upload** : 5 fichiers / 50 Mo cumulés sont-ils les bonnes limites ?
-5. **Conversion en commande** : bien différée au lot 3.2, sans paiement en 2.2 ?
-6. **Migration 0007** : acceptée pour `suivi_token_hash`, `suivi_token_expire_le` et
-   `contact_snapshot` ?
+1. Migration 0007 avec token, contact snapshot, historique prix, notifications retry,
+   fonctions RPC et index.
+2. Session cookie HMAC + `POST /api/devis/session` (jeton dans le corps, jamais en URL).
+3. Back-office minimal avec Supabase Auth et `app_metadata`.
+4. ZIP accepté uniquement comme source opaque, jamais extrait.
+5. Nettoyage dry-run et prédicats stricts.
+6. Resend optionnel ; outbox visible sans provider.
 
-Après validation, l'implémentation suivra l'ordre : migration 0007 → repositories et
-validation → routes publiques → upload et vérification → notifications → admin minimal →
-tests staging → rapport de résultats.
+Après validation : migration 0007 → RPC/repositories → session et routes publiques →
+upload/vérification → notifications → admin minimal → tests staging → rapport.

@@ -13,7 +13,7 @@
 | 1 | 1.3 | Durcissement sécurité (headers, token, callback, référence, montant) | 1.1 | livré |
 | 1 | 1.4 | Tests + build de référence | 1.2, 1.3 | livré |
 | 2 | 2.1 | Jetons de design, shell public, accueil, boutique, pages familles, mobile | 1.4 | livré |
-| 2 | 2.2 | Devis : formulaire, fichiers, persistance, notification, suivi | 2.1 + décision stockage | à faire (schéma Supabase prêt) |
+| 2 | 2.2 | Devis : formulaire, fichiers, persistance, notification, suivi | 2.1 + décision stockage | codé et testé localement ; migration 0007 non appliquée à distance |
 | 2 | 2.3 | Catalogue imprimé détaillé (formats, papiers, finitions, fichier prêt) | 2.2 | à faire |
 | 2 | 2.4 | SEO, pages légales, accessibilité, analytics | 2.1 | à faire |
 | 3 | 3.1 | Postgres Supabase, migrations, repository, seed | décision Supabase | schéma testé en local, en attente du projet hébergé |
@@ -133,6 +133,11 @@ Supabase n'est pas encore disponible).
 - Suivi interne minimal (statut `NOUVEAU`, `EN_ANALYSE`, `PROPOSE`, `ACCEPTE`, `REFUSE`).
 - Un devis accepté conserve son prix, même si la grille change.
 
+**État** : implémenté dans `docs/devis-lot-2.2.md` : formulaire, API, sessions révocables,
+OTP, upload vérifié, notifications en outbox, back-office `/admin/devis`. La migration 0007
+reste locale jusqu'à autorisation explicite de migration distante. L'antivirus n'est pas
+configuré : les fichiers restent `NON_ANALYSE` et non téléchargeables.
+
 **Critère** : une demande réelle apparaît dans le stockage, l'atelier est notifié, le client
 reçoit une référence ; aucun prix inventé ; test de validation et d'injection.
 
@@ -161,8 +166,9 @@ reçoit une référence ; aucun prix inventé ; test de validation et d'injectio
 
 > Schéma SQL proposé, corrigé et testé : `docs/supabase-architecture.md`, `docs/supabase-securite.md`,
 > `docs/paiements-robustesse.md`, `docs/fichiers-production.md` et `supabase/migrations/`.
-> Les 6 migrations ont des versions uniques et passent `supabase db reset` sur une instance
-> locale vierge. Aucune migration n'est appliquée à un projet Supabase distant.
+> Les migrations ont des versions uniques et passent `supabase db reset` sur une instance
+> locale vierge. Les 0001 → 0006 sont appliquées sur `elembo-staging` ; la 0007 reste locale
+> jusqu'à autorisation explicite.
 
 - Projet Supabase, migrations SQL versionnées (0001 → 0006).
 - Couche repository (`src/server/db/*`) : aucune requête SQL dans les composants.

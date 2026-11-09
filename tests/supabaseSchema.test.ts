@@ -23,15 +23,17 @@ const fichiers = [
   '20261109130004_rls_permissions.sql',
   '20261109130005_storage.sql',
   '20261109130006_seed_reference.sql',
+  '20261109130007_devis_suivi.sql',
 ];
 
 const tables = lire(fichiers[1]);
 const fonctions = lire(fichiers[2]);
 const rls = lire(fichiers[3]);
 const seed = lire(fichiers[5]);
+const migration7 = lire(fichiers[6]);
 
 describe('schéma Supabase', () => {
-  it('les six migrations versionnées existent', () => {
+  it('les sept migrations versionnées existent', () => {
     for (const fichier of fichiers) {
       expect(() => lire(fichier), fichier).not.toThrow();
     }
@@ -118,9 +120,11 @@ describe('schéma Supabase', () => {
       'paiement_evenements',
       'taches_reconciliation',
       'parametres',
+      'devis_sessions',
     ];
     for (const table of attendues) {
-      expect(rls, table).toMatch(new RegExp(`alter table public\\.${table} enable row level security`, 'i'));
+      const source = table === 'devis_sessions' ? migration7 : rls;
+      expect(source, table).toMatch(new RegExp(`alter table public\\.${table} enable row level security`, 'i'));
     }
   });
 
@@ -128,6 +132,17 @@ describe('schéma Supabase', () => {
     expect(rls).toMatch(/revoke all on all tables in schema public from anon, authenticated/i);
     expect(rls).toMatch(/grant all on all tables in schema public to service_role/i);
     expect(rls).not.toMatch(/grant (insert|update|delete)[^;]*to (anon|authenticated)/i);
+  });
+
+  it('le suivi des devis, les sessions et l’analyse des fichiers sont protégés', () => {
+    expect(migration7).toMatch(/suivi_token_hash text/i);
+    expect(migration7).toMatch(/create table public\.devis_sessions/i);
+    expect(migration7).toMatch(/statut_analyse text not null default 'NON_ANALYSE'/i);
+    expect(migration7).toMatch(/security definer/i);
+    expect(migration7).toMatch(/set search_path = pg_catalog, public, auth/i);
+    expect(migration7).toMatch(/revoke all on function .* from public, anon, authenticated/i);
+    expect(migration7).toMatch(/grant execute on function .* to service_role/i);
+    expect(migration7).toMatch(/devis-sessions:/i);
   });
 
   it('le seed ne fabrique ni stock ni prix commercial', () => {

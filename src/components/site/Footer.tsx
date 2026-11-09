@@ -11,8 +11,10 @@ const boutique = [
 
 const atelier = [
   { href: '/entreprises', label: 'Entreprises & organisations' },
+  { href: '/devis', label: 'Demander un devis' },
+  { href: '/devis/suivi', label: 'Suivre mon devis' },
   { href: '/comment-ca-marche', label: 'Comment ça marche' },
-  { href: '/contact', label: 'Contact & devis' },
+  { href: '/contact', label: 'Contact' },
   { href: '/studio', label: 'Studio 2D (outil)' },
 ];
 

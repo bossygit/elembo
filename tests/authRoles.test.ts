@@ -60,7 +60,7 @@ describe('rôles staff', () => {
     for (const route of avecServiceRole) {
       const contenu = readFileSync(route, 'utf8');
       expect(contenu, `${route} doit importer avecGardeRole/exigerRole`).toMatch(
-        /avecGardeRole|exigerRole|roleDepuisClaims/,
+        /avecGardeRole|exigerRole|roleDepuisClaims|garderRoles/,
       );
       expect(contenu, `${route} ne doit pas être un composant client`).not.toMatch(
         /['"]use client['"]/,
@@ -74,7 +74,7 @@ describe('rôles staff', () => {
     for (const route of adminRoutes) {
       const contenu = readFileSync(route, 'utf8');
       expect(contenu, `${route} doit importer avecGardeRole/exigerRole`).toMatch(
-        /avecGardeRole|exigerRole|roleDepuisClaims/,
+        /avecGardeRole|exigerRole|roleDepuisClaims|garderRoles/,
       );
     }
   });

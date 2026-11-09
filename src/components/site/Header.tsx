@@ -11,6 +11,7 @@ const LIENS = [
   { href: '/personnalisation', label: 'Personnalisation' },
   { href: '/impression', label: 'Impression' },
   { href: '/entreprises', label: 'Entreprises' },
+  { href: '/devis', label: 'Devis' },
   { href: '/comment-ca-marche', label: 'Comment ça marche' },
 ];
 

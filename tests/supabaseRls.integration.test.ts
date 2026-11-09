@@ -41,7 +41,7 @@ describe.skipIf(!actif)('RLS Supabase (projet de test)', () => {
   });
 
   it('anon ne lit aucune table commerciale', async () => {
-    for (const table of ['clients', 'commandes', 'devis', 'paiements', 'fichiers_commande']) {
+    for (const table of ['clients', 'commandes', 'devis', 'devis_sessions', 'paiements', 'fichiers_commande', 'notifications', 'journal_audit']) {
       expect(await lignes(`${table}?select=*&limit=1`), table).toHaveLength(0);
     }
   });
@@ -53,6 +53,19 @@ describe.skipIf(!actif)('RLS Supabase (projet de test)', () => {
       body: JSON.stringify({ nom: 'Test RLS', telephone: '060000000' }),
     });
     expect([401, 403]).toContain(r.status);
+  });
+
+  it('anon ne peut pas exécuter les RPC de session de devis', async () => {
+    const r = await fetch(`${URL}/rest/v1/rpc/session_devis_valide`, {
+      method: 'POST',
+      headers: {
+        apikey: ANON,
+        Authorization: `Bearer ${ANON}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_sid_hash: 'x', p_reference: 'x' }),
+    });
+    expect([401, 403, 404]).toContain(r.status);
   });
 
   it('anon ne lit que les produits validés (le seed est en TEST/PROVISOIRE)', async () => {

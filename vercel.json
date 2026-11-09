@@ -6,6 +6,10 @@
     {
       "path": "/api/momo/reconcilier",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/notifications",
+      "schedule": "*/10 * * * *"
     }
   ]
 }

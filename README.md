@@ -35,7 +35,8 @@ production publique.
 
 Le schéma commercial, les relations, la RLS et le plan d'intégration sont décrits dans
 [`docs/supabase-architecture.md`](docs/supabase-architecture.md). Les migrations versionnées
-sont dans `supabase/migrations/` et ne sont pas encore appliquées à un projet distant. Le
+sont dans `supabase/migrations/` : 0001 → 0006 sont appliquées sur `elembo-staging`, la 0007
+(devis) reste locale jusqu'à autorisation explicite. Le
 fichier [`supabase/README.md`](supabase/README.md) décrit la mise en service, les variables et
 les tests RLS.
 
@@ -44,7 +45,8 @@ Sécurité des rôles et opérations `service_role` :
 [`docs/paiements-robustesse.md`](docs/paiements-robustesse.md). Vérification des fichiers et
 conservation : [`docs/fichiers-production.md`](docs/fichiers-production.md). Procédure de
 connexion et de validation sur le projet staging :
-[`docs/supabase-staging.md`](docs/supabase-staging.md).
+[`docs/supabase-staging.md`](docs/supabase-staging.md). Parcours devis, sessions et back-office :
+[`docs/devis-lot-2.2.md`](docs/devis-lot-2.2.md).
 
 Principe : Postgres/Supabase est la référence commerciale ; Redis reste le journal rapide des
 paiements. Le navigateur ne parle pas directement aux tables métier : les écritures passent par
@@ -288,7 +290,7 @@ encaissements réels faits par le tunnel), mais il n'est plus alimenté.
 
 ```bash
 npm install --include=dev   # cette machine omet les devDependencies par défaut (npm config omit=dev)
-npm test                    # vitest — 408 tests passés, 18 ignorés sans projet Supabase de test (studio, impression, tarifs, paiement, dossier, schéma Supabase, RLS, cycle de vie)
+npm test                    # vitest — 421 tests passés, 23 ignorés sans projet Supabase de test (intégrations)
 npm run lint
 npm run build
 npm run dev                 # http://localhost:3000  ·  / (boutique)  ·  /personnalisation (configurateur 3D)  ·  /studio (studio 2D)
@@ -326,8 +328,8 @@ bash scripts/deploy-gh-pages.sh
 
 ## Limites actuelles (état au 9 novembre 2026)
 
-- **Pas encore de boutique publique** : l'accueil est le configurateur 3D. La navigation, le
-  catalogue commercial, l'impression graphique, les devis et le back-office sont planifiés dans
+- **Boutique publique livrée** : vitrine commerciale et pages de devis en place ; le configurateur 3D
+  reste l'outil de personnalisation. La commande native et la production restent planifiées dans
   `docs/plan-implementation.md`.
 - **Prix de test en production** : T-shirts et livraison à 100 FCFA pour les essais de paiement.
   Les tarifs commerciaux (livraison 1 000 / 2 000 FCFA, produits à arbitrer) ne sont pas encore
@@ -337,8 +339,10 @@ bash scripts/deploy-gh-pages.sh
 - **Dossier généré par le navigateur** : après `PAYE`, le client envoie les PNG et la fiche vers
   l'archive privée. S'il ferme la page avant l'envoi, l'atelier ne reçoit rien — la
   régénération serveur est planifiée.
-- **Pas de back-office** : produits, commandes, devis, production, stock, coûts et marges ne sont
-  pas encore administrables.
+- **Back-office minimal** : `/admin/devis` permet de traiter les demandes de devis ; la gestion
+  complète des produits, commandes, production, stock, coûts et marges reste à développer.
+- **Devis** : parcours public, sessions, OTP, upload vérifié et notifications sont implémentés ;
+  voir [`docs/devis-lot-2.2.md`](docs/devis-lot-2.2.md).
 - **Paiement** : MTN MoMo uniquement. Airtel Money n'est pas intégré.
 - **Photos** : les mockups du studio 2D sont des visuels de travail à remplacer par les photos
   réelles de l'atelier.

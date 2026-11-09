@@ -31,6 +31,18 @@ ou `provisoire`, sauf dérogation explicite `MOMO_ALLOW_TEST_PRICES=1`. Pour rou
 dans un environnement de recette, poser aussi `NEXT_PUBLIC_PAIEMENT_TEST=1` — jamais en
 production publique.
 
+## Base de données (cible Supabase)
+
+Le schéma commercial, les relations, la RLS et le plan d'intégration sont décrits dans
+[`docs/supabase-architecture.md`](docs/supabase-architecture.md). Les migrations versionnées
+sont dans `supabase/migrations/` et ne sont pas encore appliquées à un projet distant. Le
+fichier [`supabase/README.md`](supabase/README.md) décrit la mise en service, les variables et
+les tests RLS.
+
+Principe : Postgres/Supabase est la référence commerciale ; Redis reste le journal rapide des
+paiements. Le navigateur ne parle pas directement aux tables métier : les écritures passent par
+les routes serveur, avec `service_role` côté serveur uniquement.
+
 ## Fonctionnement
 
 - **Composition côté navigateur** : le design reste en mémoire (ObjectURL) tant que le client
@@ -269,7 +281,7 @@ encaissements réels faits par le tunnel), mais il n'est plus alimenté.
 
 ```bash
 npm install --include=dev   # cette machine omet les devDependencies par défaut (npm config omit=dev)
-npm test                    # vitest — 371 tests (studio, impression, tarifs, paiement, dossier de production)
+npm test                    # vitest — 380 tests passés, 5 tests RLS ignorés sans projet Supabase de test (studio, impression, tarifs, paiement, dossier, schéma Supabase)
 npm run lint
 npm run build
 npm run dev                 # http://localhost:3000  ·  / (boutique)  ·  /personnalisation (configurateur 3D)  ·  /studio (studio 2D)

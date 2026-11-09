@@ -16,7 +16,7 @@
 | 2 | 2.2 | Devis : formulaire, fichiers, persistance, notification, suivi | 2.1 + décision stockage | à faire (schéma Supabase prêt) |
 | 2 | 2.3 | Catalogue imprimé détaillé (formats, papiers, finitions, fichier prêt) | 2.2 | à faire |
 | 2 | 2.4 | SEO, pages légales, accessibilité, analytics | 2.1 | à faire |
-| 3 | 3.1 | Postgres Supabase, migrations, repository, seed | décision Supabase | schéma SQL livré, en attente du projet |
+| 3 | 3.1 | Postgres Supabase, migrations, repository, seed | décision Supabase | schéma testé en local, en attente du projet hébergé |
 | 3 | 3.2 | Commande serveur : création avant paiement, clients, lignes, fichiers | 3.1 | à faire |
 | 3 | 3.3 | Auth + rôles + back-office (dashboard, commandes, clients, devis) | 3.1 | à faire |
 | 3 | 3.4 | Production : dossiers, étapes, partenaires, BAT, contrôle qualité | 3.2, 3.3 | à faire |
@@ -159,17 +159,22 @@ reçoit une référence ; aucun prix inventé ; test de validation et d'injectio
 
 ### Lot 3.1 — Socle Postgres
 
-> Schéma SQL proposé et parsé : `docs/supabase-architecture.md` et `supabase/migrations/`.
-> Aucune migration n'est appliquée tant que le projet Supabase et ses clés ne sont pas fournis.
+> Schéma SQL proposé, corrigé et testé : `docs/supabase-architecture.md`, `docs/supabase-securite.md`,
+> `docs/paiements-robustesse.md`, `docs/fichiers-production.md` et `supabase/migrations/`.
+> Les 6 migrations ont des versions uniques et passent `supabase db reset` sur une instance
+> locale vierge. Aucune migration n'est appliquée à un projet Supabase distant.
 
 - Projet Supabase, migrations SQL versionnées (0001 → 0006).
 - Couche repository (`src/server/db/*`) : aucune requête SQL dans les composants.
 - Seed des produits et de la grille depuis `tarifs/grille.json`.
 - RLS activée ; service role uniquement côté serveur.
-- Tests : migrations appliquées sur une base de test, contraintes et RLS vérifiées.
+- Tests : 18 tests d'intégration RLS/cycle de vie verts en local, 14 garde-fous de schéma.
+- Garde de rôle `src/server/auth/roles.ts` livré ; routes admin à brancher au lot 3.3.
+- Robustesse paiement : `paiement_evenements` et `taches_reconciliation` livrés ; worker à
+  brancher au lot 3.2.
 
-**Décision requise** : URL + clés Supabase (service role en variable serveur). Sans elles, le lot
-reste non vérifiable et n'est pas annoncé terminé.
+**Décision requise** : URL + clés du projet Supabase de test (service role en variable serveur).
+Sans elles, le lot reste vérifié en local mais pas sur l'hébergement.
 
 ### Lot 3.2 — Commande serveur
 

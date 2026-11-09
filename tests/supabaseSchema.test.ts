@@ -17,12 +17,12 @@ function lire(nom: string): string {
 }
 
 const fichiers = [
-  '20261109130000_0001_extensions_types.sql',
-  '20261109130000_0002_tables.sql',
-  '20261109130000_0003_fonctions_index.sql',
-  '20261109130000_0004_rls_permissions.sql',
-  '20261109130000_0005_storage.sql',
-  '20261109130000_0006_seed_reference.sql',
+  '20261109130001_extensions_types.sql',
+  '20261109130002_tables.sql',
+  '20261109130003_fonctions_index.sql',
+  '20261109130004_rls_permissions.sql',
+  '20261109130005_storage.sql',
+  '20261109130006_seed_reference.sql',
 ];
 
 const tables = lire(fichiers[1]);
@@ -63,6 +63,38 @@ describe('schéma Supabase', () => {
     expect(fonctions).toMatch(/prix du devis accepté .* est verrouillé/i);
   });
 
+  it('un prix VALIDE exige un acteur et une date de validation explicites', () => {
+    expect(tables).toMatch(/prix_valide_par uuid references auth\.users/i);
+    expect(tables).toMatch(/prix_valide_par_email text/i);
+    expect(tables).toMatch(/prix_valide_le timestamptz/i);
+    expect(tables).toMatch(/statut_prix <> 'VALIDE'[\s\S]*prix_valide_par_email is not null/i);
+  });
+
+  it('le paiement confirmé crée une tâche de production durable', () => {
+    expect(fonctions).toMatch(/insert into public\.travaux_production/i);
+    expect(fonctions).toMatch(/'INITIALISATION'/);
+    expect(fonctions).toMatch(/on conflict \(commande_id, etape\) do nothing/i);
+  });
+
+  it('les fichiers portent une vérification et une date d’expiration', () => {
+    expect(tables).toMatch(/verifie boolean not null default false/i);
+    expect(tables).toMatch(/verifie_le timestamptz/i);
+    expect(tables).toMatch(/expire_le timestamptz/i);
+  });
+
+  it('le design snapshot est un objet JSON conservé pour la régénération', () => {
+    expect(tables).toMatch(/design_snapshot jsonb not null default '\{\}'/i);
+    expect(tables).toMatch(/jsonb_typeof\(design_snapshot\) = 'object'/i);
+  });
+
+  it('les événements de paiement et les tâches de reprise sont journalisés', () => {
+    expect(tables).toMatch(/create table public\.paiement_evenements/i);
+    expect(tables).toMatch(/cle_evenement text not null unique/i);
+    expect(tables).toMatch(/occurrences integer/i);
+    expect(tables).toMatch(/create table public\.taches_reconciliation/i);
+    expect(tables).toMatch(/prochaine_tentative timestamptz/i);
+  });
+
   it('la RLS est activée sur toutes les tables métier', () => {
     const attendues = [
       'clients',
@@ -83,6 +115,8 @@ describe('schéma Supabase', () => {
       'depenses',
       'journal_audit',
       'notifications',
+      'paiement_evenements',
+      'taches_reconciliation',
       'parametres',
     ];
     for (const table of attendues) {

@@ -112,6 +112,8 @@ alter table public.lignes_budget enable row level security;
 alter table public.depenses enable row level security;
 alter table public.journal_audit enable row level security;
 alter table public.notifications enable row level security;
+alter table public.paiement_evenements enable row level security;
+alter table public.taches_reconciliation enable row level security;
 alter table public.parametres enable row level security;
 
 /* --------------------------------------------------------------- clients ----- */
@@ -235,6 +237,14 @@ create policy notifications_select on public.notifications
   for select to authenticated
   using (public.has_role(array['admin', 'commercial']));
 
+create policy paiement_evenements_select on public.paiement_evenements
+  for select to authenticated
+  using (public.has_role(array['admin', 'finance']));
+
+create policy taches_reconciliation_select on public.taches_reconciliation
+  for select to authenticated
+  using (public.has_role(array['admin', 'finance']));
+
 /* -------------------------------------------------------------- paramètres --- */
 
 create policy parametres_select_public on public.parametres
@@ -274,6 +284,8 @@ grant select on public.lignes_budget to authenticated;
 grant select on public.depenses to authenticated;
 grant select on public.journal_audit to authenticated;
 grant select on public.notifications to authenticated;
+grant select on public.paiement_evenements to authenticated;
+grant select on public.taches_reconciliation to authenticated;
 grant select on public.parametres to authenticated;
 
 -- Écritures : service_role uniquement. Aucun INSERT/UPDATE/DELETE n'est accordé au navigateur.

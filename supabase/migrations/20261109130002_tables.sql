@@ -39,10 +39,21 @@ create table public.produits (
   delai_jours integer check (delai_jours is null or delai_jours >= 0),
   quantite_min integer not null default 1 check (quantite_min >= 1),
   metadata jsonb not null default '{}'::jsonb,
+  prix_valide_par uuid references auth.users (id) on delete set null,
+  prix_valide_par_email text,
+  prix_valide_le timestamptz,
   cree_le timestamptz not null default now(),
   maj_le timestamptz not null default now(),
   constraint produits_prix_valide_check
-    check (statut_prix <> 'VALIDE' or prix_fcfa is not null)
+    check (
+      statut_prix <> 'VALIDE'
+      or (
+        prix_fcfa is not null
+        and prix_valide_par_email is not null
+        and char_length(trim(prix_valide_par_email)) between 3 and 254
+        and prix_valide_le is not null
+      )
+    )
 );
 
 comment on table public.produits is
@@ -107,6 +118,9 @@ create table public.fichiers_devis (
   type_fichier public.type_fichier not null default 'SOURCE',
   fournisseur public.fournisseur_stockage not null default 'SUPABASE',
   checksum text,
+  verifie boolean not null default false,
+  verifie_le timestamptz,
+  expire_le timestamptz,
   cree_le timestamptz not null default now(),
   unique (devis_id, nom)
 );
@@ -139,6 +153,8 @@ create table public.commandes (
   annulee_le timestamptz,
   cree_le timestamptz not null default now(),
   maj_le timestamptz not null default now(),
+  constraint commandes_design_snapshot_object
+    check (jsonb_typeof(design_snapshot) = 'object'),
   constraint commandes_paiement_coherent
     check (statut_paiement <> 'PAYE' or paye_le is not null)
 );
@@ -171,6 +187,8 @@ create table public.fichiers_commande (
   fournisseur public.fournisseur_stockage not null default 'SUPABASE',
   checksum text,
   verifie boolean not null default false,
+  verifie_le timestamptz,
+  expire_le timestamptz,
   cree_le timestamptz not null default now(),
   unique (commande_id, nom)
 );
@@ -313,6 +331,49 @@ create table public.notifications (
   cree_le timestamptz not null default now(),
   maj_le timestamptz not null default now()
 );
+
+create table public.paiement_evenements (
+  id bigserial primary key,
+  reference_id uuid not null,
+  commande_id uuid references public.commandes (id) on delete set null,
+  source text not null check (source in ('CALLBACK', 'POLL', 'RECONCILIATION', 'MANUEL')),
+  statut_recu text,
+  cle_evenement text not null unique,
+  payload jsonb not null default '{}'::jsonb,
+  occurrences integer not null default 1 check (occurrences >= 1),
+  traite boolean not null default false,
+  traite_le timestamptz,
+  erreur text,
+  premier_recu_le timestamptz not null default now(),
+  dernier_recu_le timestamptz not null default now()
+);
+
+comment on table public.paiement_evenements is
+  'Journal durable des callbacks et vérifications MTN. Un doublon incrémente occurrences sans être retraité.';
+
+create table public.taches_reconciliation (
+  id uuid primary key default gen_random_uuid(),
+  type text not null check (type in (
+    'PAIEMENT_PENDING',
+    'PAIEMENT_SANS_DOSSIER',
+    'PRODUCTION_SANS_TACHE',
+    'NOTIFICATION_ECHEC',
+    'FICHIER_ORPHELIN'
+  )),
+  reference_id uuid,
+  commande_id uuid references public.commandes (id) on delete cascade,
+  statut text not null default 'A_FAIRE' check (statut in ('A_FAIRE', 'EN_COURS', 'TERMINE', 'ECHEC', 'ANNULE')),
+  tentatives integer not null default 0 check (tentatives >= 0),
+  prochaine_tentative timestamptz not null default now(),
+  derniere_erreur text,
+  metadata jsonb not null default '{}'::jsonb,
+  cree_le timestamptz not null default now(),
+  maj_le timestamptz not null default now(),
+  unique nulls not distinct (type, reference_id, commande_id)
+);
+
+comment on table public.taches_reconciliation is
+  'File durable de reprise : paiement en attente, paiement sans dossier, production sans tâche, notification échouée.';
 
 create table public.parametres (
   cle text primary key,

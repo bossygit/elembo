@@ -30,6 +30,8 @@ create trigger travaux_production_maj_le before update on public.travaux_product
   for each row execute function public.set_maj_le();
 create trigger notifications_maj_le before update on public.notifications
   for each row execute function public.set_maj_le();
+create trigger taches_reconciliation_maj_le before update on public.taches_reconciliation
+  for each row execute function public.set_maj_le();
 create trigger parametres_maj_le before update on public.parametres
   for each row execute function public.set_maj_le();
 
@@ -186,6 +188,14 @@ begin
            end
      where id = new.commande_id
        and statut_paiement <> 'PAYE';
+
+    -- Même si le serveur tombe juste après la confirmation MTN, une tâche de production
+    -- existe déjà. L'atelier ne dépend pas d'un appel applicatif ultérieur.
+    insert into public.travaux_production
+      (commande_id, etape, statut, interne, instructions)
+    values
+      (new.commande_id, 'INITIALISATION', 'A_FAIRE', true, 'Créée automatiquement après paiement confirmé')
+    on conflict (commande_id, etape) do nothing;
   elsif new.statut = 'ANOMALIE' then
     update public.commandes
        set statut_paiement = 'ANOMALIE'
@@ -292,12 +302,21 @@ create index commandes_cree_le_idx on public.commandes (cree_le desc);
 create index lignes_commande_commande_idx on public.lignes_commande (commande_id);
 create index lignes_commande_produit_idx on public.lignes_commande (produit_id);
 create index fichiers_commande_commande_idx on public.fichiers_commande (commande_id);
+create index fichiers_commande_expire_idx on public.fichiers_commande (expire_le) where expire_le is not null;
+create index fichiers_devis_expire_idx on public.fichiers_devis (expire_le) where expire_le is not null;
+
+create index paiement_evenements_reference_idx on public.paiement_evenements (reference_id, premier_recu_le desc);
+create index paiement_evenements_traite_idx on public.paiement_evenements (traite) where not traite;
+create index taches_reconciliation_a_faire_idx on public.taches_reconciliation (statut, prochaine_tentative)
+  where statut in ('A_FAIRE', 'ECHEC');
+create index taches_reconciliation_commande_idx on public.taches_reconciliation (commande_id);
 
 create index paiements_commande_idx on public.paiements (commande_id);
 create index paiements_statut_idx on public.paiements (statut);
 create index paiements_cree_le_idx on public.paiements (cree_le desc);
 
 create index travaux_production_commande_idx on public.travaux_production (commande_id);
+create unique index travaux_production_etape_unique on public.travaux_production (commande_id, etape);
 create index travaux_production_partenaire_idx on public.travaux_production (partenaire_id);
 create index travaux_production_statut_idx on public.travaux_production (statut);
 create index travaux_production_date_idx on public.travaux_production (date_prevue);

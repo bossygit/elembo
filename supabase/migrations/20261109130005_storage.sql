@@ -29,9 +29,7 @@ on conflict (id) do update
       file_size_limit = excluded.file_size_limit,
       allowed_mime_types = excluded.allowed_mime_types;
 
-alter table storage.objects enable row level security;
-
--- Aucune politique anon/authenticated : l'accès direct est refusé.
--- Le service_role contourne la RLS et reste le seul chemin d'écriture/lecture.
-comment on table storage.objects is
-  'Accès direct refusé à anon/authenticated. Les buckets devis/production sont servis par URL signée côté serveur.';
+-- La RLS de `storage.objects` est déjà activée et gérée par Supabase ; le rôle de migration
+-- n'en est pas propriétaire, donc on ne la réactive pas ici. Aucune politique n'est créée pour
+-- `anon` / `authenticated` : l'accès direct reste refusé par défaut. Le service_role contourne
+-- la RLS et reste le seul chemin d'écriture/lecture.

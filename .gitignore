@@ -38,6 +38,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# supabase local (état de la CLI, jamais versionné)
+supabase/.branches/
+supabase/.temp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

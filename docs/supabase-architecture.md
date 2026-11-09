@@ -1,8 +1,9 @@
 # Elembo — architecture Supabase et cycle commande-paiement-production
 
-> Proposition à valider avant exécution des migrations et avant tout code applicatif Supabase.
-> Les fichiers SQL sont dans `supabase/migrations/` ; ils ne sont appliqués à aucun projet
-> distant à ce stade. Aucune donnée de production n'a été touchée.
+> Revue technique du 9 novembre 2026. Les migrations ont des identifiants uniques et ont été
+> appliquées avec succès sur une instance Supabase **locale vierge** (PostgreSQL 15.19,
+> Supabase CLI 3.0.0), y compris après un `supabase db reset`. Aucun projet Supabase distant
+> n'a été modifié ; aucune donnée de production n'a été touchée.
 
 ## 1. Décision et principes
 
@@ -28,12 +29,12 @@ Quatre règles structurent l'ensemble :
 
 | Fichier | Contenu |
 |---|---|
-| `20261109130000_0001_extensions_types.sql` | extension `pgcrypto`, énumérations métier |
-| `20261109130000_0002_tables.sql` | tables, clés étrangères, contraintes de cohérence |
-| `20261109130000_0003_fonctions_index.sql` | `updated_at`, machine à états commande/devis, synchronisation paiement, index |
-| `20261109130000_0004_rls_permissions.sql` | helpers de rôle, RLS, permissions `anon` / `authenticated` / `service_role` |
-| `20261109130000_0005_storage.sql` | buckets privés `devis` et `production`, refus d'accès direct |
-| `20261109130000_0006_seed_reference.sql` | produits, variantes, budget 500 000 FCFA, paramètres |
+| `20261109130001_extensions_types.sql` | extension `pgcrypto`, énumérations métier |
+| `20261109130002_tables.sql` | tables, clés étrangères, contraintes de cohérence |
+| `20261109130003_fonctions_index.sql` | `updated_at`, machine à états commande/devis, synchronisation paiement, index |
+| `20261109130004_rls_permissions.sql` | helpers de rôle, RLS, permissions `anon` / `authenticated` / `service_role` |
+| `20261109130005_storage.sql` | buckets privés `devis` et `production`, refus d'accès direct |
+| `20261109130006_seed_reference.sql` | produits, variantes, budget 500 000 FCFA, paramètres |
 
 Application prévue :
 
@@ -45,6 +46,21 @@ supabase db push
 
 Ou, sans CLI, exécuter les fichiers dans l'ordre dans l'éditeur SQL Supabase. La CLI est
 préférable : elle enregistre l'historique des migrations.
+
+### Ordre vérifié
+
+| Version | Nom | État local |
+|---|---|---|
+| `20261109130001` | `extensions_types` | appliquée |
+| `20261109130002` | `tables` | appliquée |
+| `20261109130003` | `fonctions_index` | appliquée |
+| `20261109130004` | `rls_permissions` | appliquée |
+| `20261109130005` | `storage` | appliquée |
+| `20261109130006` | `seed_reference` | appliquée |
+
+`supabase migration list` confirme les six versions identiques en local et distant (local) ;
+`supabase db reset` reconstruit la base de zéro sans erreur, applique les six migrations puis
+`supabase/seed.sql` (no-op documentaire).
 
 ## 3. Relations entre les tables
 
@@ -72,6 +88,43 @@ lignes_budget ──< depenses
 
 auth.users ──< journal_audit
 commandes / devis ──< notifications (entite, entite_id)
+
+commandes ──< paiement_evenements (reference_id, commande_id)
+commandes ──< taches_reconciliation (commande_id)
+```
+
+Tables de robustesse ajoutées :
+
+- `paiement_evenements` : journal durable des callbacks/vérifications MTN, doublons comptés
+  sans retraitement.
+- `taches_reconciliation` : file de reprise (paiement en attente, paiement sans dossier,
+  production sans tâche, notification échouée, fichier orphelin).
+
+### Diagramme ER actualisé
+
+```mermaid
+erDiagram
+  auth_users ||--o| clients : "compte client"
+  clients ||--o{ devis : "demande"
+  clients ||--o{ commandes : "commande"
+  devis ||--o| commandes : "converti en"
+  devis ||--o{ fichiers_devis : "pièces"
+  commandes ||--|{ lignes_commande : "lignes"
+  produits ||--o{ variantes_produit : "décline"
+  produits ||--o{ lignes_commande : "vendu"
+  variantes_produit ||--o{ lignes_commande : "variante"
+  commandes ||--o{ fichiers_commande : "dossier"
+  commandes ||--o{ paiements : "tente"
+  commandes ||--o{ travaux_production : "fabrique"
+  partenaires ||--o{ travaux_production : "sous-traite"
+  commandes ||--o{ historique_statuts_commande : "trace"
+  commandes ||--o{ paiement_evenements : "journalise"
+  commandes ||--o{ taches_reconciliation : "reprend"
+  produits ||--o{ mouvements_stock : "mouvemente"
+  lignes_budget ||--o{ depenses : "consomme"
+  auth_users ||--o{ journal_audit : "agit"
+  commandes ||--o{ notifications : "notifie"
+  devis ||--o{ notifications : "notifie"
 ```
 
 Cardinalités qui comptent :
@@ -93,7 +146,7 @@ Cardinalités qui comptent :
 
 | Table | Rôle | Points de vigilance |
 |---|---|---|
-| `produits` | catalogue commercial | `statut_prix` `TEST`/`PROVISOIRE`/`VALIDE` ; prix `VALIDE` obligatoire ; `disponible` distinct de `actif` |
+| `produits` | catalogue commercial | `statut_prix` `TEST`/`PROVISOIRE`/`VALIDE` ; `VALIDE` exige `prix_fcfa`, `prix_valide_par_email` et `prix_valide_le` ; `disponible` distinct de `actif` |
 | `variantes_produit` | tailles, couleurs, SKU, stock | stock initial à 0 et `stock_a_confirmer` dans le seed ; aucun stock inventé |
 | `partenaires` | DTF, finitions, montage, livraison | tarifs, délais, historique via `travaux_production` |
 | `parametres` | livraison, WhatsApp, budget, état du paiement | les clés publiques sont explicitement marquées `est_public` |
@@ -104,7 +157,7 @@ Cardinalités qui comptent :
 |---|---|---|
 | `clients` | particulier ou entreprise | `user_id` optionnel ; email unique si présent ; téléphone normalisé |
 | `devis` | demande de prestation | référence `DEV-…` ; statut `NOUVEAU` → `EN_ANALYSE` → `PROPOSE` → `ACCEPTE`/`REFUSE`/`EXPIRE` ; un devis `ACCEPTE` force `prix_valide` et `prix_verrouille` |
-| `fichiers_devis` | visuels et cahiers des charges | bucket `devis`, types bornés, métadonnées seulement en base |
+| `fichiers_devis` | visuels et cahiers des charges | bucket `devis`, types bornés, `verifie`/`verifie_le`, `expire_le` ; métadonnées seulement en base |
 
 ### Commandes et paiements
 
@@ -112,8 +165,10 @@ Cardinalités qui comptent :
 |---|---|---|
 | `commandes` | objet central, créé avant paiement | `reference` unique `ELB-…` ; `statut`, `statut_paiement`, `statut_production`, `statut_livraison` séparés ; `design_snapshot` conservé pour régénération future |
 | `lignes_commande` | produit, variante, quantité, prix, coût | prix et coût figés ; options JSON (format, support, bord, texte, couleur) |
-| `fichiers_commande` | dossier de production | fichiers déposés avant paiement ; `verifie` passé à true après contrôle serveur |
+| `fichiers_commande` | dossier de production | déposés avant paiement ; `verifie` passé à true après contrôle binaire serveur ; `expire_le` pour la conservation |
 | `paiements` | transaction MTN/Airtel | `reference_id` UUID unique, `commande_id NOT NULL`, montant, statut, idempotence, payload brut |
+| `paiement_evenements` | journal des callbacks/vérifications | `cle_evenement` unique, doublons comptés, `traite`, payload brut |
+| `taches_reconciliation` | file de reprise | type, tentatives, prochaine tentative, dernière erreur |
 | `historique_statuts_commande` | timeline | écrite par trigger à chaque transition |
 
 ### Production, stock, finances, audit
@@ -170,6 +225,22 @@ Règles appliquées par la base :
 - `ACCEPTE` verrouille le prix (`prix_verrouille = true`) : une modification ultérieure de la
   grille ne change pas le devis accepté.
 
+### Tarification
+
+`statut_prix` vaut `TEST`, `PROVISOIRE` ou `VALIDE`.
+
+- Seul `VALIDE` est facturable en ligne. `TEST` et `PROVISOIRE` restent visibles comme
+  « Prix sur demande » ou passent par un devis.
+- La contrainte `produits_prix_valide_check` exige, pour `VALIDE`, un `prix_fcfa`, un
+  `prix_valide_par_email` et un `prix_valide_le`. Une validation est donc un acte
+  explicite et tracé, jamais une valeur par défaut.
+- Aucun code ne doit passer automatiquement un prix de `TEST`/`PROVISOIRE` à `VALIDE` ; seule
+  une action admin documentée le fait.
+- Les frais de livraison suivent la même règle : la valeur `TEST` actuelle (100 FCFA) n'est pas
+  la référence commerciale (1 000 / 2 000 FCFA). Ces montants seront configurés puis validés
+  avant activation.
+- Un devis accepté conserve son prix même si la grille change.
+
 ## 6. RLS et permissions
 
 ### Modèle d'accès
@@ -199,6 +270,8 @@ directement.
 | `depenses` / `lignes_budget` | oui | non | non | oui | non |
 | `journal_audit` | oui | non | non | oui | non |
 | `notifications` | oui | oui | non | non | non |
+| `paiement_evenements` | oui | non | non | oui | non |
+| `taches_reconciliation` | oui | non | non | oui | non |
 
 Les écritures sont réservées à `service_role`. Les routes serveur appliquent en plus les règles
 métier : un commercial ne peut pas modifier les dépenses, un atelier ne peut pas changer un
@@ -211,6 +284,18 @@ montant, un finance ne peut pas changer un statut de production.
 - `public.has_role(text[])`, `public.is_staff()`.
 - `public.commande_accessible(uuid)` et `public.devis_accessible(uuid)` évitent les récursions
   RLS pour les tables enfants.
+
+### `app_metadata` et contournement de la RLS
+
+- Le rôle staff vit dans `app_metadata`, que l'utilisateur ne peut pas modifier. Un test réel
+  tente une élévation `commercial → admin` via `PUT /auth/v1/user` : le rôle reste `commercial`.
+- `user_metadata` est ignoré par les policies et par `src/server/auth/roles.ts`.
+- Les opérations qui utilisent `service_role` (écriture client/devis/commande/paiement,
+  production, stock, dépenses, notifications, lectures admin) sont listées avec leur contrôle
+  applicatif dans [`supabase-securite.md`](supabase-securite.md).
+- Le garde `exigerRole()` est livré ; aucune route n'utilise encore `service_role`. Un test
+  statique refuse une route qui mentionnerait `service_role` sans garde.
+- Résultats des tests croisés clients/employés : [`supabase-securite.md`](supabase-securite.md).
 
 ## 7. Stockage des fichiers
 
@@ -229,6 +314,9 @@ Aucune politique `anon` ou `authenticated` : l'accès direct est refusé. Le ser
 Le fichier ne traverse jamais une fonction Vercel (limite 4,5 Mo) : le navigateur envoie
 directement à Supabase Storage avec l'URL signée, puis le serveur enregistre les métadonnées et
 vérifie l'objet.
+
+Vérification réelle (signature binaire, taille, SHA-256), URL signées à durée limitée,
+conservation et `design_snapshot` : [`fichiers-production.md`](fichiers-production.md).
 
 Les anciens dossiers de production restent dans Vercel Blob (`fournisseur = 'VERCEL_BLOB'`) ;
 les nouveaux utilisent Supabase Storage (`fournisseur = 'SUPABASE'`). La colonne
@@ -299,14 +387,19 @@ Aucune commande payée ne peut donc rester sans dossier par fermeture d'onglet.
 
 ```
 callback MTN ou polling /api/momo/statut
+  → journalise l'événement (paiement_evenements, doublons comptés)
   → vérifie le statut auprès de MTN
   → compare le montant au montant de la commande
   → UPDATE paiements SET statut = 'PAYE'
       → trigger : commandes.statut_paiement = 'PAYE', paye_le = now()
       → trigger : commandes.statut = 'PAYEE' si elle était EN_ATTENTE_DE_PAIEMENT
-  → INSERT travaux_production (étape initiale A_FAIRE)
+      → trigger : INSERT travaux_production (INITIALISATION, A_FAIRE)
   → INSERT notifications (atelier)
 ```
+
+La tâche `INITIALISATION` est créée **dans la même transaction** que le paiement : même si le
+serveur tombe juste après, l'atelier a une tâche. Le détail des callbacks dupliqués/tardifs, des
+pannes Supabase et de la reprise est dans [`paiements-robustesse.md`](paiements-robustesse.md).
 
 Idempotence :
 
@@ -387,35 +480,43 @@ Aucun composant React n'exécute de SQL. Les repositories sont testables avec un
 | 3.4 | production, partenaires, BAT, régénération serveur | 3.2b, 3.3 |
 | 4.x | coûts, dépenses, marges, stock, budget, rapports | 3.x |
 
-## 12. Tests prévus
+## 12. Tests exécutés
 
-### Base et RLS
+### Base et RLS (instance locale vierge)
 
-- migrations appliquées sur une base Supabase de test ;
+- `supabase db reset` : 6 migrations appliquées, aucune erreur ;
+- `supabase migration list` : versions `20261109130001` → `20261109130006` alignées ;
 - `anon` ne lit pas `clients`, `commandes`, `devis`, `paiements` ;
 - `anon` lit uniquement les produits `VALIDE` ;
-- `commercial` lit les devis et commandes, pas les dépenses ;
-- `atelier` lit les commandes et la production, pas les paiements ;
-- `finance` lit paiements/dépenses, pas les fichiers clients ;
-- `service_role` écrit ; `authenticated` ne peut pas écrire directement ;
-- un client authentifié ne lit que ses propres commandes/devis.
+- `commercial` lit les commandes, pas les paiements/dépenses ;
+- `atelier` lit les commandes et la production, pas les paiements/dépenses ;
+- `finance` lit paiements/dépenses, pas les notifications ;
+- `admin` lit paiements/dépenses/journal d'audit ;
+- `authenticated` ne peut pas écrire directement ;
+- client A ne lit pas les commandes de client B ;
+- `app_metadata` ne peut pas être élevé par l'utilisateur.
+
+Résultat : `tests/supabaseRls.integration.test.ts` (5) +
+`tests/supabaseLifecycle.integration.test.ts` (13) = **18 tests verts** sur base locale.
+`tests/supabaseSchema.test.ts` ajoute 14 garde-fous statiques. Total Supabase : **32 tests**.
 
 ### Domaine
 
-- création de commande avant paiement, montant recalculé ;
-- paiement sans `commande_id` refusé ;
-- double paiement `PAYE` refusé par l'index unique ;
-- transition `EN_ATTENTE_DE_PAIEMENT → EN_PRODUCTION` refusée ;
+- paiement d'un montant différent du total refusé ;
 - `PAYEE` sans paiement refusé ;
+- un seul paiement `PAYE` par commande ;
+- `PAYE` crée `travaux_production INITIALISATION` ;
+- transition `PAYEE → EN_PRODUCTION` refusée ;
 - devis `ACCEPTE` sans montant refusé ;
-- devis accepté conserve son prix après changement de grille ;
-- upload de fichier hors type/taille refusé ;
-- paiement `PAYE` sans dossier → alerte, pas de production silencieuse.
+- prix `VALIDE` exige un acteur et une date de validation ;
+- upload hors type/taille : règles livrées, tests d'intégration au lot 3.2b.
 
-### Recette
+### Recette globale
 
-- `npm test`, `npm run lint`, `npm run build` ;
-- tests d'intégration Supabase avec `SUPABASE_TEST_URL` ;
+- `npm test` : **399 tests passés, 18 ignorés** sans projet Supabase de test ;
+- avec `SUPABASE_TEST_*` : **417 tests passés, 0 ignorés** ;
+- `npm run lint` : 0 erreur, 2 avertissements préexistants ;
+- `npm run build` : OK, Next.js 16.3.6 ;
 - aucun paiement réel, aucune clé de production modifiée.
 
 ## 13. Décisions à valider
@@ -432,10 +533,19 @@ Aucun composant React n'exécute de SQL. Les repositories sont testables avec un
 6. **Prix commerciaux** : nécessaires pour ouvrir le paiement en ligne ; sans eux, le tunnel
    reste fermé et les devis prennent le relais.
 
-## 14. Ce qui n'est pas encore fait
+## 14. État réel après la revue
 
-- Aucune migration appliquée : le projet Supabase et ses clés ne sont pas encore fournis.
+- Migrations appliquées et testées sur une instance **locale** ; aucun projet Supabase hébergé
+  n'est encore lié, aucune migration distante exécutée.
 - Aucun code applicatif Supabase (client, repositories, routes) : il dépend de la validation du
   schéma et de l'accès au projet.
-- Aucun test RLS exécuté : ils le seront sur une base de test, pas sur la production.
-- Aucune donnée commerciale inventée : le seed reprend la grille existante et le budget validé.
+- Tests RLS et cycle de vie exécutés en local ; ils doivent être rejoués sur le projet de test
+  hébergé avant toute mise en production.
+- Vérification binaire des fichiers, URL signées et politique de conservation : règles et
+  colonnes livrées, routes non encore branchées (lot 3.2b).
+- `paiement_evenements` et `taches_reconciliation` existent ; le worker de réconciliation reste
+  à brancher au lot 3.2.
+- Aucun prix `VALIDE` dans le seed : les produits restent `TEST`/`PROVISOIRE`, le paiement en
+  ligne reste fermé. Aucune donnée commerciale inventée.
+- Aucune fonctionnalité existante supprimée ; la vitrine et le paiement MTN de production n'ont
+  pas été modifiés.

@@ -1,7 +1,8 @@
 # Supabase — mise en service d'Elembo
 
 Ce dossier contient les migrations versionnées et la configuration locale. **Aucune migration
-n'a encore été appliquée à un projet distant.** La production actuelle n'est pas touchée.
+n'a encore été appliquée à un projet distant.** La production actuelle n'est pas touchée. Les
+migrations ont été testées sur une instance Supabase locale vierge, y compris `db reset`.
 
 ## 1. Créer le projet
 
@@ -29,6 +30,17 @@ un log ou une réponse HTTP.
 
 ## 3. Appliquer les migrations
 
+Les six migrations ont des versions uniques :
+
+```
+20261109130001_extensions_types.sql
+20261109130002_tables.sql
+20261109130003_fonctions_index.sql
+20261109130004_rls_permissions.sql
+20261109130005_storage.sql
+20261109130006_seed_reference.sql
+```
+
 Avec la CLI Supabase :
 
 ```bash
@@ -39,6 +51,14 @@ supabase db push
 ```
 
 Sans CLI : exécuter les fichiers de `supabase/migrations/` dans l'ordre, dans l'éditeur SQL.
+
+Vérification locale complète (Docker requis) :
+
+```bash
+supabase start
+supabase db reset       # reconstruit la base et applique 0001 → 0006
+supabase migration list
+```
 
 Vérification minimale :
 
@@ -57,10 +77,18 @@ Contre un projet de **test** uniquement :
 ```bash
 SUPABASE_TEST_URL=https://<projet-test>.supabase.co \
 SUPABASE_TEST_ANON_KEY=<anon-test> \
-npm test -- supabaseRls
+SUPABASE_TEST_SERVICE_ROLE_KEY=<service-role-test> \
+npm test -- supabase
 ```
 
-Sans ces variables, la suite est ignorée : elle ne prétend pas avoir vérifié la RLS.
+La suite `tests/supabaseRls.integration.test.ts` vérifie `anon` et les lectures de base ;
+`tests/supabaseLifecycle.integration.test.ts` crée des clients/employés de test et couvre les
+accès croisés, le rôle `app_metadata`, le paiement, la production et les transitions.
+`SUPABASE_TEST_SERVICE_ROLE_KEY` est nécessaire pour créer ces comptes ; elle ne doit jamais
+être commitée ni utilisée contre la production.
+
+Sans ces variables, les suites d'intégration sont ignorées : elles ne prétendent pas avoir
+vérifié la RLS. Résultat local de la revue : 18 tests d'intégration verts sur 18.
 
 ## 5. Comptes staff
 

@@ -1,0 +1,6 @@
+-- Elembo — seed local.
+--
+-- Le seed de référence (produits, variantes, budget, paramètres) est volontairement dans
+-- `migrations/20261109130006_seed_reference.sql` pour qu'il soit appliqué de la même manière
+-- en local et sur un projet hébergé. Ce fichier existe pour que `supabase db reset` ne signale
+-- pas l'absence de `supabase/seed.sql`.

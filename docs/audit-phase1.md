@@ -318,7 +318,7 @@ additif.
 
 | Vérification | Résultat |
 |---|---|
-| `npm test` | **35 fichiers, 380 tests verts + 5 tests RLS ignorés** (projet Supabase de test non fourni) |
+| `npm test` | **38 fichiers passés + 2 suites ignorées, 399 tests verts + 18 tests d’intégration ignorés** (projet Supabase de test non fourni) |
 | `npm run lint` | 0 erreur, 2 avertissements préexistants (`TableauPanel.tsx`) |
 | `npm run build` | build Next.js 16.3.6 OK, 15 pages statiques + routes API |
 | Routes publiques | `/`, `/boutique`, `/personnalisation`, `/impression`, `/entreprises`, `/comment-ca-marche`, `/contact`, `/tableau`, `/studio` → `200` |

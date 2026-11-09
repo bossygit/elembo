@@ -39,6 +39,11 @@ sont dans `supabase/migrations/` et ne sont pas encore appliquées à un projet 
 fichier [`supabase/README.md`](supabase/README.md) décrit la mise en service, les variables et
 les tests RLS.
 
+Sécurité des rôles et opérations `service_role` :
+[`docs/supabase-securite.md`](docs/supabase-securite.md). Robustesse des paiements :
+[`docs/paiements-robustesse.md`](docs/paiements-robustesse.md). Vérification des fichiers et
+conservation : [`docs/fichiers-production.md`](docs/fichiers-production.md).
+
 Principe : Postgres/Supabase est la référence commerciale ; Redis reste le journal rapide des
 paiements. Le navigateur ne parle pas directement aux tables métier : les écritures passent par
 les routes serveur, avec `service_role` côté serveur uniquement.
@@ -281,7 +286,7 @@ encaissements réels faits par le tunnel), mais il n'est plus alimenté.
 
 ```bash
 npm install --include=dev   # cette machine omet les devDependencies par défaut (npm config omit=dev)
-npm test                    # vitest — 380 tests passés, 5 tests RLS ignorés sans projet Supabase de test (studio, impression, tarifs, paiement, dossier, schéma Supabase)
+npm test                    # vitest — 399 tests passés, 18 ignorés sans projet Supabase de test (studio, impression, tarifs, paiement, dossier, schéma Supabase, RLS, cycle de vie)
 npm run lint
 npm run build
 npm run dev                 # http://localhost:3000  ·  / (boutique)  ·  /personnalisation (configurateur 3D)  ·  /studio (studio 2D)

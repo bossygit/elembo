@@ -79,6 +79,21 @@ describe('rôles staff', () => {
     }
   });
 
+  it('le nettoyage des tests ne supprime que par identifiants', () => {
+    const contenu = readFileSync(
+      join(process.cwd(), 'tests/supabaseLifecycle.integration.test.ts'),
+      'utf8',
+    );
+    const filtres = [...contenu.matchAll(/service\(`([^`]+)`,\s*\{\s*method:\s*'DELETE'/g)].map(
+      (m) => m[1],
+    );
+    expect(filtres.length).toBeGreaterThan(0);
+    for (const filtre of filtres) {
+      expect(filtre, filtre).toMatch(/(?:id|commande_id|reference_id)=(?:in\.\(|eq\.)/);
+      expect(filtre, filtre).not.toMatch(/like\./i);
+    }
+  });
+
   it('la clé service_role n’est jamais préfixée NEXT_PUBLIC_', () => {
     for (const fichier of fichiersTs(join(process.cwd(), 'src'))) {
       const contenu = readFileSync(fichier, 'utf8');

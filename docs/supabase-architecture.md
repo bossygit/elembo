@@ -521,8 +521,8 @@ Résultat : `tests/supabaseRls.integration.test.ts` (5) +
 
 ### Recette globale
 
-- `npm test` : **407 tests passés, 18 ignorés** sans projet Supabase de test ;
-- avec `SUPABASE_TEST_*` : **425 tests passés, 0 ignorés** ;
+- `npm test` : **408 tests passés, 18 ignorés** sans projet Supabase de test ;
+- avec `SUPABASE_TEST_*` : **426 tests passés, 0 ignorés** ;
 - `npm run lint` : 0 erreur, 2 avertissements préexistants ;
 - `npm run build` : OK, Next.js 16.3.6 ;
 - aucun paiement réel, aucune clé de production modifiée.

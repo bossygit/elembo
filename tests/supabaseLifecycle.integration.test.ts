@@ -53,7 +53,7 @@ async function serviceOne<T = Json>(path: string, init: RequestInit = {}): Promi
   return ligne;
 }
 
-async function creerUtilisateur(role: string, email: string): Promise<{ id: string; email: string; password: string }> {
+async function creerUtilisateur(role: string, email: string, runId: string): Promise<{ id: string; email: string; password: string }> {
   const password = `Test-${randomUUID()}`;
   const r = await fetch(`${URL}/auth/v1/admin/users`, {
     method: 'POST',
@@ -67,6 +67,7 @@ async function creerUtilisateur(role: string, email: string): Promise<{ id: stri
       password,
       email_confirm: true,
       app_metadata: { role },
+      user_metadata: { test: true, test_run_id: runId },
     }),
   });
   const corps = (await r.json()) as { id?: string; msg?: string };
@@ -120,12 +121,12 @@ let adminId = '';
 
 describe.skipIf(!actif)('cycle commande-paiement-production (Supabase de test)', () => {
   beforeAll(async () => {
-    const userA = await creerUtilisateur('PARTICULIER', `client-a-${suffixe}@example.test`);
-    const userB = await creerUtilisateur('PARTICULIER', `client-b-${suffixe}@example.test`);
-    const commercial = await creerUtilisateur('commercial', `commercial-${suffixe}@example.test`);
-    const atelier = await creerUtilisateur('atelier', `atelier-${suffixe}@example.test`);
-    const finance = await creerUtilisateur('finance', `finance-${suffixe}@example.test`);
-    const admin = await creerUtilisateur('admin', `admin-${suffixe}@example.test`);
+    const userA = await creerUtilisateur('PARTICULIER', `client-a-${suffixe}@example.test`, suffixe);
+    const userB = await creerUtilisateur('PARTICULIER', `client-b-${suffixe}@example.test`, suffixe);
+    const commercial = await creerUtilisateur('commercial', `commercial-${suffixe}@example.test`, suffixe);
+    const atelier = await creerUtilisateur('atelier', `atelier-${suffixe}@example.test`, suffixe);
+    const finance = await creerUtilisateur('finance', `finance-${suffixe}@example.test`, suffixe);
+    const admin = await creerUtilisateur('admin', `admin-${suffixe}@example.test`, suffixe);
     ids.users.push(userA.id, userB.id, commercial.id, atelier.id, finance.id, admin.id);
     adminId = admin.id;
 
@@ -136,6 +137,7 @@ describe.skipIf(!actif)('cycle commande-paiement-production (Supabase de test)',
         nom: `Client A ${suffixe}`,
         telephone: '060000001',
         email: `client-a-${suffixe}@example.test`,
+        metadata: { test: true, test_run_id: suffixe },
       }),
     });
     clientB = await serviceOne<{ id: string }>('clients', {
@@ -145,6 +147,7 @@ describe.skipIf(!actif)('cycle commande-paiement-production (Supabase de test)',
         nom: `Client B ${suffixe}`,
         telephone: '060000002',
         email: `client-b-${suffixe}@example.test`,
+        metadata: { test: true, test_run_id: suffixe },
       }),
     });
     ids.clients.push(clientA.id, clientB.id);
@@ -154,6 +157,8 @@ describe.skipIf(!actif)('cycle commande-paiement-production (Supabase de test)',
       body: JSON.stringify({
         reference: `ELB-${suffixe}-A`,
         client_id: clientA.id,
+        idempotency_key: `TEST-${suffixe}-A`,
+        notes: `TEST:${suffixe}`,
         statut: 'EN_ATTENTE_DE_PAIEMENT',
         statut_paiement: 'EN_ATTENTE',
         sous_total_fcfa: 1000,
@@ -167,6 +172,8 @@ describe.skipIf(!actif)('cycle commande-paiement-production (Supabase de test)',
       body: JSON.stringify({
         reference: `ELB-${suffixe}-B`,
         client_id: clientB.id,
+        idempotency_key: `TEST-${suffixe}-B`,
+        notes: `TEST:${suffixe}`,
         statut: 'EN_ATTENTE_DE_PAIEMENT',
         statut_paiement: 'EN_ATTENTE',
         sous_total_fcfa: 500,
@@ -187,6 +194,7 @@ describe.skipIf(!actif)('cycle commande-paiement-production (Supabase de test)',
       body: JSON.stringify({
         categorie: 'PUBLICITE',
         libelle: `Dépense test ${suffixe}`,
+        notes: `TEST:${suffixe}`,
         montant_fcfa: 100,
         date_depense: '2026-11-09',
       }),
@@ -294,6 +302,7 @@ describe.skipIf(!actif)('cycle commande-paiement-production (Supabase de test)',
         prix_valide_par: adminId,
         prix_valide_par_email: `admin-${suffixe}@example.test`,
         prix_valide_le: new Date().toISOString(),
+        metadata: { test: true, test_run_id: suffixe },
       }),
     });
     ids.produits.push(avecValidation.id);
@@ -304,6 +313,7 @@ describe.skipIf(!actif)('cycle commande-paiement-production (Supabase de test)',
       method: 'POST',
       body: JSON.stringify({
         reference_id: randomUUID(),
+        idempotency_key: `TEST-${suffixe}-${randomUUID().slice(0, 8)}`,
         commande_id: commandeA.id,
         montant_fcfa: 1,
         montant_envoye: '1',
@@ -327,6 +337,7 @@ describe.skipIf(!actif)('cycle commande-paiement-production (Supabase de test)',
       method: 'POST',
       body: JSON.stringify({
         reference_id: randomUUID(),
+        idempotency_key: `TEST-${suffixe}-${randomUUID().slice(0, 8)}`,
         commande_id: commandeA.id,
         montant_fcfa: 1000,
         montant_envoye: '1000',
@@ -384,6 +395,7 @@ describe.skipIf(!actif)('cycle commande-paiement-production (Supabase de test)',
       method: 'POST',
       body: JSON.stringify({
         reference_id: randomUUID(),
+        idempotency_key: `TEST-${suffixe}-${randomUUID().slice(0, 8)}`,
         commande_id: commandeB.id,
         montant_fcfa: 500,
         montant_envoye: '500',
@@ -394,6 +406,7 @@ describe.skipIf(!actif)('cycle commande-paiement-production (Supabase de test)',
       method: 'POST',
       body: JSON.stringify({
         reference_id: randomUUID(),
+        idempotency_key: `TEST-${suffixe}-${randomUUID().slice(0, 8)}`,
         commande_id: commandeB.id,
         montant_fcfa: 500,
         montant_envoye: '500',

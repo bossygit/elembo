@@ -107,6 +107,14 @@ route `/api/admin/` est protégée.
 commande, produit, dépense ou utilisateur Auth de test. Exécution locale de la revue :
 **0 résidu** sur les cinq contrôles.
 
+Le nettoyage lui-même est limité aux marqueurs du run :
+`metadata.test_run_id` (clients, produits), `idempotency_key = TEST-<RUN>-…`
+(commandes, paiements), `notes = TEST:<RUN>` (dépenses) et
+`user_metadata.test_run_id` (utilisateurs Auth). `scripts/nettoyer-donnees-test-supabase.mjs`
+est en dry-run par défaut, exige `--confirm` et refuse un run absent ou mal formé.
+Les `DELETE` du `afterAll` utilisent uniquement les identifiants enregistrés, jamais un motif
+large. Test réel local : 6 lignes marquées créées, 6 supprimées, 0 résidu.
+
 ## 5. Risques encore ouverts
 
 - **Pas de projet Supabase hébergé** : les tests sont locaux. Le comportement hébergé (réseau,

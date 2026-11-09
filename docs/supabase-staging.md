@@ -145,6 +145,32 @@ Je présente avant toute écriture :
 Puis j'attends une confirmation explicite, par exemple : « applique les migrations sur le
 staging ». Sans ce message, aucun `db push --remote` n'est exécuté.
 
+### 6.1 Sauvegarde du schéma avant migration
+
+Avant le premier `db push --remote`, exporter le schéma distant en lecture seule :
+
+```bash
+SUPABASE_STAGING_PROJECT_REF="$ref" scripts/exporter-schema-supabase.sh
+```
+
+Le script :
+
+- vérifie que `supabase/.temp/project-ref` est bien le staging ;
+- appelle `supabase db dump --remote --schema public,supabase_migrations` ;
+- écrit `backups/schema-<ref>-<timestamp>.sql` (ignoré par Git) ;
+- refuse un export vide ;
+- écrit l'empreinte SHA-256 à côté du fichier.
+
+Un export baseline a déjà été réalisé sur `wbbvpslpagptvlnvhiqo` :
+
+```text
+backups/schema-wbbvpslpagptvlnvhiqo-20261109T141100Z.sql
+SHA-256 : b00f958bedc16f70e43e1aa0afed00267262d8dee106accb336a8da88ffba35a
+```
+
+Le projet était vierge : l'export contient le schéma `public` vide et ses grants, sans données.
+Il sert de baseline d'avant-migration ; il ne remplace pas une sauvegarde de données.
+
 ## 7. Application des migrations (après confirmation uniquement)
 
 ```bash
@@ -198,9 +224,21 @@ Attendu : **32 tests Supabase verts** (18 intégration + 14 schéma).
 
 - emails en `@example.test` ;
 - identifiants `randomUUID()` ;
-- clients, commandes, paiements et dépense de test créés par le service role ;
-- nettoyage dans `afterAll` : paiements → production → commandes → clients → dépense → produit
-  → utilisateurs Auth.
+- marqueurs dédiés :
+  - `clients.metadata.test_run_id` et `produits.metadata.test_run_id` = run de 8 caractères ;
+  - `commandes.idempotency_key` et `paiements.idempotency_key` = `TEST-<RUN>-…` ;
+  - `depenses.notes` = `TEST:<RUN>` ;
+  - `auth.users.user_metadata.test_run_id` = `<RUN>` ;
+- nettoyage dans `afterAll` par **identifiants enregistrés**, jamais par motif large ;
+- `scripts/nettoyer-donnees-test-supabase.mjs` ne supprime que les lignes portant ces marqueurs :
+  dry-run par défaut, `--confirm` obligatoire, refus sans `SUPABASE_TEST_RUN_ID` au format
+  8 caractères ;
+- `scripts/verifier-nettoyage-supabase.mjs` est strictement en lecture seule.
+
+Test réel du nettoyage sur la stack locale : un run `CLN12345` a créé 6 lignes marquées,
+le dry-run a annoncé 6 suppressions, `--confirm` a supprimé 6 lignes, puis le vérificateur
+a retourné 0 résidu. Contrôle inverse : un client **non marqué** est resté présent lors d'un
+run `ZZZ99999` sans correspondance, puis a été supprimé manuellement.
 
 ### Aucun paiement MTN
 
@@ -305,6 +343,7 @@ npx --yes supabase@latest db push --remote --dry-run
 Puis arrêt et présentation. Après confirmation seulement :
 
 ```bash
+SUPABASE_STAGING_PROJECT_REF="$ref" scripts/exporter-schema-supabase.sh
 npx --yes supabase@latest db push --remote
 npx --yes supabase@latest migration list --remote
 scripts/supabase-staging-env.sh npm test -- supabase
@@ -320,6 +359,7 @@ scripts/supabase-staging-env.sh node scripts/verifier-nettoyage-supabase.mjs
 - [ ] `link` effectué, `.temp/project-ref` identique ;
 - [ ] `migration list --remote` vide ou cohérent ;
 - [ ] `db push --remote --dry-run` liste exactement six migrations ;
+- [ ] export baseline du schéma réalisé dans `backups/` avec SHA-256 ;
 - [ ] confirmation explicite reçue ;
 - [ ] `db push --remote` réussi ;
 - [ ] `migration list --remote` aligné ;

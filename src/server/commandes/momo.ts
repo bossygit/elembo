@@ -67,7 +67,7 @@ type LigneDirecte = {
 };
 
 function verifierPrixFacturable(produitId: string): void {
-  if (process.env.MOMO_ALLOW_TEST_PRICES === '1') return;
+  if (process.env.MOMO_ALLOW_TEST_PRICES === '1' || process.env.MOMO_MOCK === '1') return;
   if (produitId === PRODUIT_TABLEAU) {
     if (STATUT_PRIX_TABLEAUX !== 'valide') {
       throw new ErreurCommandeDirecte(

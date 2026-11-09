@@ -54,7 +54,7 @@ production : une autorisation explicite reste nécessaire pour `db push --remote
 
 - `GET /api/cron/notifications` : `Authorization: Bearer CRON_SECRET`, traite l’outbox
   avec reprise et clé d’idempotence.
-- `vercel.json` : cron toutes les 10 minutes.
+- `vercel.json` : cron quotidien (plan Hobby) ; la route peut aussi être appelée manuellement.
 
 ## Sessions
 

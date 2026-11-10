@@ -28,8 +28,10 @@ export default function PageRecuperationDevis() {
       <h1 className="titre-editorial mt-4 text-4xl text-encre">Retrouver mon devis</h1>
       <p className="mt-3 text-sm leading-relaxed text-attenue">
         Si vous avez perdu l’accès à votre devis — cookie effacé, changement d’appareil — saisissez
-        sa référence. Un code à usage unique sera envoyé au contact associé. Le code n’est jamais
-        affiché dans l’URL.
+        sa référence.{' '}
+        {recuperationDisponible
+          ? 'Un code à usage unique sera envoyé au contact associé. Le code n’est jamais affiché dans l’URL.'
+          : 'Le code de récupération n’est pas encore activé ; la référence suffit pour nous écrire.'}
       </p>
       {recuperationDisponible ? (
         <RecuperationDevis />

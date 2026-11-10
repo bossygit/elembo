@@ -13,10 +13,10 @@
 | 1 | 1.3 | Durcissement sécurité (headers, token, callback, référence, montant) | 1.1 | livré |
 | 1 | 1.4 | Tests + build de référence | 1.2, 1.3 | livré |
 | 2 | 2.1 | Jetons de design, shell public, accueil, boutique, pages familles, mobile | 1.4 | livré |
-| 2 | 2.2 | Devis : formulaire, fichiers, persistance, notification, suivi | 2.1 + décision stockage | codé et testé ; 0007 appliquée sur `elembo-staging` le 2026-11-09 |
+| 2 | 2.2 | Devis : formulaire, fichiers, persistance, notification, suivi | 2.1 + décision stockage | actif en production le 2026-11-10 (`elembo-production`, migrations 0001 → 0009) |
 | 2 | 2.3 | Catalogue imprimé détaillé (formats, papiers, finitions, fichier prêt) | 2.2 | à faire |
 | 2 | 2.4 | SEO, pages légales, accessibilité, analytics | 2.1 | à faire |
-| 3 | 3.1 | Postgres Supabase, migrations, repository, seed | décision Supabase | schéma testé en local, en attente du projet hébergé |
+| 3 | 3.1 | Postgres Supabase, migrations, repository, seed | décision Supabase | migrations 0001 → 0009 appliquées sur `elembo-staging` et `elembo-production` |
 | 3 | 3.2 | Commande serveur : création avant paiement, clients, lignes, fichiers | 3.1 | à faire |
 | 3 | 3.3 | Auth + rôles + back-office (dashboard, commandes, clients, devis) | 3.1 | à faire |
 | 3 | 3.4 | Production : dossiers, étapes, partenaires, BAT, contrôle qualité | 3.2, 3.3 | à faire |
@@ -134,9 +134,14 @@ Supabase n'est pas encore disponible).
 - Un devis accepté conserve son prix, même si la grille change.
 
 **État** : implémenté dans `docs/devis-lot-2.2.md` : formulaire, API, sessions révocables,
-OTP, upload vérifié, notifications en outbox, back-office `/admin/devis`. La migration 0007
-est appliquée sur `elembo-staging` depuis le 2026-11-09. L'antivirus n'est pas
-configuré : les fichiers restent `NON_ANALYSE` et non téléchargeables.
+OTP, upload vérifié, notifications en outbox, back-office `/admin/devis`. Les migrations
+0001 → 0009 sont appliquées sur `elembo-staging` et sur `elembo-production`
+(`ogshtnmbeequefisqwcz`, `eu-west-3`). Les variables Supabase, les secrets HMAC et le compte
+staff `admin@smartvision.cg` sont en place ; le formulaire est actif sur
+`https://elembo.vercel.app/devis` (voir `docs/supabase-production.md`). Aucun email n'est envoyé
+faute de `RESEND_API_KEY` : les messages restent dans l'outbox, la notification staff passe par
+Telegram. L'antivirus n'est pas configuré : les fichiers restent `NON_ANALYSE` et non
+téléchargeables.
 
 **Critère** : une demande réelle apparaît dans le stockage, l'atelier est notifié, le client
 reçoit une référence ; aucun prix inventé ; test de validation et d'injection.
@@ -178,8 +183,8 @@ reçoit une référence ; aucun prix inventé ; test de validation et d'injectio
 - Robustesse paiement : `paiement_evenements` et `taches_reconciliation` livrés ; worker à
   brancher au lot 3.2.
 
-**Décision requise** : URL + clés du projet Supabase de test (service role en variable serveur).
-Sans elles, le lot reste vérifié en local mais pas sur l'hébergement.
+**Décision tranchée le 2026-11-10** : projet `elembo-production` (`ogshtnmbeequefisqwcz`, `eu-west-3`)
+créé, migrations appliquées, variables Vercel en place — voir `docs/supabase-production.md`.
 
 ### Lot 3.2 — Commande serveur
 
@@ -260,7 +265,7 @@ Sans elles, le lot reste vérifié en local mais pas sur l'hébergement.
 
 | Décision | Impact | Contournement |
 |---|---|---|
-| Projet Supabase (URL + clés) | lots 3.1 à 3.5, 4.x | devis en Redis en transition, non idéal |
+| Projet Supabase (URL + clés) | lots 3.1 à 3.5, 4.x | **fourni le 2026-11-10** : `elembo-production`, formulaire de devis actif |
 | Prix commerciaux validés | affichage et facturation | « Prix sur demande » + devis |
 | Numéro WhatsApp professionnel | CTA, notifications | email `store@smartvision.cg` en attendant |
 | Photos réelles atelier/produits | crédibilité de la vitrine | mockups actuels, signalés comme visuels de travail |

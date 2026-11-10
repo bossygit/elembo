@@ -1,8 +1,10 @@
 # Lot 2.2 — Demandes de devis, sessions et back-office minimal
 
-État au 2026-11-09. Migration `0007_devis_suivi.sql` écrite, testée localement puis
-appliquée sur `elembo-staging` (`db push --remote`) le 2026-11-09. Elle n’est pas
-appliquée sur un projet de production distinct.
+État au 2026-11-10. Migration `0007_devis_suivi.sql` écrite, testée localement, appliquée sur
+`elembo-staging` le 2026-11-09 puis sur `elembo-production` (`ogshtnmbeequefisqwcz`) le
+2026-11-10, avec les migrations 0001 → 0009. Le formulaire est **actif en production** :
+`https://elembo.vercel.app/devis`. Variables, comptes staff et vérifications :
+[`docs/supabase-production.md`](./supabase-production.md).
 
 ## Parcours client
 
@@ -84,12 +86,13 @@ Voir `.env.example`.
 
 ## Limites connues
 
-- Migration 0007 appliquée sur `elembo-staging` ; aucun projet Supabase de production distinct n’est configuré.
-- La production Vercel n’a pas encore les variables Supabase : le formulaire et le suivi sont
-  volontairement masqués (`devisConfigure`) et `/admin` redirige vers l’accueil. Les activer
-  exige les variables `NEXT_PUBLIC_SUPABASE_*` et `SUPABASE_SERVICE_ROLE_KEY`, puis un
-  redéploiement.
-- Aucun antivirus : les fichiers restent non analysés et non téléchargeables.
+- Migration 0007 appliquée sur `elembo-staging` et sur `elembo-production`. Les variables Supabase
+  sont en place sur Vercel (Production) ; le formulaire et le suivi sont actifs. `/admin` exige un
+  compte staff (`app_metadata.role`), le compte `admin@smartvision.cg` existe.
+- Aucun email n'est envoyé : `RESEND_API_KEY` et `DEVIS_EMAIL_FROM` ne sont pas configurés. Les
+  messages restent dans l'outbox `notifications` (`A_ENVOYER`) ; la notification staff passe par
+  Telegram, l'OTP par email est indisponible.
+- Aucun antivirus : les fichiers restent non analysés et non téléchargés.
 - L’adaptateur SMS est générique ; aucun fournisseur congolais n’est branché.
 - La conversion d’un devis accepté en commande est hors lot 2.2 (lot 3.2).
 - Aucun paiement n’est déclenché par ces routes.

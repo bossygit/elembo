@@ -47,7 +47,7 @@ const ETAPES = [
 
 const EXEMPLES = [
   { src: '/mockups/tshirt-cintre.jpg', alt: 'T-shirt blanc personnalisable sur cintre', legende: 'Textile · T-shirt' },
-  { src: '/mockups/polo-pique.jpg', alt: 'Polo noir uni porté par un mannequin', legende: 'Textile · Polo' },
+  { src: '/mockups/polo-pique.jpg', alt: 'Polo piqué blanc à col et boutons', legende: 'Textile · Polo' },
   { src: '/mockups/tableau-interieur.jpg', alt: 'Tableau canvas dans un salon', legende: 'Décoration · Tableau canvas' },
   { src: '/mockups/cartes-impression.jpg', alt: 'Cartes et supports imprimés empilés', legende: 'Impression · Papeterie' },
 ];
@@ -152,7 +152,7 @@ export default function Home() {
                 <Link href="/textile/polo-pique" className="group relative overflow-hidden border border-filet bg-white">
                   <Image
                     src={asset('/mockups/polo-pique.jpg')}
-                    alt="Polo noir uni porté par un mannequin"
+                    alt="Polo piqué blanc à col et boutons"
                     width={800}
                     height={533}
                     sizes="(min-width: 1024px) 22vw, 45vw"

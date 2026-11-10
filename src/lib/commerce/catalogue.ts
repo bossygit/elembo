@@ -165,7 +165,7 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
     description:
       'Un polo propre pour les équipes terrain, l’accueil et les événements professionnels. Broderie ou marquage textile selon le visuel et la quantité.',
     points: ['Col et boutons', 'Broderie ou DTF', 'Tailles S à 3XL', 'Devis pour les séries'],
-    image: { src: '/mockups/polo-pique.jpg', alt: 'Polo noir uni porté par un mannequin, photo d’illustration' },
+    image: { src: '/mockups/polo-pique.jpg', alt: 'Polo piqué blanc à col et boutons, photo produit' },
     href: '/textile/polo-pique',
     cta: 'Voir la fiche produit',
     prix: prixVitrine(null, 'provisoire'),

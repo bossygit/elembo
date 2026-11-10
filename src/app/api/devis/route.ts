@@ -4,6 +4,8 @@ import { origineAutorisee, ipDepuisRequete, cledepuisValeur, jsonErreur } from '
 import { limiterOuErreur, lireJson, verifierOrigine } from '@/server/devis/http';
 import { creerDevisAtomique, ajouterFichierEnAttente } from '@/server/devis/repository';
 import { creerUrlEnvoi } from '@/server/storage/supabase';
+import { traiterNotifications } from '@/server/devis/notifications';
+import { after } from 'next/server';
 import { ajouterCookiesSession, creerSession } from '@/server/devis/session';
 import { devisConfigure } from '@/lib/devis/configuration';
 
@@ -100,6 +102,9 @@ export async function POST(request: Request) {
       { status: creation.dejaExistant ? 200 : 201 },
     );
     ajouterCookiesSession(reponse, cookies);
+    // La tâche planifiée ne passe qu'une fois par jour (plan Hobby) : on traite l'outbox
+    // tout de suite après la réponse pour que l'atelier soit prévenu en quelques secondes.
+    after(() => traiterNotifications(10).catch(() => undefined));
     return reponse;
   } catch (erreur) {
     console.error('devis_creation_echec', erreur instanceof Error ? erreur.message : erreur);

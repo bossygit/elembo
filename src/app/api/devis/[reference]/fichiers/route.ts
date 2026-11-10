@@ -9,6 +9,8 @@ import {
 import { limiterOuErreur, lireJson, verifierOrigine } from '@/server/devis/http';
 import { supprimerObjet, verifierObjetStorage } from '@/server/storage/supabase';
 import { jsonErreur } from '@/server/security/http';
+import { traiterNotifications } from '@/server/devis/notifications';
+import { after } from 'next/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -73,6 +75,7 @@ export async function POST(request: Request, contexte: Contexte) {
 
   if (verifies > 0) {
     await notifierFichiersRecus(devisId, reference, verifies).catch(() => undefined);
+    after(() => traiterNotifications(10).catch(() => undefined));
   }
 
   return Response.json(

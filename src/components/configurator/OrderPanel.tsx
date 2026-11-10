@@ -15,6 +15,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useConfiguratorStore } from '../../stores/configurator-store';
 import { getPrintArea, getProductById } from '../../lib/products/catalog';
 import { paiementEnLigneOuvert } from '../../lib/commerce/catalogue';
@@ -26,6 +27,7 @@ import {
   SIZE_ORDER,
   buildProductionSheet,
   deliveryDays,
+  deliveryOption,
   facesToProduce,
   formatFcfa,
   makeReference,
@@ -40,8 +42,9 @@ import {
   type Paiement,
 } from '../../lib/payment/momo';
 import type { Side } from '../../types/configurator';
-import { envoyerDossier, type FichierAEnvoyer } from '../../lib/payment/dossier';
+import { envoyerDossier, type FichierAEnvoyer, type ResultatEnvoi } from '../../lib/payment/dossier';
 import { expliquerMotif } from '../../lib/payment/motifs';
+import { construireRecap, enregistrerRecap, lienConfirmation } from '../../lib/order/confirmation';
 import { useElementImages } from './useElementImages';
 
 /** Durée maximale de suivi : MTN abandonne une demande non validée au bout de 5 minutes. */
@@ -103,6 +106,7 @@ function FacePreview({ side, titre }: { side: Side; titre: string }) {
 }
 
 export default function OrderPanel() {
+  const router = useRouter();
   const productId = useConfiguratorStore((s) => s.productId);
   const color = useConfiguratorStore((s) => s.color);
   const elements = useConfiguratorStore((s) => s.elements);
@@ -247,17 +251,66 @@ export default function OrderPanel() {
 
       if (resultat.paiement.statut === 'PAYE') {
         setSuivi('succes');
-        const fichiers = await genererFiles(ref);
-        const depot = await envoyerDossier({
-          commande: ref,
-          referenceId: resultat.paiement.referenceId,
-          fichiers,
-        });
+        // Le paiement est acquis : une panne de génération ou d'envoi ne doit ni afficher
+        // « paiement non abouti » ni priver le client de sa confirmation. On le consigne dans
+        // le récapitulatif (« envoi à l'atelier non abouti ») et on poursuit.
+        let depot: ResultatEnvoi;
+        try {
+          const fichiers = await genererFiles(ref);
+          depot = await envoyerDossier({
+            commande: ref,
+            referenceId: resultat.paiement.referenceId,
+            fichiers,
+          });
+        } catch (erreur) {
+          depot = {
+            envoye: false,
+            fichiers: 0,
+            motif: erreur instanceof Error ? erreur.message : 'raison inconnue',
+          };
+        }
         setMessage(
           depot.envoye
             ? `Paiement confirmé (${formatFcfa(resultat.paiement.montantFcfa)}) — commande ${ref} : dossier de ${depot.fichiers} fichier(s) transmis à l’atelier${depot.notifie ? ', atelier prévenu' : ''}.`
             : `Paiement confirmé (${formatFcfa(resultat.paiement.montantFcfa)}) — commande ${ref} : fichiers téléchargés sur cet appareil, mais l’envoi à l’atelier a échoué (${depot.motif ?? 'raison inconnue'}). Transmettez-les par WhatsApp avec la référence.`,
         );
+
+        // Page de confirmation : le récapitulatif est conservé sur l'appareil, mais la page ne
+        // l'affiche qu'après avoir refait confirmer le paiement par le serveur.
+        if (
+          prixUnitaire !== null &&
+          totals.itemsSubtotalFcfa !== null &&
+          totals.shippingFcfa !== null &&
+          totals.totalFcfa !== null
+        ) {
+          enregistrerRecap(
+            construireRecap({
+              commande: ref,
+              referenceId: resultat.paiement.referenceId,
+              produit: {
+                id: product.id,
+                nom: product.name,
+                couleur: product.colors.find((c) => c.hex.toLowerCase() === color.toLowerCase())?.name ?? color,
+                couleurHex: color,
+              },
+              lignes: lignes.map((l) => ({ taille: l.size, quantite: l.quantity })),
+              prixUnitaireFcfa: prixUnitaire,
+              sousTotalFcfa: totals.itemsSubtotalFcfa,
+              livraison: {
+                ville: deliveryOption(ville).label,
+                fraisFcfa: totals.shippingFcfa,
+                delaiJours: deliveryDays(totals.quantity, ville),
+              },
+              totalFcfa: totals.totalFcfa,
+              financialTransactionId: resultat.paiement.financialTransactionId,
+              nom: nom.trim() || undefined,
+              telephone,
+              faces: faces.map((side) => (side === 'front' ? 'Face avant' : 'Face arrière')),
+              atelier: depot,
+            }),
+          );
+        }
+        router.push(lienConfirmation(ref, resultat.paiement.referenceId));
       } else if (resultat.expire) {
         setSuivi('expire');
       } else {

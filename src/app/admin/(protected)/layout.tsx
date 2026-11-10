@@ -5,6 +5,15 @@ import { utilisateurStaff } from '@/server/auth/session';
 import { devisConfigure } from '@/lib/devis/configuration';
 import { deconnexion } from '../connexion/actions';
 
+const NAVIGATION = [
+  { href: '/admin', label: 'Tableau de bord' },
+  { href: '/admin/commandes', label: 'Commandes' },
+  { href: '/admin/devis', label: 'Devis' },
+  { href: '/admin/produits', label: 'Produits' },
+  { href: '/admin/clients', label: 'Clients' },
+  { href: '/admin/production', label: 'Atelier / Production' },
+];
+
 export default async function LayoutAdminProtege({ children }: { children: React.ReactNode }) {
   if (!devisConfigure) redirect('/');
   const staff = await utilisateurStaff();
@@ -12,32 +21,50 @@ export default async function LayoutAdminProtege({ children }: { children: React
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <header className="border-b border-neutral-200 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-4">
-          <div className="flex items-center gap-6">
-            <Link href="/admin/devis" className="font-semibold">
+      <div className="mx-auto flex max-w-7xl gap-6 px-4 py-6 lg:px-6">
+        <aside className="hidden w-56 shrink-0 lg:block">
+          <div className="sticky top-6 rounded-2xl border border-neutral-200 bg-white p-4">
+            <Link href="/admin" className="block font-semibold">
               Elembo · Back-office
             </Link>
-            <Link href="/admin/devis" className="text-sm text-neutral-600 hover:text-black">
-              Devis
-            </Link>
-            <Link href="/admin/commandes" className="text-sm text-neutral-600 hover:text-black">
-              Commandes
-            </Link>
-          </div>
-          <div className="flex items-center gap-4 text-sm">
-            <span className="text-neutral-500">
+            <p className="mt-1 text-xs text-neutral-500">
               {staff.claims.email ?? staff.claims.sub} · {staff.role}
-            </span>
-            <form action={deconnexion}>
-              <button type="submit" className="underline">
+            </p>
+            <nav className="mt-4 space-y-1 text-sm" aria-label="Navigation back-office">
+              {NAVIGATION.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="block rounded-lg px-3 py-2 text-neutral-700 hover:bg-neutral-100"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+            <form action={deconnexion} className="mt-4">
+              <button type="submit" className="text-xs text-neutral-500 underline">
                 Déconnexion
               </button>
             </form>
           </div>
+        </aside>
+
+        <div className="min-w-0 flex-1">
+          <header className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-3 lg:hidden">
+            <Link href="/admin" className="font-semibold">
+              Elembo · Back-office
+            </Link>
+            <nav className="flex flex-wrap gap-2 text-xs">
+              {NAVIGATION.map((item) => (
+                <Link key={item.href} href={item.href} className="rounded-full border border-neutral-300 px-2.5 py-1">
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          </header>
+          <main>{children}</main>
         </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+      </div>
     </div>
   );
 }

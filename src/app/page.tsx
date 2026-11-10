@@ -45,22 +45,9 @@ const ETAPES = [
   },
 ];
 
-type Exemple = {
-  src: string;
-  alt: string;
-  legende: string;
-  /** 'contain' = visuel produit détouré sur fond blanc : on ne le rogne pas dans le cadre 4:3. */
-  cadrage?: 'cover' | 'contain';
-};
-
-const EXEMPLES: Exemple[] = [
+const EXEMPLES = [
   { src: '/mockups/tshirt-cintre.jpg', alt: 'T-shirt blanc personnalisable sur cintre', legende: 'Textile · T-shirt' },
-  {
-    src: '/mockups/polo-pique.jpg',
-    alt: 'Polo piqué blanc à col et boutons',
-    legende: 'Textile · Polo',
-    cadrage: 'contain',
-  },
+  { src: '/mockups/polo-pique.jpg', alt: 'Polo piqué blanc uni sur fond blanc', legende: 'Textile · Polo' },
   { src: '/mockups/tableau-interieur.jpg', alt: 'Tableau canvas dans un salon', legende: 'Décoration · Tableau canvas' },
   { src: '/mockups/cartes-impression.jpg', alt: 'Cartes et supports imprimés empilés', legende: 'Impression · Papeterie' },
 ];
@@ -165,7 +152,7 @@ export default function Home() {
                 <Link href="/textile/polo-pique" className="group relative overflow-hidden border border-filet bg-white">
                   <Image
                     src={asset('/mockups/polo-pique.jpg')}
-                    alt="Polo piqué blanc à col et boutons"
+                    alt="Polo piqué blanc uni"
                     width={800}
                     height={533}
                     sizes="(min-width: 1024px) 22vw, 45vw"
@@ -433,14 +420,14 @@ export default function Home() {
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {EXEMPLES.map((exemple) => (
               <figure key={exemple.src} className="group overflow-hidden border border-filet bg-[#F3EFE6]">
-                <div className={`aspect-[4/3] overflow-hidden ${exemple.cadrage === 'contain' ? 'bg-white' : ''}`}>
+                <div className="aspect-[4/3] overflow-hidden">
                   <Image
                     src={asset(exemple.src)}
                     alt={exemple.alt}
                     width={1600}
                     height={1067}
                     sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-                    className={`h-full w-full ${exemple.cadrage === 'contain' ? 'object-contain' : 'object-cover'} transition-transform duration-500 group-hover:scale-105`}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 </div>
                 <figcaption className="border-t border-filet bg-white px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-attenue">

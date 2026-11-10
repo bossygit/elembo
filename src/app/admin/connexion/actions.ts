@@ -12,7 +12,7 @@ export async function connexion(formData: FormData): Promise<void> {
   const client = await creerClientAuthServeur();
   const { error } = await client.auth.signInWithPassword({ email, password: motDePasse });
   if (error) redirect('/admin/connexion?erreur=identifiants');
-  redirect('/admin/devis');
+  redirect('/admin');
 }
 
 export async function deconnexion(): Promise<void> {

@@ -12,7 +12,7 @@ productions réelles doivent les remplacer au fur et à mesure.
 | `cadre-salon.jpg` | https://www.pexels.com/photo/a-blank-frame-hanging-on-the-wall-8490224/ | PNW Production |
 | `tableau-interieur.jpg` | https://www.pexels.com/photo/art-relaxation-bed-architecture-6800942/ | Artem Podrez |
 | `cartes-impression.jpg` | https://www.pexels.com/photo/close-up-of-paper-sheets-5706020/ | Pexels |
-| `polo-pique.jpg` | Photo fournie par le client (PHOTO-2026-11-10-08-35-04.jpg) | — |
+| `polo-pique.jpg` | Photo fournie par Smart Vision | Smart Vision |
 | `tote-bag.jpg` | https://www.pexels.com/photo/plain-tote-bag-9869067/ | Pexels |
 | `textile-lot.jpg` | https://www.pexels.com/photo/a-person-holding-a-stack-of-neatly-folded-shirts-4440574/ | Pexels |
 

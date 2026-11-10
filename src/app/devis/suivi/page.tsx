@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import RecuperationDevis from '@/components/devis/RecuperationDevis';
-import { devisConfigure } from '@/lib/devis/configuration';
+import { devisConfigure, recuperationDisponible } from '@/lib/devis/configuration';
 import { Etiquette } from '@/components/site/ui';
 
 export const metadata: Metadata = {
@@ -31,7 +31,24 @@ export default function PageRecuperationDevis() {
         sa référence. Un code à usage unique sera envoyé au contact associé. Le code n’est jamais
         affiché dans l’URL.
       </p>
-      <RecuperationDevis />
+      {recuperationDisponible ? (
+        <RecuperationDevis />
+      ) : (
+        <div className="mt-6 rounded-2xl border border-filet bg-white p-5 text-sm leading-relaxed text-attenue">
+          <p className="font-medium text-encre">Récupération par code momentanément indisponible.</p>
+          <p className="mt-2">
+            L’envoi automatique des codes (email ou SMS) n’est pas encore branché. Votre devis reste
+            accessible depuis le lien et l’onglet où vous l’avez envoyé pendant 30 jours.
+          </p>
+          <p className="mt-2">
+            Pour retrouver un devis depuis un autre appareil, écrivez à{' '}
+            <a href="mailto:store@smartvision.cg" className="underline">
+              store@smartvision.cg
+            </a>{' '}
+            en indiquant votre référence.
+          </p>
+        </div>
+      )}
       <p className="mt-6 text-sm text-attenue">
         Pas encore de devis ?{' '}
         <Link href="/devis" className="underline">

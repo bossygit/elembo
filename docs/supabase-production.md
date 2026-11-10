@@ -115,8 +115,12 @@ laissés vides.
   comme l'OTP par email sont indisponibles. Le client voit sa référence à l'écran et garde la
   session 30 jours ; pour retrouver un devis depuis un autre appareil, il faut brancher un
   fournisseur d'email.
-- La notification staff fonctionne par **Telegram** (variables déjà présentes) ; le texte
-  annonce la réception même si l'email n'est pas branché.
+- La notification staff fonctionne par **Telegram** (variables déjà présentes) et part
+  immédiatement après l'envoi du formulaire : l'outbox est traité par `after()` dans
+  `POST /api/devis` et `POST /api/devis/<ref>/fichiers`, la tâche planifiée quotidienne
+  reste un filet de sécurité.
+- La page `/devis/suivi` affiche un message explicite tant qu'aucun canal d'envoi de code
+  n'est configuré (`recuperationDisponible`), au lieu de faire attendre un code qui n'arrive pas.
 - Aucun antivirus : les fichiers restent `NON_ANALYSE` et non téléchargeables, la dérogation
   admin reste obligatoire.
 - Plan Supabase gratuit : pas de restauration point-in-time. Un export de schéma se fait avec

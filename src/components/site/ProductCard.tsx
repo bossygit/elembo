@@ -7,9 +7,12 @@ import PrintIllustration from './PrintIllustration';
 import { ArrowRight, Check } from './Icons';
 
 export default function ProductCard({ produit }: { produit: ProduitVitrine }) {
+  const contain = produit.image?.cadrage === 'contain';
   return (
     <article className="group flex h-full flex-col overflow-hidden border border-filet bg-white transition-all duration-300 hover:-translate-y-0.5 hover:border-encre hover:shadow-[0_18px_40px_-28px_rgba(32,2,51,0.45)]">
-      <div className="relative overflow-hidden border-b border-filet bg-[#F3EFE6]">
+      <div
+        className={`relative overflow-hidden border-b border-filet ${contain ? 'bg-white' : 'bg-[#F3EFE6]'}`}
+      >
         {produit.badge && (
           <span className="absolute left-3 top-3 z-10 bg-encre px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-creme">
             {produit.badge}
@@ -23,7 +26,7 @@ export default function ProductCard({ produit }: { produit: ProduitVitrine }) {
               width={1600}
               height={1067}
               sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.035]"
+              className={`h-full w-full ${contain ? 'object-contain' : 'object-cover'} transition-transform duration-500 group-hover:scale-[1.035]`}
             />
           ) : (
             <div className="h-full w-full p-6">

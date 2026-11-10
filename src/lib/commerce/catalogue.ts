@@ -83,7 +83,11 @@ export type ProduitVitrine = {
   surtitre: string;
   description: string;
   points: string[];
-  image?: { src: string; alt: string };
+  /**
+   * `cadrage: 'contain'` = visuel produit sur fond blanc (photo détourée) : on montre l'objet
+   * entier plutôt que de le rogner dans le cadre 4:3 des cartes.
+   */
+  image?: { src: string; alt: string; cadrage?: 'cover' | 'contain' };
   href: string;
   cta: string;
   prix: PrixVitrine;
@@ -165,7 +169,11 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
     description:
       'Un polo propre pour les équipes terrain, l’accueil et les événements professionnels. Broderie ou marquage textile selon le visuel et la quantité.',
     points: ['Col et boutons', 'Broderie ou DTF', 'Tailles S à 3XL', 'Devis pour les séries'],
-    image: { src: '/mockups/polo-pique.jpg', alt: 'Polo piqué blanc à col et boutons, photo produit' },
+    image: {
+      src: '/mockups/polo-pique.jpg',
+      alt: 'Polo piqué blanc à col et boutons, photo produit',
+      cadrage: 'contain',
+    },
     href: '/textile/polo-pique',
     cta: 'Voir la fiche produit',
     prix: prixVitrine(null, 'provisoire'),

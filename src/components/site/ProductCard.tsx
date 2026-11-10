@@ -9,7 +9,7 @@ import { ArrowRight, Check } from './Icons';
 export default function ProductCard({ produit }: { produit: ProduitVitrine }) {
   const contain = produit.image?.cadrage === 'contain';
   return (
-    <article className="group flex h-full flex-col overflow-hidden border border-filet bg-white transition-all duration-300 hover:-translate-y-0.5 hover:border-encre hover:shadow-[0_18px_40px_-28px_rgba(32,2,51,0.45)]">
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-filet bg-white shadow-sm transition-shadow hover:shadow-lg">
       <div
         className={`relative overflow-hidden border-b border-filet ${contain ? 'bg-white' : 'bg-[#F3EFE6]'}`}
       >

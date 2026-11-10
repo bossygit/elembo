@@ -117,7 +117,7 @@ export default function Home() {
 
           <div className="relative mx-auto hidden w-full max-w-xl lg:block lg:max-w-none">
             <div aria-hidden className="absolute -left-4 top-10 h-36 w-36 bg-orange sm:h-48 sm:w-48" />
-            <div className="relative border border-encre bg-creme p-3 sm:p-4">
+            <div className="relative border border-encre bg-creme p-3 sm:p-4 shadow-[0_30px_80px_-40px_rgba(32,2,51,0.45)]">
               <div className="relative overflow-hidden bg-[#E9E3D7]">
                 <Image
                   src={asset('/mockups/tshirt-studio.jpg')}
@@ -204,7 +204,7 @@ export default function Home() {
 
         <div className="mt-12 grid gap-6 lg:grid-cols-3">
           {FAMILLES.map((famille) => (
-            <article key={famille.id} className="group overflow-hidden border border-filet bg-white">
+            <article key={famille.id} className="group overflow-hidden rounded-2xl border border-filet bg-white shadow-sm transition-shadow hover:shadow-lg">
               <Link href={famille.href} className="block overflow-hidden">
                 <div className="relative aspect-[4/3] overflow-hidden bg-[#F3EFE6]">
                   <Image

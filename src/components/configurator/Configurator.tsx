@@ -108,7 +108,7 @@ export default function Configurator() {
       </header>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 lg:sticky lg:top-4 lg:self-start">
           <div className="h-[46vh] min-h-[360px] lg:h-[62vh]">
             <ProductViewer cameraNonce={cameraNonce} />
           </div>

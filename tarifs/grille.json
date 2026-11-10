@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "statut": "PROVISOIRE — à arbitrer par l'exploitant après chiffrage des prestataires",
-  "maj": "2026-10-08",
+  "statut": "T-shirts et livraison à 100 FCFA validés par l'exploitant pour la période de présentation (paiement MoMo ouvert) ; tableaux encore PROVISOIRES",
+  "maj": "2026-11-10",
   "devise": "XAF",
   "note": "SOURCE UNIQUE DES PRIX. L'application (export statique) lit ce fichier à la compilation, le service de paiement le lit à son démarrage : une seule valeur à corriger, et le montant affiché est forcément celui que le service recalcule. Un fichier vide de sens ici = commande refusée, jamais un montant inventé.",
   "produits": [
-    { "id": "tshirt-basic", "nom": "T-Shirt raglan", "prixFcfa": 100, "statutPrix": "test" },
-    { "id": "tshirt-alt", "nom": "T-Shirt col rond", "prixFcfa": 100, "statutPrix": "test" }
+    { "id": "tshirt-basic", "nom": "T-Shirt raglan", "prixFcfa": 100, "statutPrix": "valide" },
+    { "id": "tshirt-alt", "nom": "T-Shirt col rond", "prixFcfa": 100, "statutPrix": "valide" }
   ],
   "livraison": {
-    "statutPrix": "test",
+    "statutPrix": "valide",
     "delaiMaxJours": 3,
     "villes": [
       { "id": "brazzaville", "nom": "Brazzaville", "fraisFcfa": 100 },

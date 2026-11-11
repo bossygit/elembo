@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-type Variante = 'primaire' | 'secondaire' | 'accent' | 'clair';
+export type Variante = 'primaire' | 'secondaire' | 'accent' | 'clair';
 
-const styles: Record<Variante, string> = {
+export const stylesBouton: Record<Variante, string> = {
   // Violet profond : le contraste le plus sûr pour un bouton principal.
   primaire: 'bg-encre text-creme hover:bg-orange hover:text-encre',
   // Contour : pour les actions secondaires, sans concurrencer le CTA principal.
@@ -31,7 +31,7 @@ export function BoutonLien({
     <Link
       href={href}
       aria-label={ariaLabel}
-      className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-colors duration-200 ${styles[variante]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-colors duration-200 ${stylesBouton[variante]} ${className}`}
     >
       {children}
     </Link>

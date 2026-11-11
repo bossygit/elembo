@@ -40,9 +40,10 @@ export default function EntreprisesPage() {
               Votre communication, tenue par un seul atelier.
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-attenue">
-              Identité visuelle, supports imprimés, textiles en quantité et communication
-              événementielle. Nous coordonnons la création et la production pour que vous ayez un
-              interlocuteur, un devis et une date.
+              Elembo est d’abord la plateforme des particuliers ; l’atelier qui fabrique leurs
+              créations sert aussi les entreprises, écoles, églises et associations. Identité
+              visuelle, supports imprimés, textiles en quantité et communication événementielle :
+              un interlocuteur, un devis et une date.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <BoutonLien href="/devis?famille=SERVICES" variante="primaire">

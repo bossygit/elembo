@@ -63,3 +63,55 @@ export function Phone(props: IconProps) {
     </svg>
   );
 }
+
+/** Bulle de discussion — utilisée pour l'assistance WhatsApp. */
+export function Chat(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true" {...props}>
+      <path
+        d="M4 19.5 5.3 16A8 8 0 1 1 8 18.7L4 19.5Z"
+        strokeLinejoin="round"
+      />
+      <path d="M9 10.5h6M9 13.5h4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function Gift(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true" {...props}>
+      <rect x="3.5" y="8.5" width="17" height="4" rx="1" />
+      <path d="M5 12.5V20h14v-7.5M12 8.5V20" strokeLinejoin="round" />
+      <path d="M12 8.5S10.8 4 8.5 4.3C6.6 4.6 7 8.5 12 8.5Zm0 0s1.2-4.5 3.5-4.2c1.9.3 1.5 4.2-3.5 4.2Z" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function Shirt(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true" {...props}>
+      <path
+        d="M9 3.5 3.5 6.5l2 4 2-1V20.5h9V9.5l2 1 2-4L15 3.5a3 3 0 0 1-6 0Z"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function Celebration(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true" {...props}>
+      <path d="M4 20.5 8.5 8l7.5 7.5L4 20.5Z" strokeLinejoin="round" />
+      <path d="M14 4v2M19.5 9.5h-2M17.5 5.5 16 7M12.5 9.5c1-1.5 1-3 0-4.5M14.5 11.5c1.5-1 3-1 4.5 0" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function Sparkle(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true" {...props}>
+      <path d="M12 3.5c.6 4.3 2.2 5.9 6.5 6.5-4.3.6-5.9 2.2-6.5 6.5-.6-4.3-2.2-5.9-6.5-6.5 4.3-.6 5.9-2.2 6.5-6.5Z" strokeLinejoin="round" />
+      <path d="M18.5 16v4M16.5 18h4" strokeLinecap="round" />
+    </svg>
+  );
+}

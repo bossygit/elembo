@@ -11,6 +11,7 @@
  */
 
 import { CATALOG } from '../products/catalog';
+import { lienWhatsApp, MESSAGES_WHATSAPP } from '../site/marque';
 import { FORMATS, prixUnitaireFcfa } from '../products/tableaux';
 import {
   prixProduit,
@@ -19,7 +20,34 @@ import {
   type StatutPrix,
 } from '../tarifs/grille';
 
-export type FamilleId = 'textile' | 'tableaux' | 'impression' | 'services';
+export type FamilleId = 'textile' | 'objets' | 'tableaux' | 'impression' | 'services';
+
+/**
+ * Trois gammes pour couvrir tous les budgets : du petit cadeau d'un étudiant au kit d'une
+ * famille qui prépare un mariage. C'est une étiquette commerciale, pas une source de prix.
+ */
+export type Gamme = 'accessible' | 'personnalisee' | 'premium';
+
+export const GAMMES: { id: Gamme; titre: string; description: string; exemples: string[] }[] = [
+  {
+    id: 'accessible',
+    titre: 'Accessible',
+    description: 'Les petites attentions qui font plaisir, sans se ruiner.',
+    exemples: ['Mugs', 'Tote bags', 'Petits accessoires'],
+  },
+  {
+    id: 'personnalisee',
+    titre: 'Personnalisée',
+    description: 'Vos photos, vos textes, votre style : une pièce qui vous ressemble.',
+    exemples: ['T-shirts', 'Textiles', 'Tableaux photo'],
+  },
+  {
+    id: 'premium',
+    titre: 'Premium',
+    description: 'Les grandes occasions, préparées avec vous dans le détail.',
+    exemples: ['Coffrets cadeaux', 'Kits d’événement', 'Commandes élaborées'],
+  },
+];
 
 export type PrixVitrine = {
   /** `null` tant que le prix n'est pas validé commercialement. */
@@ -88,6 +116,8 @@ export type ProduitVitrine = {
   cta: string;
   prix: PrixVitrine;
   badge?: string;
+  /** Gamme de prix indicative (Accessible / Personnalisée / Premium). */
+  gamme?: Gamme;
   /** Fiche commerciale détaillée pour les produits textile. */
   fiche?: FicheTextile;
 };
@@ -99,6 +129,7 @@ const tableauPetit = FORMATS[0];
 export const PRODUITS_VITRINE: ProduitVitrine[] = [
   {
     id: 'tshirt-basic',
+    gamme: 'personnalisee',
     nom: 'T-shirt raglan personnalisé',
     famille: 'textile',
     surtitre: 'Textile',
@@ -129,6 +160,7 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
   },
   {
     id: 'tshirt-alt',
+    gamme: 'personnalisee',
     nom: 'T-shirt col rond personnalisé',
     famille: 'textile',
     surtitre: 'Textile',
@@ -159,6 +191,7 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
   },
   {
     id: 'polo-pique',
+    gamme: 'personnalisee',
     nom: 'Polo piqué personnalisé',
     famille: 'textile',
     surtitre: 'Textile · Entreprise',
@@ -191,6 +224,7 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
   },
   {
     id: 'tote-bag',
+    gamme: 'accessible',
     nom: 'Tote bag personnalisé',
     famille: 'textile',
     surtitre: 'Textile · Événement',
@@ -222,6 +256,7 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
   },
   {
     id: 'textile-evenement',
+    gamme: 'premium',
     nom: 'Textile événementiel',
     famille: 'textile',
     surtitre: 'Textile · Événement',
@@ -254,6 +289,7 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
   },
   {
     id: 'uniforme-personnalise',
+    gamme: 'personnalisee',
     nom: 'Uniformes personnalisés',
     famille: 'textile',
     surtitre: 'Textile · Entreprise',
@@ -286,6 +322,7 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
   },
   {
     id: 'tableau-canvas',
+    gamme: 'personnalisee',
     nom: 'Tableau canvas sur châssis',
     famille: 'tableaux',
     surtitre: 'Murs & décoration',
@@ -305,6 +342,34 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
       statutPrixTableaux(),
     ),
     badge: 'Format le plus demandé',
+  },
+  {
+    id: 'mug-personnalise',
+    gamme: 'accessible',
+    nom: 'Mug personnalisé',
+    famille: 'objets',
+    surtitre: 'Cadeau · Objet',
+    description:
+      'Une photo, un prénom, un message dans votre langue : le petit cadeau qui accompagne le café du matin.',
+    points: ['Photo et texte au choix', 'À partir d’une pièce', 'Idéal fête des mères et anniversaires', 'Commande assistée sur WhatsApp'],
+    href: lienWhatsApp(MESSAGES_WHATSAPP.produit('Mug personnalisé')),
+    cta: 'Commander sur WhatsApp',
+    prix: prixVitrine(null, 'provisoire'),
+    badge: 'Nouveau',
+  },
+  {
+    id: 'coffret-cadeau',
+    gamme: 'premium',
+    nom: 'Coffret cadeau personnalisé',
+    famille: 'objets',
+    surtitre: 'Cadeau · Premium',
+    description:
+      'Un ensemble composé avec vous — t-shirt, mug, tableau photo, carte — pour un anniversaire, un remerciement ou une grande nouvelle.',
+    points: ['Composition sur mesure', 'Photos et messages personnalisés', 'Emballage soigné', 'Conseil sur WhatsApp'],
+    href: lienWhatsApp(MESSAGES_WHATSAPP.produit('Coffret cadeau personnalisé')),
+    cta: 'Composer sur WhatsApp',
+    prix: prixVitrine(null, 'provisoire'),
+    badge: 'Sur demande',
   },
   {
     id: 'impression-graphique',

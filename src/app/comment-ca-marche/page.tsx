@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 
 import { ArrowRight, Check } from '../../components/site/Icons';
 import { BoutonLien, Etiquette } from '../../components/site/ui';
+import { BoutonWhatsApp } from '../../components/site/WhatsApp';
+import { WHATSAPP } from '../../lib/site/marque';
 
 export const metadata: Metadata = {
   title: 'Comment ça marche',
@@ -131,6 +133,10 @@ export default function CommentCaMarchePage() {
         <div className="mt-8 divide-y divide-filet border-y border-filet">
           {[
             {
+              q: 'Puis-je commander sur WhatsApp ?',
+              r: `Oui. Écrivez-nous au ${WHATSAPP.affichage} avec votre idée, votre photo ou votre texte : nous préparons la maquette avec vous, confirmons le prix en FCFA et le délai, puis vous payez par MTN MoMo.`,
+            },
+            {
               q: 'Puis-je commander sans créer de compte ?',
               r: 'Oui. Le parcours actuel ne demande pas de compte : nous avons besoin de votre nom, de votre contact et de l’adresse de livraison au moment de la commande.',
             },
@@ -144,7 +150,7 @@ export default function CommentCaMarchePage() {
             },
             {
               q: 'Puis-je payer autrement que par MTN MoMo ?',
-              r: 'Le paiement en ligne est MTN MoMo. Pour les entreprises et les commandes sur devis, les modalités sont précisées dans la proposition. Airtel Money n’est pas encore intégré.',
+              r: 'Le paiement en ligne est MTN MoMo. Pour les entreprises et les commandes sur devis, les modalités sont précisées dans la proposition. Airtel Money arrive bientôt.',
             },
             {
               q: 'Les prix affichés sont-ils définitifs ?',
@@ -170,10 +176,17 @@ export default function CommentCaMarchePage() {
               Écrivez-nous : nous répondons avec un prix, un délai et la prochaine étape.
             </p>
           </div>
-          <BoutonLien href="/contact" variante="clair" className="shrink-0">
-            Nous contacter
-            <ArrowRight className="h-4 w-4" />
-          </BoutonLien>
+          <div className="flex shrink-0 flex-wrap gap-3">
+            <BoutonWhatsApp variante="clair">Écrire sur WhatsApp</BoutonWhatsApp>
+            <BoutonLien
+              href="/contact"
+              variante="secondaire"
+              className="border-creme/40 text-creme hover:bg-creme hover:text-encre"
+            >
+              Autres contacts
+              <ArrowRight className="h-4 w-4" />
+            </BoutonLien>
+          </div>
         </div>
       </section>
     </>

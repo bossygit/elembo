@@ -33,6 +33,7 @@ import { DPI_IMPRESSION, ficheFichierImpression, ficheTexte } from '../lib/produ
 import { nomFichierImpression, renderVisuelPng } from '../lib/canvas/exportZone';
 import { downloadBlob } from '../lib/canvas/export';
 import type { Design } from './UploadZone';
+import { lienWhatsApp, MESSAGES_WHATSAPP, WHATSAPP } from '../lib/site/marque';
 
 /** MTN abandonne une demande non validée au bout de 5 minutes : on suit sur la même fenêtre. */
 const FENETRE_PAIEMENT_MS = 5 * 60 * 1000;
@@ -188,7 +189,7 @@ export default function TableauPanel({
         setMessage(
           depot.envoye
             ? `Paiement confirmé (${formatFcfa(resultat.paiement.montantFcfa)}) — commande ${reference}. Votre tableau ${formatParId(formatId)!.label}, ${libelleSupport(support).toLowerCase()}, est transmis à l'atelier${depot.notifie ? ' (atelier prévenu)' : ''}.`
-            : `Paiement confirmé (${formatFcfa(resultat.paiement.montantFcfa)}) — commande ${reference}. Fichiers téléchargés sur cet appareil, mais l'envoi à l'atelier a échoué (${depot.motif ?? 'raison inconnue'}). Transmettez-les par WhatsApp avec la référence.`,
+            : `Paiement confirmé (${formatFcfa(resultat.paiement.montantFcfa)}) — commande ${reference}. Fichiers téléchargés sur cet appareil, mais l'envoi à l'atelier a échoué (${depot.motif ?? 'raison inconnue'}). Transmettez-les sur WhatsApp au ${WHATSAPP.affichage} avec la référence.`,
         );
       } else if (resultat.expire) {
         setSuivi('expire');
@@ -498,6 +499,14 @@ export default function TableauPanel({
               Retélécharger la fiche de production ({fichePrete.nom})
             </a>
           )}
+          <a
+            href={lienWhatsApp(MESSAGES_WHATSAPP.commande(reference))}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 block font-semibold underline underline-offset-2"
+          >
+            Écrire à l’atelier sur WhatsApp
+          </a>
         </div>
       )}
 

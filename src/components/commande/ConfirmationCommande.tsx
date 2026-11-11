@@ -12,6 +12,8 @@ import Link from 'next/link';
 import { formaterFcfa, lireRecap, referencePlausible, type RecapCommande } from '../../lib/order/confirmation';
 import { ErreurPaiement, suivrePaiement, type Paiement } from '../../lib/payment/momo';
 import { BoutonLien, Etiquette } from '../site/ui';
+import { BoutonWhatsApp } from '../site/WhatsApp';
+import { MESSAGES_WHATSAPP } from '../../lib/site/marque';
 
 type Etat =
   | { genre: 'verification' }
@@ -291,13 +293,15 @@ export default function ConfirmationCommande({
         <BoutonLien href="/">Retour à l’accueil</BoutonLien>
       </div>
 
-      <p className="text-xs text-attenue print:hidden">
-        Une question sur votre commande ?{' '}
-        <Link href="/contact" className="font-semibold text-encre underline underline-offset-4">
-          Contactez l’atelier
-        </Link>{' '}
-        en rappelant votre référence.
-      </p>
+      <div className="flex flex-wrap items-center gap-3 border-t border-filet pt-6 print:hidden">
+        <p className="text-sm text-attenue">Une question sur votre commande ?</p>
+        <BoutonWhatsApp message={MESSAGES_WHATSAPP.commande(commande)} variante="secondaire">
+          Écrire sur WhatsApp
+        </BoutonWhatsApp>
+        <Link href="/contact" className="text-xs font-semibold text-encre underline underline-offset-4">
+          Autres contacts
+        </Link>
+      </div>
     </div>
   );
 }

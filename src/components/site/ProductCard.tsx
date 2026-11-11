@@ -4,10 +4,14 @@ import Link from 'next/link';
 import type { ProduitVitrine } from '../../lib/commerce/catalogue';
 import { asset } from '../../lib/site/asset';
 import PrintIllustration from './PrintIllustration';
-import { ArrowRight, Check } from './Icons';
+import { ArrowRight, Chat, Check } from './Icons';
 
 export default function ProductCard({ produit }: { produit: ProduitVitrine }) {
   const contain = produit.image?.cadrage === 'contain';
+  // Les produits « commande assistée » pointent vers WhatsApp, hors du site.
+  const externe = /^https?:\/\//.test(produit.href);
+  const classeCta =
+    'mt-4 flex w-full items-center justify-between rounded-full border border-encre px-4 py-2.5 text-xs font-semibold text-encre transition-colors hover:bg-encre hover:text-creme';
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-filet bg-white shadow-sm transition-shadow hover:shadow-lg">
       <div
@@ -55,14 +59,23 @@ export default function ProductCard({ produit }: { produit: ProduitVitrine }) {
         <div className="mt-auto border-t border-filet pt-4">
           <p className="text-sm font-semibold text-encre">{produit.prix.libelle}</p>
           <p className="mt-0.5 text-[10px] leading-snug text-attenue">{produit.prix.note}</p>
-          <Link
-            href={produit.href}
-            aria-label={`${produit.cta} — ${produit.nom}`}
-            className="mt-4 flex w-full items-center justify-between rounded-full border border-encre px-4 py-2.5 text-xs font-semibold text-encre transition-colors hover:bg-encre hover:text-creme"
-          >
-            {produit.cta}
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          {externe ? (
+            <a
+              href={produit.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${produit.cta} — ${produit.nom} (s’ouvre dans WhatsApp)`}
+              className={classeCta}
+            >
+              {produit.cta}
+              <Chat className="h-4 w-4" />
+            </a>
+          ) : (
+            <Link href={produit.href} aria-label={`${produit.cta} — ${produit.nom}`} className={classeCta}>
+              {produit.cta}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
         </div>
       </div>
     </article>

@@ -3,16 +3,19 @@ import Link from 'next/link';
 
 import { ArrowRight, Check } from '../../components/site/Icons';
 import ProductCard from '../../components/site/ProductCard';
+import { SectionGammes } from '../../components/site/Univers';
 import { BoutonLien, Etiquette } from '../../components/site/ui';
+import { BoutonWhatsApp } from '../../components/site/WhatsApp';
 import { PRODUITS_VITRINE, SUPPORTS_IMPRESSION } from '../../lib/commerce/catalogue';
 
 export const metadata: Metadata = {
   title: 'Boutique',
   description:
-    'Textile personnalisé, tableaux canvas et impression graphique. Choisissez un support, personnalisez ou demandez un devis avec Smart Vision Congo.',
+    'Mugs, t-shirts, tableaux photo, coffrets cadeaux et textiles d’événement à personnaliser. Prix en FCFA, paiement MTN MoMo, commande assistée sur WhatsApp.',
 };
 
 export default function BoutiquePage() {
+  const objets = PRODUITS_VITRINE.filter((p) => p.famille === 'objets');
   const textiles = PRODUITS_VITRINE.filter((p) => p.famille === 'textile');
   const tableaux = PRODUITS_VITRINE.filter((p) => p.famille === 'tableaux');
 
@@ -22,28 +25,28 @@ export default function BoutiquePage() {
         <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 sm:py-20">
           <Etiquette>Boutique</Etiquette>
           <h1 className="titre-editorial mt-5 max-w-3xl text-5xl text-encre sm:text-6xl">
-            La boutique de l’atelier.
+            Des objets qui vous ressemblent.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-attenue">
-            Trois familles, un même atelier : le textile se compose en ligne quand un modèle 3D
-            existe, l’impression et les projets sur mesure passent par un devis pour garantir le
-            prix et le délai.
+            Un mug pour offrir, un t-shirt pour s’exprimer, un tableau pour se souvenir. Les
+            T-shirts se composent en ligne ; pour le reste, nous vous accompagnons sur WhatsApp
+            ou par devis.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <BoutonLien href="#textile" variante="primaire">
-              Explorer le textile
+            <BoutonLien href="#cadeaux" variante="primaire">
+              Voir les cadeaux
               <ArrowRight className="h-4 w-4" />
             </BoutonLien>
-            <BoutonLien href="#impression" variante="secondaire">
-              Voir l’impression graphique
-            </BoutonLien>
+            <BoutonWhatsApp variante="secondaire">Être conseillé·e sur WhatsApp</BoutonWhatsApp>
           </div>
-          <nav className="mt-8 flex flex-wrap gap-2" aria-label="Familles de la boutique">
+          <nav className="mt-8 flex flex-wrap gap-2" aria-label="Rayons de la boutique">
             {[
+              { href: '#cadeaux', label: 'Cadeaux & objets' },
               { href: '#textile', label: 'Textile' },
               { href: '#tableaux', label: 'Tableaux' },
               { href: '#impression', label: 'Impression' },
-              { href: '#services', label: 'Services' },
+              { href: '#gammes', label: 'Gammes de prix' },
+              { href: '#services', label: 'Entreprises' },
             ].map((lien) => (
               <Link
                 key={lien.href}
@@ -57,10 +60,44 @@ export default function BoutiquePage() {
         </div>
       </section>
 
-      <section id="textile" className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
+      <section id="cadeaux" className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">01 · Textile</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">01 · Cadeaux & objets</p>
+            <h2 className="titre-editorial mt-3 text-4xl text-encre sm:text-5xl">Pour offrir, à partir d’une pièce.</h2>
+          </div>
+          <p className="max-w-md text-sm leading-relaxed text-attenue">
+            Photo, prénom, message en français ou en lingala : nous préparons la maquette avec
+            vous sur WhatsApp avant de fabriquer.
+          </p>
+        </div>
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {objets.map((produit) => (
+            <ProductCard key={produit.id} produit={produit} />
+          ))}
+          <article className="flex flex-col justify-between border border-filet bg-[#F3EFE6] p-6">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-orange-action">Une occasion ?</p>
+              <h3 className="mt-3 font-display text-3xl leading-tight text-encre">Anniversaire, fête des mères, remerciement.</h3>
+              <p className="mt-3 text-sm leading-relaxed text-attenue">
+                L’univers Cadeaux & émotions rassemble les idées par occasion.
+              </p>
+            </div>
+            <Link
+              href="/univers/cadeaux"
+              className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-encre underline decoration-orange decoration-2 underline-offset-4 hover:text-orange-action"
+            >
+              Trouver une idée cadeau
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </article>
+        </div>
+      </section>
+
+      <section id="textile" className="border-t border-filet mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">02 · Textile</p>
             <h2 className="titre-editorial mt-3 text-4xl text-encre sm:text-5xl">À porter, à offrir, à porter ensemble.</h2>
           </div>
           <p className="max-w-md text-sm leading-relaxed text-attenue">
@@ -97,7 +134,7 @@ export default function BoutiquePage() {
         <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">02 · Impression & décoration — tableaux</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">03 · Tableaux photo</p>
               <h2 className="titre-editorial mt-3 text-4xl text-encre sm:text-5xl">Vos photos, en grand.</h2>
             </div>
             <p className="max-w-md text-sm leading-relaxed text-attenue">
@@ -131,7 +168,7 @@ export default function BoutiquePage() {
       <section id="impression" className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">02 · Impression & décoration — supports imprimés</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">04 · Supports imprimés</p>
             <h2 className="titre-editorial mt-3 text-4xl text-encre sm:text-5xl">Le support juste, au bon format.</h2>
           </div>
           <Link
@@ -175,10 +212,20 @@ export default function BoutiquePage() {
         </div>
       </section>
 
+      <section id="gammes" className="border-t border-filet bg-white">
+        <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">Pour tous les budgets</p>
+          <h2 className="titre-editorial mt-3 text-4xl text-encre sm:text-5xl">Trois gammes, un même soin.</h2>
+          <div className="mt-10">
+            <SectionGammes />
+          </div>
+        </div>
+      </section>
+
       <section id="services" className="border-t border-filet bg-encre text-creme">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-12 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange">03 · Services créatifs</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange">Entreprises & organisations</p>
             <h2 className="mt-3 font-display text-3xl text-creme">Identité visuelle, événements, commandes récurrentes.</h2>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-creme/70">
               Pour les entreprises, associations, restaurants et organisateurs : un interlocuteur

@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Footer from "../components/site/Footer";
 import Header from "../components/site/Header";
+import WhatsAppFlottant from "../components/site/WhatsAppFlottant";
+import { MARQUE } from "../lib/site/marque";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,26 +19,24 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://elembo.vercel.app"),
   title: {
-    default: "Elembo — Boutique textile & impression à Brazzaville",
+    default: MARQUE.titre,
     template: "%s · Elembo",
   },
-  description:
-    "T-shirts personnalisés, tableaux canvas, flyers et supports de communication. Smart Vision Congo fabrique à Brazzaville, avec paiement MTN Mobile Money et livraison à Brazzaville et Pointe-Noire.",
+  description: MARQUE.description,
   applicationName: "Elembo",
-  authors: [{ name: "Smart Vision Congo" }],
+  authors: [{ name: MARQUE.editeur }],
   openGraph: {
     type: "website",
     locale: "fr_CG",
     siteName: "Elembo",
-    title: "Elembo — Boutique textile & impression à Brazzaville",
-    description:
-      "Textile personnalisé, impression graphique et communication visuelle. Un aperçu avant fabrication, un atelier à Brazzaville.",
+    title: MARQUE.titre,
+    description: MARQUE.descriptionCourte,
     images: [{ url: "/mockups/tshirt-studio.jpg", width: 1600, height: 1067, alt: "T-shirt personnalisable Elembo" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Elembo — Boutique textile & impression à Brazzaville",
-    description: "Textile personnalisé, impression graphique et communication visuelle par Smart Vision Congo.",
+    title: MARQUE.titre,
+    description: MARQUE.descriptionCourte,
     images: ["/mockups/tshirt-studio.jpg"],
   },
 };
@@ -69,6 +69,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
         </main>
         <Footer />
+        <WhatsAppFlottant />
       </body>
     </html>
   );

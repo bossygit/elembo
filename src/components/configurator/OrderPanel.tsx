@@ -46,6 +46,7 @@ import { envoyerDossier, type FichierAEnvoyer, type ResultatEnvoi } from '../../
 import { expliquerMotif } from '../../lib/payment/motifs';
 import { construireRecap, enregistrerRecap, lienConfirmation } from '../../lib/order/confirmation';
 import { useElementImages } from './useElementImages';
+import { lienWhatsApp, MESSAGES_WHATSAPP, WHATSAPP } from '../../lib/site/marque';
 
 /** Durée maximale de suivi : MTN abandonne une demande non validée au bout de 5 minutes. */
 const FENETRE_PAIEMENT_MS = 5 * 60 * 1000;
@@ -272,7 +273,7 @@ export default function OrderPanel() {
         setMessage(
           depot.envoye
             ? `Paiement confirmé (${formatFcfa(resultat.paiement.montantFcfa)}) — commande ${ref} : dossier de ${depot.fichiers} fichier(s) transmis à l’atelier${depot.notifie ? ', atelier prévenu' : ''}.`
-            : `Paiement confirmé (${formatFcfa(resultat.paiement.montantFcfa)}) — commande ${ref} : fichiers téléchargés sur cet appareil, mais l’envoi à l’atelier a échoué (${depot.motif ?? 'raison inconnue'}). Transmettez-les par WhatsApp avec la référence.`,
+            : `Paiement confirmé (${formatFcfa(resultat.paiement.montantFcfa)}) — commande ${ref} : fichiers téléchargés sur cet appareil, mais l’envoi à l’atelier a échoué (${depot.motif ?? 'raison inconnue'}). Transmettez-les sur WhatsApp au ${WHATSAPP.affichage} avec la référence.`,
         );
 
         // Page de confirmation : le récapitulatif est conservé sur l'appareil, mais la page ne
@@ -565,6 +566,14 @@ export default function OrderPanel() {
           <p className="mt-1">
             Référence à rappeler : <span className="font-mono">{reference}</span>
           </p>
+          <a
+            href={lienWhatsApp(MESSAGES_WHATSAPP.commande(reference))}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 inline-block font-semibold underline underline-offset-2"
+          >
+            Écrire à l’atelier sur WhatsApp
+          </a>
         </div>
       )}
 

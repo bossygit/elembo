@@ -1,13 +1,15 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-import { ArrowRight, Check, Mail, Pin } from '../../components/site/Icons';
+import { ArrowRight, Chat, Check, Mail, Pin } from '../../components/site/Icons';
 import { BoutonLien, Etiquette } from '../../components/site/ui';
+import { BoutonWhatsApp } from '../../components/site/WhatsApp';
+import { lienWhatsApp, MESSAGES_WHATSAPP, WHATSAPP } from '../../lib/site/marque';
 
 export const metadata: Metadata = {
   title: 'Contact & devis',
   description:
-    'Écrivez à l’atelier Elembo à Brazzaville pour un devis textile, une impression ou un projet d’entreprise. Réponse par email, accompagnement humain.',
+    'Écrivez à Elembo sur WhatsApp ou par email : un cadeau, un t-shirt, un événement ou un projet d’entreprise. Accompagnement humain, à Brazzaville.',
 };
 
 const EMAIL = 'store@smartvision.cg';
@@ -32,12 +34,15 @@ export default function ContactPage() {
         <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 sm:py-20">
           <Etiquette>Contact</Etiquette>
           <h1 className="titre-editorial mt-5 max-w-3xl text-5xl text-encre sm:text-6xl">
-            Parlons de ce que vous voulez imprimer.
+            Parlons de votre idée.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-attenue">
-            Un T-shirt, un tableau, un lot de flyers ou un projet d’entreprise : écrivez-nous avec
-            le contexte. Nous revenons vers vous avec une proposition claire.
+            Un cadeau, un t-shirt, un mariage ou un projet d’entreprise : écrivez-nous avec le
+            contexte. Nous revenons vers vous avec une proposition claire.
           </p>
+          <div className="mt-8">
+            <BoutonWhatsApp>Écrire sur WhatsApp</BoutonWhatsApp>
+          </div>
         </div>
       </section>
 
@@ -46,6 +51,23 @@ export default function ContactPage() {
           <div>
             <h2 className="font-display text-3xl text-encre">L’atelier</h2>
             <ul className="mt-5 space-y-5">
+              <li className="flex items-start gap-3">
+                <Chat className="mt-0.5 h-5 w-5 shrink-0 text-orange-action" />
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-attenue">WhatsApp</p>
+                  <a
+                    href={lienWhatsApp(MESSAGES_WHATSAPP.general)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 inline-block text-base font-semibold text-encre underline decoration-orange decoration-2 underline-offset-4 hover:text-orange-action"
+                  >
+                    {WHATSAPP.affichage}
+                  </a>
+                  <p className="mt-1 text-xs text-attenue">
+                    Le plus simple pour commander, envoyer une photo ou poser une question.
+                  </p>
+                </div>
+              </li>
               <li className="flex items-start gap-3">
                 <Mail className="mt-0.5 h-5 w-5 shrink-0 text-orange-action" />
                 <div>
@@ -57,7 +79,7 @@ export default function ContactPage() {
                     {EMAIL}
                   </a>
                   <p className="mt-1 text-xs text-attenue">
-                    Le canal le plus fiable pour transmettre un brief ou un fichier.
+                    Pour un brief détaillé ou des fichiers lourds.
                   </p>
                 </div>
               </li>

@@ -75,12 +75,12 @@ export default function DesignControls() {
 
   return (
     <div className="flex flex-col gap-4">
-      <label className="flex items-center gap-2 text-sm text-neutral-700">
+      <label className="flex items-center gap-2 text-sm text-encre/85">
         <input
           type="checkbox"
           checked={showGuides}
           onChange={(e) => setShowGuides(e.target.checked)}
-          className="accent-[#E85F00]"
+          className="accent-orange"
         />
         Repères de zone d’impression
       </label>
@@ -99,18 +99,18 @@ export default function DesignControls() {
         disabled={!aQuelqueChose || exporting}
         onClick={handleExport}
         data-testid="export-print"
-        className="rounded-xl bg-[#200233] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#E85F00] disabled:cursor-not-allowed disabled:opacity-40"
+        className="rounded-xl bg-encre px-4 py-2.5 text-sm font-semibold text-creme transition-colors hover:bg-orange hover:text-encre disabled:cursor-not-allowed disabled:opacity-40"
       >
         {exporting ? 'Préparation…' : 'Télécharger le visuel d’impression'}
       </button>
       {out && (
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-attenue">
           Fichier haute résolution recadré sur la zone ({out.w}×{out.h} px, {PRINT_DPI} dpi). Le texte est redessiné à
           cette résolution, les images d’origine ne sont jamais réduites.
         </p>
       )}
       {selectedId && (
-        <p className="text-xs text-neutral-400">
+        <p className="text-xs text-attenue">
           L’export contient toute la face {side === 'front' ? 'avant' : 'arrière'} ({face.length} élément
           {face.length > 1 ? 's' : ''}).
         </p>

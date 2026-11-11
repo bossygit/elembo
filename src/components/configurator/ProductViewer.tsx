@@ -149,7 +149,7 @@ function LoadingOverlay() {
   if (!active) return null;
   return (
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-      <p className="rounded-lg bg-white/90 px-4 py-2 text-sm text-neutral-600">
+      <p className="rounded-full bg-encre px-4 py-2 text-sm font-medium text-creme">
         Chargement du modèle 3D… {Math.round(progress)} %
       </p>
     </div>
@@ -174,7 +174,7 @@ export default function ProductViewer({ cameraNonce = 0 }: { cameraNonce?: numbe
       ref={(el) => {
         if (el && el.clientWidth > 0) aspectRef.current = el.clientWidth / Math.max(1, el.clientHeight);
       }}
-      className="relative h-full min-h-[380px] w-full overflow-hidden rounded-2xl border border-neutral-200 bg-gradient-to-b from-neutral-50 to-white"
+      className="trame-sombre relative h-full min-h-[240px] w-full overflow-hidden rounded-2xl bg-sable lg:min-h-[380px]"
     >
       <Canvas
         shadows

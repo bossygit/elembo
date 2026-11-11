@@ -15,7 +15,7 @@ export default function ProductColorSelector() {
   if (!product) return null;
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-3">
       {product.colors.map((c) => {
         const selected = c.hex.toLowerCase() === color.toLowerCase();
         return (
@@ -26,16 +26,21 @@ export default function ProductColorSelector() {
             aria-label={`Couleur ${c.name}`}
             aria-pressed={selected}
             onClick={() => setColor(c.hex)}
-            className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors ${
-              selected ? 'border-[#E85F00] bg-[#E85F00]/10 text-neutral-900' : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
-            }`}
+            className="group flex flex-col items-center gap-1.5 text-xs font-medium text-encre"
           >
+            {/* Pastille : l'anneau orange marque la sélection (jamais la couleur seule). */}
             <span
-              className="h-4 w-4 rounded-full border border-neutral-300"
-              style={{ backgroundColor: c.hex }}
-              aria-hidden
-            />
-            {c.name}
+              className={`grid h-12 w-12 place-items-center rounded-full border-2 transition-[border-color,transform] duration-200 group-active:scale-95 ${
+                selected ? 'border-orange' : 'border-transparent group-hover:border-encre/30'
+              }`}
+            >
+              <span
+                className="h-9 w-9 rounded-full border border-encre/20"
+                style={{ backgroundColor: c.hex }}
+                aria-hidden
+              />
+            </span>
+            <span className={selected ? 'font-semibold' : 'text-attenue'}>{c.name}</span>
           </button>
         );
       })}

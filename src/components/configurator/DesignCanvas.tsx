@@ -124,7 +124,7 @@ export default function DesignCanvas() {
   }, [area, space, elements]);
 
   if (!area) {
-    return <p className="text-sm text-neutral-500">Ce produit n’a pas de zone d’impression sur cette face.</p>;
+    return <p className="text-sm text-attenue">Ce produit n’a pas de zone d’impression sur cette face.</p>;
   }
 
   const mesurer = () => mesureur.current ?? undefined;
@@ -278,9 +278,9 @@ export default function DesignCanvas() {
         onKeyDown={onKeyDown}
         aria-label={`Zone d’impression ${side === 'front' ? 'avant' : 'arrière'} — cliquez un élément pour le sélectionner`}
         data-testid="design-canvas"
-        className={`w-full touch-none rounded-xl border border-neutral-200 outline-none focus-visible:ring-2 focus-visible:ring-[#E85F00]/40 ${curseur}`}
+        className={`w-full touch-none rounded-xl border border-encre/15 outline-none focus-visible:ring-2 focus-visible:ring-orange/40 ${curseur}`}
       />
-      <p className="text-xs text-neutral-500">
+      <p className="text-xs text-attenue">
         {deLaFace.length > 0
           ? `Cliquez un élément pour le sélectionner, glissez-le pour le déplacer ; les poignées orange redimensionnent et pivotent. Flèches du clavier pour affiner, Suppr pour retirer.`
           : `Zone d’impression ${area.cmWidth} × ${area.cmHeight} cm : les éléments restent bornés à ce cadre, avec une marge de sécurité.`}

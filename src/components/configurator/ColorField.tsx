@@ -36,7 +36,7 @@ export default function ColorField({
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-sm font-medium text-neutral-800">{label}</span>
+      <span className="text-sm font-medium text-encre">{label}</span>
       <div className="flex flex-wrap items-center gap-1.5">
         {TEXT_COLORS.map((hex) => (
           <button
@@ -47,11 +47,11 @@ export default function ColorField({
             onClick={() => commit(hex)}
             style={{ backgroundColor: hex }}
             className={`h-7 w-7 rounded-full border transition-transform hover:scale-110 ${
-              value.toUpperCase() === hex ? 'border-[#E85F00] ring-2 ring-[#E85F00]/40' : 'border-neutral-300'
+              value.toUpperCase() === hex ? 'border-orange ring-2 ring-orange/40' : 'border-encre/25'
             }`}
           />
         ))}
-        <label className="ml-1 flex h-7 cursor-pointer items-center gap-1.5 rounded-full border border-neutral-300 px-2 text-xs text-neutral-700">
+        <label className="ml-1 flex h-7 cursor-pointer items-center gap-1.5 rounded-full border border-encre/25 px-2 text-xs text-encre/85">
           🎨
           <input
             type="color"
@@ -64,7 +64,7 @@ export default function ColorField({
         </label>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-xs text-neutral-500">HEX</span>
+        <span className="text-xs text-attenue">HEX</span>
         <input
           value={saisie}
           onChange={(e) => setSaisie(e.target.value)}
@@ -74,7 +74,7 @@ export default function ColorField({
           }}
           aria-label="Code hexadécimal"
           data-testid="text-color-hex"
-          className="w-24 rounded-lg border border-neutral-300 px-2 py-1 font-mono text-xs uppercase text-neutral-800"
+          className="w-24 rounded-lg border border-encre/25 px-2 py-1 font-mono text-xs uppercase text-encre"
         />
       </div>
     </div>

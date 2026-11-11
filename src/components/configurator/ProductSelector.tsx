@@ -12,7 +12,7 @@ export default function ProductSelector() {
 
   if (CATALOG.length < 2) {
     return (
-      <p className="text-xs text-neutral-500">
+      <p className="text-xs text-attenue">
         Catalogue : {CATALOG.length} produit (extensible — hoodie, tote bag, casquette sans modifier le configurateur).
       </p>
     );
@@ -26,8 +26,8 @@ export default function ProductSelector() {
           type="button"
           aria-pressed={p.id === productId}
           onClick={() => setProduct(p.id)}
-          className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${
-            p.id === productId ? 'bg-[#E85F00] text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+          className={`min-h-10 rounded-full px-4 py-2 text-sm font-semibold transition-colors duration-200 ${
+            p.id === productId ? 'bg-orange text-encre' : 'border border-encre/20 bg-white text-encre hover:border-encre'
           }`}
         >
           {p.name}

@@ -10,6 +10,7 @@
 import { useConfiguratorStore } from '../../stores/configurator-store';
 import type { DesignElement } from '../../types/configurator';
 import UploadDesign from './UploadDesign';
+import { ChevronDown, ChevronUp, Eye, EyeOff, ImageIcon, TextIcon, Trash } from '../site/Icons';
 
 function labelFor(el: DesignElement): string {
   if (el.type === 'text') {
@@ -42,27 +43,27 @@ export default function DesignPanel() {
           type="button"
           data-testid="add-text"
           onClick={() => addText()}
-          className="flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-neutral-300 bg-white p-3 text-sm font-medium text-neutral-800 transition-colors hover:border-[#E85F00]"
+          className="group flex min-h-[5.5rem] flex-col items-center justify-center gap-1.5 rounded-xl border border-encre/20 bg-white p-3 text-sm font-semibold text-encre transition-colors duration-200 hover:border-encre"
         >
-          <span className="text-base leading-none">T</span>
+          <TextIcon className="h-6 w-6 text-orange-action transition-transform duration-300 group-hover:-translate-y-0.5" />
           Ajouter du texte
         </button>
       </div>
 
       <div>
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-attenue">
             Éléments ({side === 'front' ? 'avant' : 'arrière'})
           </h3>
           {elements.length > 0 && (
-            <span className="text-xs text-neutral-400">
+            <span className="text-xs text-attenue">
               {elements.length} au total
             </span>
           )}
         </div>
 
         {face.length === 0 ? (
-          <p className="rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-500">
+          <p className="rounded-lg bg-sable/50 px-3 py-2 text-xs text-attenue">
             Aucun élément sur cette face. Ajoutez une image ou un texte.
           </p>
         ) : (
@@ -70,8 +71,8 @@ export default function DesignPanel() {
             {face.map((el) => (
               <li
                 key={el.id}
-                className={`flex items-center gap-1 rounded-lg border px-2 py-1 ${
-                  el.id === selectedId ? 'border-[#E85F00] bg-[#E85F00]/5' : 'border-neutral-200 bg-white'
+                className={`flex items-center gap-0.5 rounded-xl border py-1 pl-3 pr-1 ${
+                  el.id === selectedId ? 'border-orange bg-orange/5' : 'border-encre/15 bg-white'
                 }`}
               >
                 <button
@@ -80,45 +81,47 @@ export default function DesignPanel() {
                   onClick={() => selectElement(el.id)}
                   aria-pressed={el.id === selectedId}
                   className={`flex min-w-0 flex-1 items-center gap-2 text-left text-sm ${
-                    el.visible ? 'text-neutral-800' : 'text-neutral-400 line-through'
+                    el.visible ? 'text-encre' : 'text-attenue line-through'
                   }`}
                 >
-                  <span aria-hidden className="text-xs font-bold text-neutral-400">
-                    {el.type === 'text' ? 'T' : '▣'}
-                  </span>
+                  {el.type === 'text' ? (
+                    <TextIcon className="h-4 w-4 shrink-0 text-attenue" />
+                  ) : (
+                    <ImageIcon className="h-4 w-4 shrink-0 text-attenue" />
+                  )}
                   <span className="truncate">{labelFor(el)}</span>
                 </button>
                 <button
                   type="button"
                   aria-label={el.visible ? `Masquer ${labelFor(el)}` : `Afficher ${labelFor(el)}`}
                   onClick={() => toggleElementVisible(el.id)}
-                  className="rounded px-1 text-xs text-neutral-500 hover:bg-neutral-100"
+                  className="grid h-9 w-9 place-items-center rounded-lg text-attenue hover:bg-sable hover:text-encre"
                 >
-                  {el.visible ? '👁' : '🚫'}
+                  {el.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                 </button>
                 <button
                   type="button"
                   aria-label={`Monter ${labelFor(el)}`}
                   onClick={() => moveElement(el.id, 'up')}
-                  className="rounded px-1 text-xs text-neutral-500 hover:bg-neutral-100"
+                  className="grid h-9 w-7 place-items-center rounded-lg text-attenue hover:bg-sable hover:text-encre"
                 >
-                  ↑
+                  <ChevronUp className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
                   aria-label={`Descendre ${labelFor(el)}`}
                   onClick={() => moveElement(el.id, 'down')}
-                  className="rounded px-1 text-xs text-neutral-500 hover:bg-neutral-100"
+                  className="grid h-9 w-7 place-items-center rounded-lg text-attenue hover:bg-sable hover:text-encre"
                 >
-                  ↓
+                  <ChevronDown className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
                   aria-label={`Supprimer ${labelFor(el)}`}
                   onClick={() => removeElement(el.id)}
-                  className="rounded px-1 text-xs text-neutral-500 hover:bg-red-50 hover:text-red-600"
+                  className="grid h-9 w-9 place-items-center rounded-lg text-attenue hover:bg-red-50 hover:text-red-600"
                 >
-                  🗑
+                  <Trash className="h-4 w-4" />
                 </button>
               </li>
             ))}
@@ -130,7 +133,7 @@ export default function DesignPanel() {
             type="button"
             data-testid="switch-side-hint"
             onClick={() => setSide(autreFace)}
-            className="mt-2 text-xs text-neutral-500 underline hover:text-[#E85F00]"
+            className="mt-2 text-xs text-attenue underline hover:text-orange-action"
           >
             {surAutreFace} élément{surAutreFace > 1 ? 's' : ''} sur la face {autreFace === 'front' ? 'avant' : 'arrière'} →
           </button>

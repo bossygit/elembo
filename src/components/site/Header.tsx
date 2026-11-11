@@ -5,15 +5,15 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { devisConfigure } from '@/lib/devis/configuration';
-import { lienWhatsApp, MESSAGES_WHATSAPP } from '@/lib/site/marque';
-import { ArrowRight, Chat, Close, Menu } from './Icons';
+import { lienWhatsApp, MARQUE, MESSAGES_WHATSAPP, WHATSAPP } from '@/lib/site/marque';
+import { ArrowRight, ArrowUpRight, Chat, Close, Menu } from './Icons';
 
 const LIENS = [
   { href: '/', label: 'Accueil' },
   { href: '/univers', label: 'Univers' },
-  { href: '/personnalisation', label: 'Créer' },
   { href: '/boutique', label: 'Boutique' },
   { href: '/univers/evenements', label: 'Événements' },
+  { href: '/createurs', label: 'Créateurs' },
   { href: '/entreprises', label: 'Entreprises' },
   { href: '/contact', label: 'Contact' },
 ];
@@ -54,70 +54,73 @@ export default function Header() {
   }, [ouvert]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-filet bg-creme">
+    <header className="sticky top-0 z-50 border-b border-encre/10 bg-creme/90 backdrop-blur-md">
       <div className="bg-encre text-creme">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-2 text-[11px] font-medium tracking-wide sm:px-6">
-          <p>Création congolaise · Fabriqué à Brazzaville</p>
-          <div className="hidden items-center gap-4 sm:flex">
-            <span className="text-creme/70">MTN Mobile Money</span>
-            <span className="text-creme/30" aria-hidden>·</span>
-            <span className="text-creme/70">Commande assistée WhatsApp</span>
-          </div>
-          <Link href={lienDevis} className="inline-flex items-center gap-1.5 text-orange hover:text-orange-action">
-            {libelleDevis}
-            <ArrowRight className="h-3 w-3" />
-          </Link>
+        <div className="mx-auto flex w-full max-w-[90rem] items-center justify-between gap-4 px-4 py-2 text-[11px] font-medium tracking-wide sm:px-8">
+          <p className="truncate">
+            <span className="text-orange">✦</span> Création congolaise · Fabriqué à Brazzaville
+          </p>
+          <p className="hidden text-creme/60 md:block">Prix en FCFA · Paiement MTN MoMo</p>
+          <a
+            href={WHATSAPP_HREF}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex shrink-0 items-center gap-1.5 text-creme transition-colors hover:text-orange"
+          >
+            <Chat className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">WhatsApp {WHATSAPP.affichage}</span>
+            <span className="sm:hidden">WhatsApp</span>
+          </a>
         </div>
       </div>
 
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
-        <Link href="/" className="group flex shrink-0 items-baseline gap-2" aria-label="Elembo, accueil">
-          <span className="text-[28px] font-bold leading-none tracking-tight text-encre">
+      <div className="mx-auto flex w-full max-w-[90rem] items-center justify-between gap-4 px-4 py-3 sm:px-8">
+        <Link href="/" className="shrink-0" aria-label="Elembo, accueil">
+          <span className="font-display text-[30px] font-extrabold leading-none tracking-[-0.06em] text-encre">
             elembo<span className="text-orange">.</span>
-          </span>
-          <span className="hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-attenue sm:inline">
-            Nos histoires · Notre culture
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-4 lg:flex xl:gap-5" aria-label="Navigation principale">
-          {LIENS.map((lien) => {
+        <nav className="hidden items-center gap-6 lg:flex xl:gap-8" aria-label="Navigation principale">
+          {LIENS.slice(1).map((lien) => {
             const estActif = actif === lien.href;
             return (
               <Link
                 key={lien.href}
                 href={lien.href}
                 aria-current={estActif ? 'page' : undefined}
-                className={`relative whitespace-nowrap py-1 text-[13px] font-medium transition-colors duration-200 hover:text-orange-action ${
-                  estActif ? 'text-encre' : 'text-attenue'
+                className={`group relative whitespace-nowrap py-1 text-[13px] font-medium transition-colors duration-200 ${
+                  estActif ? 'text-encre' : 'text-encre/65 hover:text-encre'
                 }`}
               >
                 {lien.label}
-                {estActif && (
-                  <span aria-hidden className="absolute -bottom-0.5 left-0 h-0.5 w-full bg-orange" />
-                )}
+                <span
+                  aria-hidden
+                  className={`absolute -bottom-0.5 left-0 h-0.5 w-full origin-left bg-orange transition-transform duration-300 ease-sortie ${
+                    estActif ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                  }`}
+                />
               </Link>
             );
           })}
         </nav>
 
         <div className="flex items-center gap-2">
-          <a
-            href={WHATSAPP_HREF}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden items-center gap-2 rounded-full bg-encre px-4 py-2.5 text-sm font-semibold text-creme transition-colors duration-200 hover:bg-orange hover:text-encre xl:inline-flex"
+          <Link
+            href="/personnalisation"
+            className="group inline-flex items-center gap-2 rounded-full bg-orange px-4 py-2.5 text-sm font-semibold text-encre transition-colors duration-300 hover:bg-encre hover:text-creme sm:px-5"
           >
-            <Chat className="h-4 w-4" />
-            Commander sur WhatsApp
-          </a>
+            <span className="sm:hidden">Créer</span>
+            <span className="hidden sm:inline">Créer mon design</span>
+            <ArrowUpRight className="h-4 w-4 transition-transform duration-300 ease-sortie group-hover:rotate-45" />
+          </Link>
           <button
             type="button"
             onClick={() => setOuvert((o) => !o)}
             aria-expanded={ouvert}
             aria-controls="menu-mobile"
             aria-label={ouvert ? 'Fermer le menu' : 'Ouvrir le menu'}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-filet text-encre transition-colors duration-200 hover:border-encre lg:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-encre/20 text-encre transition-colors duration-200 hover:border-encre lg:hidden"
           >
             {ouvert ? <Close className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -127,25 +130,30 @@ export default function Header() {
       {ouvert && (
         <div
           id="menu-mobile"
-          className="fixed inset-0 z-[60] overflow-y-auto bg-creme lg:hidden"
+          className="trame fixed inset-0 z-[60] flex flex-col overflow-y-auto bg-encre text-creme lg:hidden"
           role="dialog"
           aria-modal="true"
-          aria-label="Menu mobile"
+          aria-label="Menu"
         >
-          <div className="flex items-center justify-between border-b border-filet px-4 py-4 sm:px-6">
-            <Link href="/" onClick={() => setOuvert(false)} className="text-[28px] font-bold leading-none tracking-tight text-encre">
+          <div className="flex items-center justify-between px-4 py-4 sm:px-8">
+            <Link
+              href="/"
+              onClick={() => setOuvert(false)}
+              className="font-display text-[30px] font-extrabold leading-none tracking-[-0.06em]"
+            >
               elembo<span className="text-orange">.</span>
             </Link>
             <button
               type="button"
               onClick={() => setOuvert(false)}
               aria-label="Fermer le menu"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-filet text-encre"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-creme/25"
             >
               <Close className="h-5 w-5" />
             </button>
           </div>
-          <nav className="mx-auto flex w-full max-w-7xl flex-col px-4 py-3 sm:px-6" aria-label="Navigation mobile">
+
+          <nav className="flex flex-1 flex-col justify-center px-4 py-4 sm:px-8" aria-label="Navigation mobile">
             {LIENS.map((lien, index) => {
               const estActif = actif === lien.href;
               return (
@@ -154,38 +162,52 @@ export default function Header() {
                   href={lien.href}
                   onClick={() => setOuvert(false)}
                   aria-current={estActif ? 'page' : undefined}
-                  className="flex items-center justify-between border-b border-filet py-4 text-lg font-medium text-encre last:border-b-0"
+                  className="ligne border-b border-creme/10 py-2.5"
                 >
-                  <span className="flex items-baseline gap-3">
-                    <span className="font-mono text-[10px] text-orange-action">0{index + 1}</span>
-                    {lien.label}
+                  <span style={{ '--i': index } as React.CSSProperties} className="flex items-baseline gap-3">
+                    <span className="font-mono text-[10px] text-orange">0{index + 1}</span>
+                    <span
+                      className={`titre-geant text-[clamp(2rem,9.5vw,3.2rem)] ${estActif ? 'text-orange' : 'text-creme'}`}
+                    >
+                      {lien.label}
+                    </span>
                   </span>
-                  <ArrowRight className={`h-4 w-4 ${estActif ? 'text-orange-action' : 'text-attenue'}`} />
                 </Link>
               );
             })}
-            <a
-              href={WHATSAPP_HREF}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setOuvert(false)}
-              className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-encre px-5 py-3.5 text-sm font-semibold text-creme"
-            >
-              <Chat className="h-4 w-4" />
-              Commander sur WhatsApp
-            </a>
-            <Link
-              href={lienDevis}
-              onClick={() => setOuvert(false)}
-              className="mt-3 inline-flex items-center justify-center gap-2 rounded-full border border-encre px-5 py-3.5 text-sm font-semibold text-encre"
-            >
-              {libelleDevis}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <p className="mt-5 pb-3 text-center text-xs text-attenue">
-              Fabriqué à Brazzaville · Paiement MTN MoMo · Prix en FCFA
-            </p>
           </nav>
+
+          <div className="grid gap-3 px-4 pb-8 pt-4 sm:px-8">
+            <Link
+              href="/personnalisation"
+              onClick={() => setOuvert(false)}
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-orange px-5 py-4 text-sm font-semibold text-encre"
+            >
+              Créer mon design
+              <ArrowUpRight className="h-4 w-4" />
+            </Link>
+            <div className="grid grid-cols-2 gap-3">
+              <a
+                href={WHATSAPP_HREF}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOuvert(false)}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-creme/30 px-4 py-3.5 text-sm font-semibold"
+              >
+                <Chat className="h-4 w-4" />
+                WhatsApp
+              </a>
+              <Link
+                href={lienDevis}
+                onClick={() => setOuvert(false)}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-creme/30 px-4 py-3.5 text-sm font-semibold"
+              >
+                {libelleDevis}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+            <p className="pt-2 text-center font-accent text-lg italic text-creme/70">{MARQUE.signature}</p>
+          </div>
         </div>
       )}
     </header>

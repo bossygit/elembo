@@ -115,3 +115,106 @@ export function Sparkle(props: IconProps) {
     </svg>
   );
 }
+
+export function Home(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true" {...props}>
+      <path d="M4 10.5 12 4l8 6.5V20h-5.5v-5.5h-5V20H4v-9.5Z" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function Grid(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true" {...props}>
+      <rect x="4" y="4" width="6.5" height="6.5" rx="1" />
+      <rect x="13.5" y="4" width="6.5" height="6.5" rx="3.25" />
+      <rect x="4" y="13.5" width="6.5" height="6.5" rx="3.25" />
+      <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1" />
+    </svg>
+  );
+}
+
+export function Bag(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true" {...props}>
+      <path d="M5 8.5h14l-1 11.5H6L5 8.5Z" strokeLinejoin="round" />
+      <path d="M9 8.5V7a3 3 0 0 1 6 0v1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function Plus(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" {...props}>
+      <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function ArrowUpRight(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true" {...props}>
+      <path d="M7 17 17 7M8.5 7H17v8.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function Eye(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true" {...props}>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="2.8" />
+    </svg>
+  );
+}
+
+export function EyeOff(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true" {...props}>
+      <path d="M4 4l16 16M9.9 6A9 9 0 0 1 12 5.5c6 0 9.5 6.500 9.500 6.500a17 17 0 0 1-3 3.700M14.500 17.900a8.600 8.600 0 0 1-2.500.6C6 18.500 2.500 12 2.500 12a17 17 0 0 1 3.900-4.400" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function Trash(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true" {...props}>
+      <path d="M4.5 7h15M9.500 7V4.500h5V7M6.500 7l.8 12.500h9.400L17.500 7M10 10.500v5.500M14 10.500v5.500" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function ChevronUp(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" {...props}>
+      <path d="m6 14.500 6-6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function ChevronDown(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" {...props}>
+      <path d="m6 9.500 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function TextIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true" {...props}>
+      <path d="M5 7V5h14v2M12 5v14M9 19h6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function ImageIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true" {...props}>
+      <rect x="3.500" y="4.500" width="17" height="15" rx="2" />
+      <circle cx="9" cy="10" r="1.700" />
+      <path d="m4.500 17.500 5-4.500 3.500 3 2.500-2 4 3.500" strokeLinejoin="round" />
+    </svg>
+  );
+}

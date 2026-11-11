@@ -352,6 +352,7 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
     description:
       'Une photo, un prénom, un message dans votre langue : le petit cadeau qui accompagne le café du matin.',
     points: ['Photo et texte au choix', 'À partir d’une pièce', 'Idéal fête des mères et anniversaires', 'Commande assistée sur WhatsApp'],
+    image: { src: '/photos/mug-blanc.jpg', alt: 'Mug blanc à personnaliser, photo d’illustration' },
     href: lienWhatsApp(MESSAGES_WHATSAPP.produit('Mug personnalisé')),
     cta: 'Commander sur WhatsApp',
     prix: prixVitrine(null, 'provisoire'),

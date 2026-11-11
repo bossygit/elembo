@@ -316,7 +316,7 @@ function Message({
   action?: React.ReactNode;
 }) {
   return (
-    <div role="status" className="max-w-xl border border-encre bg-[#F3EFE6] px-5 py-4">
+    <div role="status" className="max-w-xl border border-encre bg-sable px-5 py-4">
       <p className="font-semibold text-encre">{titre}</p>
       <p className="mt-1 text-sm leading-relaxed text-attenue">{texte}</p>
       {action && <div className="mt-4">{action}</div>}

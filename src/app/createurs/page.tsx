@@ -31,27 +31,29 @@ const ROLES = [
 export default function PageCreateurs() {
   return (
     <>
-      <section className="border-b border-filet bg-[#F3EFE6]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 sm:py-20">
-          <Etiquette>Bientôt · Préinscription ouverte</Etiquette>
-          <h1 className="titre-editorial mt-5 max-w-3xl text-5xl text-encre sm:text-6xl">
-            Créateurs congolais, rejoignez Elembo.
+      <section className="trame bg-encre text-creme">
+        <div className="mx-auto w-full max-w-[90rem] px-4 py-14 sm:px-8 sm:py-20">
+          <Etiquette sombre>Bientôt · Préinscription ouverte</Etiquette>
+          <h1 className="titre-geant mt-6 max-w-5xl text-[clamp(2.8rem,8.4vw,7.5rem)]">
+            Créateurs congolais, <span className="accent-serif text-orange">rejoignez Elembo.</span>
           </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-relaxed text-attenue">
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-creme/75">
             Elembo veut devenir la vitrine de la créativité congolaise. Illustrateurs,
             photographes, artistes, créateurs de contenu : proposez vos collections, nous les
             fabriquons et les livrons.
           </p>
           <div className="mt-8">
-            <BoutonWhatsApp message={MESSAGES_WHATSAPP.createur}>Me préinscrire sur WhatsApp</BoutonWhatsApp>
+            <BoutonWhatsApp message={MESSAGES_WHATSAPP.createur} variante="accent">
+              Me préinscrire sur WhatsApp
+            </BoutonWhatsApp>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
+      <section className="mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-20">
         <div className="grid gap-12 lg:grid-cols-2">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">Pour qui ?</p>
+            <p className="surtitre text-orange-action">Pour qui ?</p>
             <h2 className="titre-editorial mt-4 text-4xl text-encre">Imaginez…</h2>
             <ul className="mt-6 space-y-3">
               {PROFILS.map((profil) => (
@@ -63,7 +65,7 @@ export default function PageCreateurs() {
             </ul>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">Comment ça marche</p>
+            <p className="surtitre text-orange-action">Comment ça marche</p>
             <dl className="mt-6 space-y-6">
               {ROLES.map((role) => (
                 <div key={role.qui} className="border-t-2 border-encre pt-4">

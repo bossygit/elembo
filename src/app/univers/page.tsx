@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 import { CarteCollection, CarteUnivers } from '@/components/site/Univers';
-import { Etiquette } from '@/components/site/ui';
+import { Etiquette, Surtitre } from '@/components/site/ui';
 import { BoutonWhatsApp } from '@/components/site/WhatsApp';
 import { COLLECTIONS, REGISTRES, UNIVERS } from '@/lib/commerce/univers';
 import { MARQUE } from '@/lib/site/marque';
@@ -15,11 +15,11 @@ export const metadata: Metadata = {
 export default function PageUnivers() {
   return (
     <>
-      <section className="border-b border-filet bg-[#F3EFE6]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 sm:py-20">
+      <section className="trame-sombre bg-sable">
+        <div className="mx-auto w-full max-w-[90rem] px-4 py-14 sm:px-8 sm:py-20">
           <Etiquette>{MARQUE.signature}</Etiquette>
-          <h1 className="titre-editorial mt-5 max-w-3xl text-5xl text-encre sm:text-6xl">
-            Cinq univers, une même envie : créer ce qui vous ressemble.
+          <h1 className="titre-geant mt-6 max-w-5xl text-[clamp(2.8rem,8.4vw,7.5rem)] text-encre">
+            Cinq univers, <span className="accent-serif text-orange">une même envie.</span>
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-attenue">
             Partez de ce que vous voulez vivre — offrir, célébrer, exprimer, vous souvenir. Nous
@@ -31,19 +31,27 @@ export default function PageUnivers() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {UNIVERS.map((univers) => (
-            <CarteUnivers key={univers.id} univers={univers} />
+      <section className="mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-20">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+          {UNIVERS.map((univers, index) => (
+            <CarteUnivers
+              key={univers.id}
+              univers={univers}
+              className={
+                index < 3
+                  ? 'aspect-[4/5] lg:col-span-2'
+                  : `aspect-[4/5] lg:col-span-3 lg:aspect-[16/10] ${index === 4 ? 'sm:col-span-2' : ''}`
+              }
+            />
           ))}
         </div>
       </section>
 
-      <section className="border-y border-filet bg-white">
-        <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">Nos collections congolaises</p>
-          <h2 className="titre-editorial mt-4 max-w-3xl text-4xl text-encre sm:text-5xl">
-            Pas seulement des pagnes et des masques.
+      <section id="collections" className="scroll-mt-24 border-t border-encre/15">
+        <div className="mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-24">
+          <Surtitre>Les collections Elembo · en préparation</Surtitre>
+          <h2 data-anim="titre" className="titre-editorial mt-5 max-w-4xl text-5xl text-encre sm:text-7xl">
+            Pas seulement des pagnes <span className="accent-serif text-orange">et des masques.</span>
           </h2>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-attenue">
             Le Congo est aussi urbain, jeune, musical, drôle et créatif. Nos collections font
@@ -57,7 +65,7 @@ export default function PageUnivers() {
               </div>
             ))}
           </dl>
-          <div className="mt-12 grid gap-5 md:grid-cols-2">
+          <div className="mt-14 grid gap-x-5 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
             {COLLECTIONS.map((collection) => (
               <CarteCollection key={collection.id} collection={collection} />
             ))}

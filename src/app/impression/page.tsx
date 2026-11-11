@@ -25,7 +25,7 @@ export default function ImpressionPage() {
   return (
     <>
       <section className="border-b border-filet">
-        <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+        <div className="mx-auto grid w-full max-w-[90rem] gap-10 px-4 py-14 sm:px-8 sm:py-20 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <div>
             <Etiquette>Impression graphique</Etiquette>
             <h1 className="titre-editorial mt-5 max-w-2xl text-5xl text-encre sm:text-6xl">
@@ -52,7 +52,7 @@ export default function ImpressionPage() {
             </p>
           </div>
 
-          <div className="border border-encre bg-[#F3EFE6] p-4 sm:p-6">
+          <div className="border border-encre bg-sable p-4 sm:p-6">
             <div className="aspect-[4/3] overflow-hidden">
               <Image
                 src={asset('/mockups/cartes-impression.jpg')}
@@ -77,10 +77,10 @@ export default function ImpressionPage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
+      <section className="mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-20">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">Supports</p>
+            <p className="surtitre text-orange-action">Supports</p>
             <h2 className="titre-editorial mt-3 text-4xl text-encre sm:text-5xl">Ce que nous produisons.</h2>
           </div>
           <p className="max-w-md text-sm leading-relaxed text-attenue">
@@ -115,9 +115,9 @@ export default function ImpressionPage() {
       </section>
 
       <section className="border-y border-filet bg-white">
-        <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-2">
+        <div className="mx-auto grid w-full max-w-[90rem] gap-10 px-4 py-16 sm:px-8 sm:py-20 lg:grid-cols-2">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">Votre fichier</p>
+            <p className="surtitre text-orange-action">Votre fichier</p>
             <h2 className="titre-editorial mt-3 text-4xl text-encre">Prêt à imprimer ?</h2>
             <p className="mt-4 text-base leading-relaxed text-attenue">
               Un fichier bien préparé évite les mauvaises surprises : texte coupé, couleurs
@@ -137,8 +137,8 @@ export default function ImpressionPage() {
             </p>
           </div>
 
-          <div className="border border-encre bg-[#F3EFE6] p-6 sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">Pas de fichier ?</p>
+          <div className="border border-encre bg-sable p-6 sm:p-8">
+            <p className="surtitre text-orange-action">Pas de fichier ?</p>
             <h3 className="mt-3 font-display text-3xl text-encre">Nous pouvons le créer.</h3>
             <p className="mt-3 text-sm leading-relaxed text-attenue">
               Notre atelier conçoit aussi l’identité et les supports : logo, mise en page,
@@ -158,7 +158,7 @@ export default function ImpressionPage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
+      <section className="mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-20">
         <h2 className="titre-editorial text-4xl text-encre">Questions fréquentes</h2>
         <div className="mt-8 divide-y divide-filet border-y border-filet">
           {[
@@ -191,7 +191,7 @@ export default function ImpressionPage() {
       </section>
 
       <section className="bg-encre text-creme">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-14 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mx-auto flex w-full max-w-[90rem] flex-col gap-6 px-4 py-14 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h2 className="titre-editorial text-4xl text-creme">Décrivez votre impression.</h2>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-creme/70">

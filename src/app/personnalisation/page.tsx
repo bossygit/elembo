@@ -19,7 +19,7 @@ export default function PersonnalisationPage() {
   return (
     <>
       <section className="border-b border-filet">
-        <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
+        <div className="mx-auto w-full max-w-[90rem] px-4 py-10 sm:px-8 sm:py-14">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <Etiquette>Personnalisation</Etiquette>
@@ -40,7 +40,7 @@ export default function PersonnalisationPage() {
           </div>
 
           {!paiementOuvert && (
-            <div className="mt-6 border border-encre bg-[#F3EFE6] px-4 py-3 text-sm text-encre">
+            <div className="mt-6 border border-encre bg-sable px-4 py-3 text-sm text-encre">
               <p className="font-semibold">Le paiement en ligne est en cours d’ouverture.</p>
               <p className="mt-1 text-xs leading-relaxed text-attenue">
                 Vous pouvez composer votre textile et générer un aperçu. Le tarif commercial

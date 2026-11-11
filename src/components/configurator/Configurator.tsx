@@ -91,7 +91,7 @@ export default function Configurator() {
   const product = getProductById(productId);
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6">
+    <div className="mx-auto w-full max-w-[90rem] px-4 py-6">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <Link href="/boutique" className="text-xs font-medium text-neutral-500 hover:text-[#E85F00]">

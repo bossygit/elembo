@@ -21,11 +21,11 @@ export default function BoutiquePage() {
 
   return (
     <>
-      <section className="border-b border-filet">
-        <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 sm:py-20">
+      <section className="trame-sombre bg-sable">
+        <div className="mx-auto w-full max-w-[90rem] px-4 py-14 sm:px-8 sm:py-20">
           <Etiquette>Boutique</Etiquette>
-          <h1 className="titre-editorial mt-5 max-w-3xl text-5xl text-encre sm:text-6xl">
-            Des objets qui vous ressemblent.
+          <h1 className="titre-geant mt-6 max-w-5xl text-[clamp(2.8rem,8.4vw,7.5rem)] text-encre">
+            Des objets qui <span className="accent-serif text-orange">vous ressemblent.</span>
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-attenue">
             Un mug pour offrir, un t-shirt pour s’exprimer, un tableau pour se souvenir. Les
@@ -51,7 +51,7 @@ export default function BoutiquePage() {
               <Link
                 key={lien.href}
                 href={lien.href}
-                className="rounded-full border border-filet bg-white px-3.5 py-2 text-xs font-semibold text-encre transition-colors hover:border-encre hover:bg-encre hover:text-creme"
+                className="rounded-full border border-encre/20 bg-creme px-4 py-2.5 text-xs font-semibold text-encre transition-colors duration-300 hover:border-encre hover:bg-encre hover:text-creme"
               >
                 {lien.label}
               </Link>
@@ -60,22 +60,22 @@ export default function BoutiquePage() {
         </div>
       </section>
 
-      <section id="cadeaux" className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
+      <section id="cadeaux" className="mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-20">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">01 · Cadeaux & objets</p>
-            <h2 className="titre-editorial mt-3 text-4xl text-encre sm:text-5xl">Pour offrir, à partir d’une pièce.</h2>
+            <p className="surtitre text-orange-action">01 · Cadeaux & objets</p>
+            <h2 data-anim="titre" className="titre-editorial mt-4 text-5xl text-encre sm:text-6xl">Pour offrir, à partir d’une pièce.</h2>
           </div>
           <p className="max-w-md text-sm leading-relaxed text-attenue">
             Photo, prénom, message en français ou en lingala : nous préparons la maquette avec
             vous sur WhatsApp avant de fabriquer.
           </p>
         </div>
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
           {objets.map((produit) => (
             <ProductCard key={produit.id} produit={produit} />
           ))}
-          <article className="flex flex-col justify-between border border-filet bg-[#F3EFE6] p-6">
+          <article className="flex flex-col justify-between border border-filet bg-sable p-6">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-orange-action">Une occasion ?</p>
               <h3 className="mt-3 font-display text-3xl leading-tight text-encre">Anniversaire, fête des mères, remerciement.</h3>
@@ -94,11 +94,11 @@ export default function BoutiquePage() {
         </div>
       </section>
 
-      <section id="textile" className="border-t border-filet mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
+      <section id="textile" className="border-t border-filet mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-20">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">02 · Textile</p>
-            <h2 className="titre-editorial mt-3 text-4xl text-encre sm:text-5xl">À porter, à offrir, à porter ensemble.</h2>
+            <p className="surtitre text-orange-action">02 · Textile</p>
+            <h2 data-anim="titre" className="titre-editorial mt-4 text-5xl text-encre sm:text-6xl">À porter, à offrir, à porter ensemble.</h2>
           </div>
           <p className="max-w-md text-sm leading-relaxed text-attenue">
             T-shirts, polos, tote bags, textiles événementiels et uniformes. Les T-shirts disposent
@@ -106,7 +106,7 @@ export default function BoutiquePage() {
           </p>
         </div>
 
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
           {textiles.map((produit) => (
             <ProductCard key={produit.id} produit={produit} />
           ))}
@@ -131,22 +131,22 @@ export default function BoutiquePage() {
       </section>
 
       <section id="tableaux" className="border-y border-filet bg-white">
-        <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-20">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">03 · Tableaux photo</p>
-              <h2 className="titre-editorial mt-3 text-4xl text-encre sm:text-5xl">Vos photos, en grand.</h2>
+              <p className="surtitre text-orange-action">03 · Tableaux photo</p>
+              <h2 data-anim="titre" className="titre-editorial mt-4 text-5xl text-encre sm:text-6xl">Vos photos, en grand.</h2>
             </div>
             <p className="max-w-md text-sm leading-relaxed text-attenue">
               Cinq formats, toile seule ou montée sur châssis. L’aperçu indique la résolution
               réelle de votre photo avant impression.
             </p>
           </div>
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
             {tableaux.map((produit) => (
               <ProductCard key={produit.id} produit={produit} />
             ))}
-            <article className="border border-filet bg-[#F3EFE6] p-6">
+            <article className="border border-filet bg-sable p-6">
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-orange-action">Formats</p>
               <ul className="mt-4 space-y-2 text-sm text-encre">
                 {['20 × 30 cm', '30 × 40 cm', '40 × 60 cm', '50 × 70 cm', '60 × 90 cm'].map((format) => (
@@ -165,11 +165,11 @@ export default function BoutiquePage() {
         </div>
       </section>
 
-      <section id="impression" className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
+      <section id="impression" className="mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-20">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">04 · Supports imprimés</p>
-            <h2 className="titre-editorial mt-3 text-4xl text-encre sm:text-5xl">Le support juste, au bon format.</h2>
+            <p className="surtitre text-orange-action">04 · Supports imprimés</p>
+            <h2 data-anim="titre" className="titre-editorial mt-4 text-5xl text-encre sm:text-6xl">Le support juste, au bon format.</h2>
           </div>
           <Link
             href="/impression"
@@ -197,7 +197,7 @@ export default function BoutiquePage() {
           ))}
         </div>
 
-        <div className="mt-8 border border-encre bg-[#F3EFE6] p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
+        <div className="mt-8 border border-encre bg-sable p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
           <div>
             <h3 className="font-display text-2xl text-encre">Un besoin précis ?</h3>
             <p className="mt-1 text-sm text-attenue">
@@ -213,9 +213,9 @@ export default function BoutiquePage() {
       </section>
 
       <section id="gammes" className="border-t border-filet bg-white">
-        <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">Pour tous les budgets</p>
-          <h2 className="titre-editorial mt-3 text-4xl text-encre sm:text-5xl">Trois gammes, un même soin.</h2>
+        <div className="mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-20">
+          <p className="surtitre text-orange-action">Pour tous les budgets</p>
+          <h2 data-anim="titre" className="titre-editorial mt-4 text-5xl text-encre sm:text-6xl">Trois gammes, un même soin.</h2>
           <div className="mt-10">
             <SectionGammes />
           </div>
@@ -223,9 +223,9 @@ export default function BoutiquePage() {
       </section>
 
       <section id="services" className="border-t border-filet bg-encre text-creme">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-12 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mx-auto flex w-full max-w-[90rem] flex-col gap-6 px-4 py-12 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange">Entreprises & organisations</p>
+            <p className="surtitre text-orange">Entreprises & organisations</p>
             <h2 className="mt-3 font-display text-3xl text-creme">Identité visuelle, événements, commandes récurrentes.</h2>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-creme/70">
               Pour les entreprises, associations, restaurants et organisateurs : un interlocuteur

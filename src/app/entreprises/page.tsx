@@ -33,7 +33,7 @@ export default function EntreprisesPage() {
   return (
     <>
       <section className="border-b border-filet">
-        <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+        <div className="mx-auto grid w-full max-w-[90rem] gap-10 px-4 py-14 sm:px-8 sm:py-20 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <div>
             <Etiquette>Entreprises & organisations</Etiquette>
             <h1 className="titre-editorial mt-5 max-w-2xl text-5xl text-encre sm:text-6xl">
@@ -56,7 +56,7 @@ export default function EntreprisesPage() {
             </div>
           </div>
 
-          <div className="border border-encre bg-[#F3EFE6] p-4 sm:p-6">
+          <div className="border border-encre bg-sable p-4 sm:p-6">
             <Image
               src={asset('/mockups/tableau-interieur.jpg')}
               alt="Tableau mural personnalisé dans un espace professionnel"
@@ -73,9 +73,9 @@ export default function EntreprisesPage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
+      <section className="mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-20">
         <div className="max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">Nos prestations</p>
+          <p className="surtitre text-orange-action">Nos prestations</p>
           <h2 className="titre-editorial mt-3 text-4xl text-encre sm:text-5xl">De l’idée au support fini.</h2>
         </div>
         <div className="mt-10 grid gap-4 sm:grid-cols-2">
@@ -103,9 +103,9 @@ export default function EntreprisesPage() {
       </section>
 
       <section className="border-y border-filet bg-white">
-        <div className="mx-auto grid w-full max-w-7xl gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[0.8fr_1.2fr]">
+        <div className="mx-auto grid w-full max-w-[90rem] gap-12 px-4 py-16 sm:px-8 sm:py-20 lg:grid-cols-[0.8fr_1.2fr]">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">Notre façon de travailler</p>
+            <p className="surtitre text-orange-action">Notre façon de travailler</p>
             <h2 className="titre-editorial mt-3 text-4xl text-encre">Un devis clair, une production suivie.</h2>
             <p className="mt-4 text-sm leading-relaxed text-attenue">
               Pas de prix inventé ni de délai promis à la légère. Chaque proposition distingue la
@@ -135,10 +135,10 @@ export default function EntreprisesPage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
+      <section className="mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-20">
         <div className="grid gap-10 lg:grid-cols-2">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">Pour qui</p>
+            <p className="surtitre text-orange-action">Pour qui</p>
             <h2 className="titre-editorial mt-3 text-4xl text-encre">Des organisations de toutes tailles.</h2>
             <ul className="mt-6 grid gap-x-8 gap-y-3 sm:grid-cols-2">
               {CLIENTS.map((client) => (
@@ -149,7 +149,7 @@ export default function EntreprisesPage() {
               ))}
             </ul>
           </div>
-          <div className="border border-encre bg-[#F3EFE6] p-6 sm:p-8">
+          <div className="border border-encre bg-sable p-6 sm:p-8">
             <h3 className="font-display text-3xl text-encre">Commande récurrente ?</h3>
             <p className="mt-3 text-sm leading-relaxed text-attenue">
               Écoles, restaurants, entreprises : nous pouvons organiser des commandes régulières
@@ -164,7 +164,7 @@ export default function EntreprisesPage() {
       </section>
 
       <section className="bg-orange">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-14 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mx-auto flex w-full max-w-[90rem] flex-col gap-6 px-4 py-14 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h2 className="titre-editorial text-4xl text-encre">Parlons de votre prochain projet.</h2>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-encre/80">

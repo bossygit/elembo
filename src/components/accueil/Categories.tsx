@@ -82,7 +82,7 @@ export default function Categories() {
               alt={categorie.image.alt}
               width={1000}
               height={1250}
-              sizes="(min-width: 1024px) 42vw, (min-width: 640px) 44vw, 76vw"
+              sizes="(min-width: 1024px) 42vw, (min-width: 640px) 80vw, 140vw"
               className={`h-full w-full object-cover ${categorie.position} transition-transform duration-[900ms] ease-sortie group-hover:scale-[1.07]`}
             />
             <span className="absolute left-3 top-3 bg-creme px-2 py-1 font-mono text-[11px] font-semibold text-encre">

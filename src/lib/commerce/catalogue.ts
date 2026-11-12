@@ -352,6 +352,7 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
     description:
       'Une photo, un prénom, un message dans votre langue : le petit cadeau qui accompagne le café du matin.',
     points: ['Photo et texte au choix', 'À partir d’une pièce', 'Idéal fête des mères et anniversaires', 'Commande assistée sur WhatsApp'],
+    image: { src: '/photos/mug-blanc.jpg', alt: 'Mug blanc à personnaliser, photo d’illustration' },
     href: lienWhatsApp(MESSAGES_WHATSAPP.produit('Mug personnalisé')),
     cta: 'Commander sur WhatsApp',
     prix: prixVitrine(null, 'provisoire'),
@@ -366,6 +367,7 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
     description:
       'Un ensemble composé avec vous — t-shirt, mug, tableau photo, carte — pour un anniversaire, un remerciement ou une grande nouvelle.',
     points: ['Composition sur mesure', 'Photos et messages personnalisés', 'Emballage soigné', 'Conseil sur WhatsApp'],
+    image: { src: '/photos/joie-fond-orange.jpg', alt: 'Jeune femme ravie, les mains sur le cœur — photo d’illustration' },
     href: lienWhatsApp(MESSAGES_WHATSAPP.produit('Coffret cadeau personnalisé')),
     cta: 'Composer sur WhatsApp',
     prix: prixVitrine(null, 'provisoire'),

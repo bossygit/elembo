@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { lienWhatsApp, MESSAGES_WHATSAPP } from '@/lib/site/marque';
 
 import { Chat } from './Icons';
-import { stylesBouton, type Variante } from './ui';
+import { baseBouton, stylesBouton, type Variante } from './ui';
 
 /**
  * Bouton d'assistance WhatsApp : un lien `wa.me` avec un message pré-rempli selon le contexte
@@ -26,7 +26,7 @@ export function BoutonWhatsApp({
       href={lienWhatsApp(message)}
       target="_blank"
       rel="noopener noreferrer"
-      className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-colors duration-200 ${stylesBouton[variante]} ${className}`}
+      className={`${baseBouton} ${stylesBouton[variante]} ${className}`}
     >
       <Chat className="h-4 w-4" />
       {children}

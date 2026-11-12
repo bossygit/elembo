@@ -54,7 +54,7 @@ export default function CommentCaMarchePage() {
   return (
     <>
       <section className="border-b border-filet">
-        <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 sm:py-20">
+        <div className="mx-auto w-full max-w-[90rem] px-4 py-14 sm:px-8 sm:py-20">
           <Etiquette>Comment ça marche</Etiquette>
           <h1 className="titre-editorial mt-5 max-w-3xl text-5xl text-encre sm:text-6xl">
             Un parcours simple, un atelier joignable.
@@ -66,7 +66,7 @@ export default function CommentCaMarchePage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
+      <section className="mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-20">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {ETAPES.map((etape) => (
             <article key={etape.numero} className="border-t border-filet pt-5">
@@ -79,9 +79,9 @@ export default function CommentCaMarchePage() {
       </section>
 
       <section className="border-y border-filet bg-white">
-        <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-2">
+        <div className="mx-auto grid w-full max-w-[90rem] gap-10 px-4 py-16 sm:px-8 sm:py-20 lg:grid-cols-2">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">Paiement</p>
+            <p className="surtitre text-orange-action">Paiement</p>
             <h2 className="titre-editorial mt-3 text-4xl text-encre">MTN Mobile Money, côté serveur.</h2>
             <p className="mt-4 text-sm leading-relaxed text-attenue">
               Le montant est toujours recalculé par le serveur à partir de la grille tarifaire :
@@ -104,7 +104,7 @@ export default function CommentCaMarchePage() {
           </div>
 
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">Livraison</p>
+            <p className="surtitre text-orange-action">Livraison</p>
             <h2 className="titre-editorial mt-3 text-4xl text-encre">Brazzaville & Pointe-Noire.</h2>
             <p className="mt-4 text-sm leading-relaxed text-attenue">
               Les frais et le délai sont annoncés avant validation. Le délai dépend de la
@@ -128,7 +128,7 @@ export default function CommentCaMarchePage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
+      <section className="mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-20">
         <h2 className="titre-editorial text-4xl text-encre">Questions fréquentes</h2>
         <div className="mt-8 divide-y divide-filet border-y border-filet">
           {[
@@ -169,7 +169,7 @@ export default function CommentCaMarchePage() {
       </section>
 
       <section className="bg-encre text-creme">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-14 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mx-auto flex w-full max-w-[90rem] flex-col gap-6 px-4 py-14 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h2 className="titre-editorial text-4xl text-creme">Une question avant de commander ?</h2>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-creme/70">

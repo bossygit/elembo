@@ -8,9 +8,11 @@
 // couleur, graisse, alignement, interlettrage).
 
 import { useConfiguratorStore } from '../../stores/configurator-store';
-import { getPrintArea, getProductById } from '../../lib/products/catalog';
+import { getPrintArea, getProductById, productSides } from '../../lib/products/catalog';
+import { LIBELLE_STATUT, profilParId, statutZone } from '../../lib/products/production';
 import { TEXT_LIMITS } from '../../types/configurator';
 import type { Side, TextElement } from '../../types/configurator';
+import { SIDE_LABELS } from '../../types/configurator';
 import { compositionSize, elementOverflow } from '../../lib/canvas/design-canvas';
 import { nearestWeight, resolveFont } from '../../lib/fonts';
 import ColorField from './ColorField';
@@ -39,9 +41,9 @@ function Rangee({
 }) {
   return (
     <div>
-      <label htmlFor={id} className="flex justify-between text-sm font-medium text-neutral-800">
+      <label htmlFor={id} className="flex justify-between text-sm font-medium text-encre">
         <span>{label}</span>
-        <span className="text-neutral-500">{format ? format(value) : `${value}${suffix}`}</span>
+        <span className="text-attenue">{format ? format(value) : `${value}${suffix}`}</span>
       </label>
       <input
         id={id}
@@ -52,7 +54,7 @@ function Rangee({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="mt-1 w-full accent-[#E85F00]"
+        className="mt-1 w-full accent-orange"
       />
     </div>
   );
@@ -66,7 +68,7 @@ function TextControls({ element }: { element: TextElement }) {
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <label htmlFor="text-content" className="text-sm font-medium text-neutral-800">
+        <label htmlFor="text-content" className="text-sm font-medium text-encre">
           Texte
         </label>
         <textarea
@@ -77,12 +79,12 @@ function TextControls({ element }: { element: TextElement }) {
           value={element.content}
           onChange={(e) => updateElement(element.id, { content: e.target.value })}
           placeholder="Votre texte (Entrée pour une nouvelle ligne)"
-          className="mt-1 w-full rounded-lg border border-neutral-300 p-2 text-sm text-neutral-800"
+          className="mt-1 w-full rounded-lg border border-encre/25 p-2 text-sm text-encre"
         />
       </div>
 
       <div>
-        <label htmlFor="text-font" className="text-sm font-medium text-neutral-800">
+        <label htmlFor="text-font" className="text-sm font-medium text-encre">
           Police
         </label>
         <div className="mt-1">
@@ -91,7 +93,7 @@ function TextControls({ element }: { element: TextElement }) {
             onChange={(fontId) => updateElement(element.id, { fontId } as Partial<TextElement>)}
           />
         </div>
-        <p className="mt-1 text-[11px] text-neutral-400">
+        <p className="mt-1 text-[11px] text-attenue">
           {font.license} — usage commercial autorisé
         </p>
       </div>
@@ -113,7 +115,7 @@ function TextControls({ element }: { element: TextElement }) {
       />
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex overflow-hidden rounded-lg border border-neutral-300">
+        <div className="flex overflow-hidden rounded-lg border border-encre/25">
           <button
             type="button"
             aria-label="Graisse normale"
@@ -121,7 +123,7 @@ function TextControls({ element }: { element: TextElement }) {
             disabled={!poidsDisponibles}
             onClick={() => updateElement(element.id, { fontWeight: 400 } as Partial<TextElement>)}
             className={`px-2.5 py-1 text-sm disabled:opacity-40 ${
-              element.fontWeight < 500 ? 'bg-[#200233] text-white' : 'bg-white text-neutral-700'
+              element.fontWeight < 500 ? 'bg-encre text-creme' : 'bg-white text-encre/85'
             }`}
           >
             Normal
@@ -132,8 +134,8 @@ function TextControls({ element }: { element: TextElement }) {
             aria-pressed={element.fontWeight >= 500}
             disabled={!poidsDisponibles}
             onClick={() => updateElement(element.id, { fontWeight: 700 } as Partial<TextElement>)}
-            className={`border-l border-neutral-300 px-2.5 py-1 text-sm font-bold disabled:opacity-40 ${
-              element.fontWeight >= 500 ? 'bg-[#200233] text-white' : 'bg-white text-neutral-700'
+            className={`border-l border-encre/25 px-2.5 py-1 text-sm font-bold disabled:opacity-40 ${
+              element.fontWeight >= 500 ? 'bg-encre text-creme' : 'bg-white text-encre/85'
             }`}
           >
             Gras
@@ -148,20 +150,20 @@ function TextControls({ element }: { element: TextElement }) {
               fontStyle: element.fontStyle === 'italic' ? 'normal' : 'italic',
             } as Partial<TextElement>)
           }
-          className={`rounded-lg border border-neutral-300 px-2.5 py-1 text-sm italic ${
-            element.fontStyle === 'italic' ? 'bg-[#200233] text-white' : 'bg-white text-neutral-700'
+          className={`rounded-lg border border-encre/25 px-2.5 py-1 text-sm italic ${
+            element.fontStyle === 'italic' ? 'bg-encre text-creme' : 'bg-white text-encre/85'
           }`}
         >
           Italique
         </button>
-        <span className="text-[11px] text-neutral-400">
+        <span className="text-[11px] text-attenue">
           Poids disponible : {nearestWeight(font, element.fontWeight)}
         </span>
       </div>
 
       <div>
-        <span className="text-sm font-medium text-neutral-800">Alignement</span>
-        <div className="mt-1 flex overflow-hidden rounded-lg border border-neutral-300">
+        <span className="text-sm font-medium text-encre">Alignement</span>
+        <div className="mt-1 flex overflow-hidden rounded-lg border border-encre/25">
           {(
             [
               ['left', 'Gauche'],
@@ -175,8 +177,8 @@ function TextControls({ element }: { element: TextElement }) {
               data-testid={`text-align-${valeur}`}
               aria-pressed={element.align === valeur}
               onClick={() => updateElement(element.id, { align: valeur } as Partial<TextElement>)}
-              className={`flex-1 px-2 py-1 text-xs ${i > 0 ? 'border-l border-neutral-300' : ''} ${
-                element.align === valeur ? 'bg-[#200233] text-white' : 'bg-white text-neutral-700'
+              className={`flex-1 px-2 py-1 text-xs ${i > 0 ? 'border-l border-encre/25' : ''} ${
+                element.align === valeur ? 'bg-encre text-creme' : 'bg-white text-encre/85'
               }`}
             >
               {libelle}
@@ -217,25 +219,28 @@ export default function ElementControls() {
   const removeElement = useConfiguratorStore((s) => s.removeElement);
   const nudge = useConfiguratorStore((s) => s.nudge);
   const setElementSide = useConfiguratorStore((s) => s.setElementSide);
+  const duplicateElement = useConfiguratorStore((s) => s.duplicateElement);
   const moveElement = useConfiguratorStore((s) => s.moveElement);
   const toggleElementVisible = useConfiguratorStore((s) => s.toggleElementVisible);
   const productId = useConfiguratorStore((s) => s.productId);
+  const profileId = useConfiguratorStore((s) => s.profileId);
   const measure = useConfiguratorStore((s) => s.measure);
   const setSide = useConfiguratorStore((s) => s.setSide);
 
   const element = elements.find((el) => el.id === selectedId) ?? null;
   const product = getProductById(productId);
-  const aUneFaceArriere = Boolean(getPrintArea(product, 'back'));
+  const zones = productSides(product);
+  const profil = profilParId(profileId);
 
-  /** Espace de composition d'une face (format de la zone), pour mesurer le débordement. */
+  /** Espace de composition d'une zone (format de la texture), pour mesurer le débordement. */
   const spaceFor = (side: Side) => {
-    const a = getPrintArea(product, side);
+    const a = getPrintArea(product, side, profileId);
     return a ? compositionSize(a) : { width: 1024, height: 1024 };
   };
 
-  // Débordement de la zone d'impression : signalé et corrigeable en un clic (§21).
+  // Débordement de la zone d'impression : signalé et corrigeable en un clic.
   const debordement = element
-    ? elementOverflow(element, getPrintArea(product, element.side), spaceFor(element.side), measure)
+    ? elementOverflow(element, getPrintArea(product, element.side, profileId), spaceFor(element.side), measure)
     : { over: false, factor: 1 };
 
   function ajuster() {
@@ -252,7 +257,7 @@ export default function ElementControls() {
 
   if (!element) {
     return (
-      <p className="rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-500">
+      <p className="rounded-lg bg-sable/50 px-3 py-2 text-xs text-attenue">
         Aucun élément sélectionné. Ajoutez une image ou un texte, puis cliquez dessus dans l’aperçu 2D.
       </p>
     );
@@ -263,14 +268,14 @@ export default function ElementControls() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
-        <p className="truncate text-sm font-semibold text-neutral-900">
+        <p className="truncate text-sm font-semibold text-encre">
           {estTexte ? 'Texte' : 'Image'}
-          <span className="ml-2 text-xs font-normal text-neutral-400">{element.id}</span>
+          <span className="ml-2 text-xs font-normal text-attenue">{element.id}</span>
         </p>
         <button
           type="button"
           onClick={() => toggleElementVisible(element.id)}
-          className="rounded-lg border border-neutral-300 px-2 py-1 text-xs text-neutral-600 hover:bg-neutral-50"
+          className="rounded-lg border border-encre/25 px-2 py-1 text-xs text-attenue hover:bg-sable/60"
         >
           {element.visible ? 'Masquer' : 'Afficher'}
         </button>
@@ -279,36 +284,39 @@ export default function ElementControls() {
       {estTexte && <TextControls element={element as TextElement} />}
 
       <div>
-        <span className="text-sm font-medium text-neutral-800">Face</span>
-        <div className="mt-1 flex overflow-hidden rounded-lg border border-neutral-300">
-          {(
-            [
-              ['front', 'Avant'],
-              ['back', 'Arrière'],
-            ] as const
-          ).map(([valeur, libelle], i) => (
-            <button
-              key={valeur}
-              type="button"
-              data-testid={`element-side-${valeur}`}
-              disabled={valeur === 'back' && !aUneFaceArriere}
-              aria-pressed={element.side === valeur}
-              onClick={() => {
-                setElementSide(element.id, valeur as Side);
-                setSide(valeur as Side);
-              }}
-              className={`flex-1 px-2 py-1 text-xs disabled:opacity-40 ${i > 0 ? 'border-l border-neutral-300' : ''} ${
-                element.side === valeur ? 'bg-[#200233] text-white' : 'bg-white text-neutral-700'
-              }`}
-            >
-              {libelle}
-            </button>
-          ))}
-        </div>
+        <label htmlFor="element-zone" className="text-sm font-medium text-encre">
+          Zone du vêtement
+        </label>
+        <select
+          id="element-zone"
+          data-testid="element-zone"
+          value={element.side}
+          onChange={(e) => {
+            const zone = e.target.value as Side;
+            setElementSide(element.id, zone);
+            setSide(zone);
+          }}
+          className="mt-1 w-full rounded-lg border border-encre/25 bg-white px-2.5 py-1.5 text-sm text-encre"
+        >
+          {zones.map((zone) => {
+            const statut = statutZone(profil, zone);
+            return (
+              <option key={zone} value={zone}>
+                {SIDE_LABELS[zone]} — {LIBELLE_STATUT[statut]}
+              </option>
+            );
+          })}
+        </select>
+        {statutZone(profil, element.side) !== 'disponible' && (
+          <p className="mt-1 rounded-lg bg-amber-50 px-2 py-1 text-[11px] text-amber-800">
+            Cette zone n’est pas encore commandable avec « {profil.nom} » : l’aperçu reste
+            modifiable, la commande sera bloquée tant qu’elle contient un visuel.
+          </p>
+        )}
       </div>
 
       <div>
-        <span className="text-sm font-medium text-neutral-800">Position</span>
+        <span className="text-sm font-medium text-encre">Position</span>
         <div className="mt-1 flex items-center gap-2">
           <div className="grid grid-cols-3 gap-1">
             <span />
@@ -317,7 +325,7 @@ export default function ElementControls() {
               aria-label="Monter l’élément"
               data-testid="nudge-up"
               onClick={() => nudge(element.id, 0, -1)}
-              className="h-8 w-8 rounded-lg border border-neutral-300 text-sm hover:bg-neutral-50"
+              className="h-8 w-8 rounded-lg border border-encre/25 text-sm hover:bg-sable/60"
             >
               ↑
             </button>
@@ -327,7 +335,7 @@ export default function ElementControls() {
               aria-label="Décaler à gauche"
               data-testid="nudge-left"
               onClick={() => nudge(element.id, -1, 0)}
-              className="h-8 w-8 rounded-lg border border-neutral-300 text-sm hover:bg-neutral-50"
+              className="h-8 w-8 rounded-lg border border-encre/25 text-sm hover:bg-sable/60"
             >
               ←
             </button>
@@ -336,7 +344,7 @@ export default function ElementControls() {
               aria-label="Centrer l’élément"
               data-testid="center-element"
               onClick={() => updateElement(element.id, { x: 0, y: 0 })}
-              className="h-8 w-8 rounded-lg border border-neutral-300 text-xs hover:bg-neutral-50"
+              className="h-8 w-8 rounded-lg border border-encre/25 text-xs hover:bg-sable/60"
             >
               ⌖
             </button>
@@ -345,7 +353,7 @@ export default function ElementControls() {
               aria-label="Décaler à droite"
               data-testid="nudge-right"
               onClick={() => nudge(element.id, 1, 0)}
-              className="h-8 w-8 rounded-lg border border-neutral-300 text-sm hover:bg-neutral-50"
+              className="h-8 w-8 rounded-lg border border-encre/25 text-sm hover:bg-sable/60"
             >
               →
             </button>
@@ -355,13 +363,13 @@ export default function ElementControls() {
               aria-label="Descendre l’élément"
               data-testid="nudge-down"
               onClick={() => nudge(element.id, 0, 1)}
-              className="h-8 w-8 rounded-lg border border-neutral-300 text-sm hover:bg-neutral-50"
+              className="h-8 w-8 rounded-lg border border-encre/25 text-sm hover:bg-sable/60"
             >
               ↓
             </button>
             <span />
           </div>
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-attenue">
             ou flèches du clavier
             <br />
             (aperçu 2D)
@@ -413,15 +421,23 @@ export default function ElementControls() {
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
+          data-testid="duplicate-element"
+          onClick={() => duplicateElement(element.id)}
+          className="rounded-lg border border-encre/25 px-3 py-1.5 text-sm text-encre/85 hover:bg-sable/60"
+        >
+          Dupliquer
+        </button>
+        <button
+          type="button"
           onClick={() => moveElement(element.id, 'up')}
-          className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-50"
+          className="rounded-lg border border-encre/25 px-3 py-1.5 text-sm text-encre/85 hover:bg-sable/60"
         >
           Calque +
         </button>
         <button
           type="button"
           onClick={() => moveElement(element.id, 'down')}
-          className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-50"
+          className="rounded-lg border border-encre/25 px-3 py-1.5 text-sm text-encre/85 hover:bg-sable/60"
         >
           Calque −
         </button>

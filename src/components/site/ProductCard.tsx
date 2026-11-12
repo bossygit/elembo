@@ -4,80 +4,81 @@ import Link from 'next/link';
 import type { ProduitVitrine } from '../../lib/commerce/catalogue';
 import { asset } from '../../lib/site/asset';
 import PrintIllustration from './PrintIllustration';
-import { ArrowRight, Chat, Check } from './Icons';
+import { ArrowUpRight, Chat } from './Icons';
 
+/**
+ * Carte produit : toute la carte est cliquable (confort tactile), l'image respire,
+ * le prix et l'action restent lisibles sans survol.
+ */
 export default function ProductCard({ produit }: { produit: ProduitVitrine }) {
   const contain = produit.image?.cadrage === 'contain';
   // Les produits « commande assistée » pointent vers WhatsApp, hors du site.
   const externe = /^https?:\/\//.test(produit.href);
-  const classeCta =
-    'mt-4 flex w-full items-center justify-between rounded-full border border-encre px-4 py-2.5 text-xs font-semibold text-encre transition-colors hover:bg-encre hover:text-creme';
-  return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-filet bg-white shadow-sm transition-shadow hover:shadow-lg">
-      <div
-        className={`relative overflow-hidden border-b border-filet ${contain ? 'bg-white' : 'bg-[#F3EFE6]'}`}
-      >
+
+  const contenu = (
+    <>
+      <div className={`relative overflow-hidden ${contain ? 'bg-white' : 'bg-sable'}`}>
         {produit.badge && (
-          <span className="absolute left-3 top-3 z-10 bg-encre px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-creme">
-            {produit.badge}
-          </span>
+          <span className="surtitre absolute left-3 top-3 z-10 bg-encre px-2.5 py-1.5 text-creme">{produit.badge}</span>
         )}
-        <div className="aspect-[4/3] w-full">
+        <div className="aspect-square w-full">
           {produit.image ? (
             <Image
               src={asset(produit.image.src)}
               alt={produit.image.alt}
-              width={1600}
-              height={1067}
-              sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-              className={`h-full w-full ${contain ? 'object-contain' : 'object-cover'} transition-transform duration-500 group-hover:scale-[1.035]`}
+              width={1000}
+              height={1250}
+              // Les sources sont en paysage, recadrées au carré : on demande plus large que la carte.
+              sizes="(min-width: 1024px) 50vw, (min-width: 640px) 75vw, 150vw"
+              className={`h-full w-full ${contain ? 'object-contain' : 'object-cover'} transition-transform duration-[900ms] ease-sortie group-hover:scale-[1.06]`}
             />
           ) : (
-            <div className="h-full w-full p-6">
+            <div className="h-full w-full p-8">
               <PrintIllustration />
             </div>
           )}
         </div>
+        {/* Pastille d'action : glisse depuis le coin au survol, toujours visible au tactile. */}
+        <span className="absolute bottom-3 right-3 grid h-11 w-11 place-items-center rounded-full bg-creme text-encre transition-[background-color,transform] duration-300 ease-sortie group-hover:scale-110 group-hover:bg-orange">
+          {externe ? <Chat className="h-5 w-5" /> : <ArrowUpRight className="h-5 w-5 transition-transform duration-300 ease-sortie group-hover:rotate-45" />}
+        </span>
       </div>
 
-      <div className="flex flex-1 flex-col p-5">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-orange-action">
-          {produit.surtitre}
-        </p>
-        <h3 className="mt-2 font-display text-[1.45rem] leading-[1.1] text-encre">{produit.nom}</h3>
-        <p className="mt-2.5 line-clamp-2 text-sm leading-relaxed text-attenue">{produit.description}</p>
-
-        <ul className="mt-4 space-y-1.5">
-          {produit.points.slice(0, 2).map((point) => (
-            <li key={point} className="flex items-start gap-2 text-xs leading-snug text-attenue">
-              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-action" />
-              <span>{point}</span>
-            </li>
-          ))}
-        </ul>
-
-        <div className="mt-auto border-t border-filet pt-4">
-          <p className="text-sm font-semibold text-encre">{produit.prix.libelle}</p>
-          <p className="mt-0.5 text-[10px] leading-snug text-attenue">{produit.prix.note}</p>
-          {externe ? (
-            <a
-              href={produit.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={`${produit.cta} — ${produit.nom} (s’ouvre dans WhatsApp)`}
-              className={classeCta}
-            >
-              {produit.cta}
-              <Chat className="h-4 w-4" />
-            </a>
-          ) : (
-            <Link href={produit.href} aria-label={`${produit.cta} — ${produit.nom}`} className={classeCta}>
-              {produit.cta}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          )}
+      <div className="flex flex-1 flex-col pt-4">
+        <p className="surtitre text-orange-action">{produit.surtitre}</p>
+        <h3 className="mt-2 font-display text-[1.4rem] leading-[1.08] text-encre">{produit.nom}</h3>
+        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-attenue">{produit.description}</p>
+        <div className="mt-auto flex items-end justify-between gap-3 border-t border-encre/15 pt-3 [margin-block-start:1rem]">
+          <div>
+            <p className="text-base font-semibold text-encre">{produit.prix.libelle}</p>
+            <p className="mt-0.5 text-[11px] leading-snug text-attenue">{produit.prix.note}</p>
+          </div>
+          <span className="shrink-0 text-xs font-semibold text-encre underline decoration-orange decoration-2 underline-offset-4">
+            {produit.cta}
+          </span>
         </div>
       </div>
+    </>
+  );
+
+  const classe = 'group flex h-full flex-col';
+  return (
+    <article data-anim="monte" className="h-full">
+      {externe ? (
+        <a
+          href={produit.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`${produit.nom} — ${produit.cta} (s’ouvre dans WhatsApp)`}
+          className={classe}
+        >
+          {contenu}
+        </a>
+      ) : (
+        <Link href={produit.href} aria-label={`${produit.nom} — ${produit.cta}`} className={classe}>
+          {contenu}
+        </Link>
+      )}
     </article>
   );
 }

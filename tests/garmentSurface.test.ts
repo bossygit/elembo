@@ -65,14 +65,17 @@ describe('surface du vêtement fournisseur', () => {
   });
 });
 
-describe('catalogue : modèles à imprimé intégré', () => {
-  it('le T-shirt raglan est en surface vierge (imprimé « RUN » de l’auteur)', () => {
-    // Le motif est gravé dans l'albédo ET dans la texture de normales : neutraliser
-    // l'albédo seul ne le fait pas disparaître (vérifié au rendu).
-    expect(getProductById('tshirt-basic')?.surface).toBe('blank');
+describe('catalogue : surface du vêtement', () => {
+  it('le T-shirt Elembo à zones ne dépend d’aucun albédo fournisseur', () => {
+    // La couleur est portée par FABRIC / FABRIC_RIB et le visuel par des textures
+    // transparentes dédiées : aucun mode « surface » n'est nécessaire.
+    const produit = getProductById('tshirt-basic')!;
+    expect(produit.technique).toBe('zones');
+    expect(produit.surface).toBeUndefined();
+    expect(produit.fabricMaterials).toEqual(['FABRIC', 'FABRIC_RIB']);
   });
 
-  it('les autres produits gardent les textures du fournisseur par défaut', () => {
+  it('le second T-shirt (décalque) garde les textures du fournisseur par défaut', () => {
     const autres = CATALOG.filter((p) => p.id !== 'tshirt-basic');
     expect(autres.length).toBeGreaterThan(0);
     for (const product of autres) expect(product.surface ?? 'vendor').toBe('vendor');

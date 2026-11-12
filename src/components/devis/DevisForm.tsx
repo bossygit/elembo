@@ -202,7 +202,7 @@ export default function DevisForm({
       </div>
 
       {famille === 'TEXTILE' ? (
-        <div className="grid gap-4 rounded-xl border border-filet bg-[#F3EFE6] p-4 sm:grid-cols-3">
+        <div className="grid gap-4 rounded-xl border border-filet bg-sable p-4 sm:grid-cols-3">
           <label className="block text-sm font-medium">
             Produit *
             <select name="produit" defaultValue={produitDefaut} className={champ}>
@@ -231,7 +231,7 @@ export default function DevisForm({
       ) : null}
 
       {famille === 'IMPRESSION' ? (
-        <div className="space-y-4 rounded-xl border border-filet bg-[#F3EFE6] p-4">
+        <div className="space-y-4 rounded-xl border border-filet bg-sable p-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block text-sm font-medium">
               Type de support *
@@ -285,7 +285,7 @@ export default function DevisForm({
       ) : null}
 
       {famille === 'SERVICES' ? (
-        <div className="grid gap-4 rounded-xl border border-filet bg-[#F3EFE6] p-4 sm:grid-cols-2">
+        <div className="grid gap-4 rounded-xl border border-filet bg-sable p-4 sm:grid-cols-2">
           <label className="block text-sm font-medium">
             Prestation *
             <select name="service" defaultValue={serviceDefaut} className={champ}>

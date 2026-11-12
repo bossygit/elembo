@@ -128,11 +128,13 @@ describe('export d’impression : le texte est RECOMPOSÉ à la résolution cibl
     await renderPrintPng({ area: AREA, elements: [{ element: texte({ content: 'BRAZZAVILLE' }) }], canvas });
     expect(textes.some((t) => t.includes('BRAZZAVILLE') || 'BRAZZAVILLE'.includes(t))).toBe(true);
     // Le rapport de résolution est appliqué au contexte : c'est lui qui donne la finesse.
-    // (Chaque élément applique ensuite sa propre échelle.) L'export compose dans un espace
-    // de 2048 px de large, recadré sur la zone puis mis à l'échelle du fichier final.
+    // L'export compose dans un espace de 2048 px de large (ratio de la texture de zone),
+    // recadre sur la zone imprimable puis met à l'échelle du fichier final.
+    const space = compositionSize(AREA, 2048);
+    const largeurZone = AREA.w * space.width;
     const echelle = appels.filter((a) => a.methode === 'scale');
     expect(echelle.length).toBeGreaterThanOrEqual(1);
-    expect(echelle[0].args[0]).toBeCloseTo(2480 / 2048, 3);
+    expect(echelle[0].args[0]).toBeCloseTo(2480 / largeurZone, 3);
   });
 
   it('compose tous les éléments visibles de la face, dans l’ordre des calques', async () => {

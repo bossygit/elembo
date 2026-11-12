@@ -18,6 +18,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useConfiguratorStore } from '../../stores/configurator-store';
 import { getPrintArea, getProductById } from '../../lib/products/catalog';
+import {
+  empechementsCommande,
+  profilParId,
+} from '../../lib/products/production';
 import { paiementEnLigneOuvert } from '../../lib/commerce/catalogue';
 import { statutPrixProduit } from '../../lib/tarifs/grille';
 import { compositionSize, drawComposition, elementsOfSide } from '../../lib/canvas/design-canvas';
@@ -42,6 +46,7 @@ import {
   type Paiement,
 } from '../../lib/payment/momo';
 import type { Side } from '../../types/configurator';
+import { SIDE_FILE, SIDE_LABELS } from '../../types/configurator';
 import { envoyerDossier, type FichierAEnvoyer, type ResultatEnvoi } from '../../lib/payment/dossier';
 import { expliquerMotif } from '../../lib/payment/motifs';
 import { construireRecap, enregistrerRecap, lienConfirmation } from '../../lib/order/confirmation';
@@ -55,15 +60,16 @@ const FENETRE_PAIEMENT_MS = 5 * 60 * 1000;
 function FacePreview({ side, titre }: { side: Side; titre: string }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const productId = useConfiguratorStore((s) => s.productId);
+  const profileId = useConfiguratorStore((s) => s.profileId);
   const color = useConfiguratorStore((s) => s.color);
   const elements = useConfiguratorStore((s) => s.elements);
   const measure = useConfiguratorStore((s) => s.measure);
   const images = useElementImages(elements);
 
   const product = getProductById(productId);
-  const area = getPrintArea(product, side);
+  const area = getPrintArea(product, side, profileId);
   const deLaFace = elementsOfSide(elements, side);
-  const space = area ? compositionSize(area, 300) : null;
+  const space = area ? compositionSize(area, 260) : null;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -94,11 +100,11 @@ function FacePreview({ side, titre }: { side: Side; titre: string }) {
         ref={canvasRef}
         width={space.width}
         height={space.height}
-        className="w-full rounded-lg border border-neutral-200 bg-white"
+        className="w-full rounded-lg border border-encre/15 bg-white"
         aria-label={`Aperçu ${titre}`}
       />
-      <figcaption className="text-[11px] leading-snug text-neutral-500">
-        <span className="font-semibold text-neutral-700">{titre}</span>
+      <figcaption className="text-[11px] leading-snug text-attenue">
+        <span className="font-semibold text-encre/85">{titre}</span>
         <br />
         {area.cmWidth} × {area.cmHeight} cm · {deLaFace.filter((el) => el.visible !== false).length} élément(s)
       </figcaption>
@@ -110,6 +116,7 @@ export default function OrderPanel() {
   const router = useRouter();
   const productId = useConfiguratorStore((s) => s.productId);
   const color = useConfiguratorStore((s) => s.color);
+  const profileId = useConfiguratorStore((s) => s.profileId);
   const elements = useConfiguratorStore((s) => s.elements);
   const measure = useConfiguratorStore((s) => s.measure);
 
@@ -141,6 +148,7 @@ export default function OrderPanel() {
   );
 
   const product = getProductById(productId);
+  const profil = profilParId(profileId);
   const prixUnitaire = product?.priceFcfa ?? null;
   const paiementOuvert = paiementEnLigneOuvert(statutPrixProduit(productId));
   const images = useElementImages(elements);
@@ -155,8 +163,12 @@ export default function OrderPanel() {
   const totals = orderTotals({ lines: lignes, unitPriceFcfa: prixUnitaire, city: ville });
 
   const faces = product ? facesToProduce({ elements }) : [];
+  // Zones personnalisées que le procédé retenu ne sait pas produire : la commande est
+  // bloquée AVANT le paiement, avec le motif exact (aucune promesse non tenue).
+  const blocagesProduction = empechementsCommande(profil, faces);
   const numeroOk = telephonePlausible(telephone);
-  const prete = totals.blockedBy.length === 0 && faces.length > 0 && Boolean(product);
+  const prete =
+    totals.blockedBy.length === 0 && faces.length > 0 && Boolean(product) && blocagesProduction.length === 0;
   const enPaiement = suivi === 'attente';
 
   /**
@@ -175,20 +187,21 @@ export default function OrderPanel() {
       unitPriceFcfa: prixUnitaire,
       elements,
       measure,
+      profileId: profil.id,
     });
 
     const aEnvoyer: FichierAEnvoyer[] = [];
 
     for (const side of faces) {
-      const area = getPrintArea(product, side);
+      const area = getPrintArea(product, side, profil.id);
       if (!area) continue;
       const dessines = elementsOfSide(elements, side).map((element) => ({
         element,
         image: images.get(element.id) ?? null,
       }));
-      const blob = await renderPrintPng({ area, elements: dessines, measure });
+      const blob = await renderPrintPng({ area, elements: dessines, measure, dpi: profil.dpi });
       if (blob) {
-        const nom = sheet.faces.find((f) => f.side === side)?.fichier ?? `${ref}-${side}.png`;
+        const nom = sheet.faces.find((f) => f.side === side)?.fichier ?? SIDE_FILE[side];
         // Téléchargement local conservé : si l'envoi à l'atelier échoue (réseau coupé après le
         // paiement), le client a encore ses fichiers et peut les transmettre par WhatsApp.
         downloadBlob(blob, nom);
@@ -306,7 +319,7 @@ export default function OrderPanel() {
               financialTransactionId: resultat.paiement.financialTransactionId,
               nom: nom.trim() || undefined,
               telephone,
-              faces: faces.map((side) => (side === 'front' ? 'Face avant' : 'Face arrière')),
+              faces: faces.map((side) => SIDE_LABELS[side]),
               atelier: depot,
             }),
           );
@@ -330,22 +343,22 @@ export default function OrderPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-xs text-neutral-500">
+      <p className="text-xs text-attenue">
         Vérifie l’aperçu ci-dessous : c’est exactement ce qui sera imprimé. Les fichiers de l’atelier sont produits
         après confirmation du paiement.
       </p>
 
       <div className="flex flex-wrap items-start gap-3">
         {faces.map((side) => (
-          <FacePreview key={side} side={side} titre={side === 'front' ? 'Face avant' : 'Face arrière'} />
+          <FacePreview key={side} side={side} titre={SIDE_LABELS[side]} />
         ))}
       </div>
 
       <div>
-        <span className="text-sm font-medium text-neutral-800">Tailles et quantités</span>
+        <span className="text-sm font-medium text-encre">Tailles et quantités</span>
         <div className="mt-1 grid grid-cols-3 gap-2 sm:grid-cols-6">
           {SIZE_ORDER.map((taille) => (
-            <label key={taille} className="flex flex-col gap-1 text-xs text-neutral-600">
+            <label key={taille} className="flex flex-col gap-1 text-xs text-attenue">
               {taille}
               <input
                 type="number"
@@ -356,16 +369,16 @@ export default function OrderPanel() {
                 onChange={(e) =>
                   setQuantites((prev) => ({ ...prev, [taille as GarmentSize]: Math.max(0, Math.min(500, Number(e.target.value) || 0)) }))
                 }
-                className="w-full rounded-lg border border-neutral-300 px-2 py-1 text-sm text-neutral-800"
+                className="w-full rounded-xl border border-encre/25 bg-white px-3 py-2.5 text-base text-encre"
               />
             </label>
           ))}
         </div>
-        <p className="mt-1 text-xs text-neutral-500">Total : {totals.quantity} pièce(s)</p>
+        <p className="mt-1 text-xs text-attenue">Total : {totals.quantity} pièce(s)</p>
       </div>
 
       <div>
-        <label htmlFor="commande-ville" className="text-sm font-medium text-neutral-800">
+        <label htmlFor="commande-ville" className="text-sm font-medium text-encre">
           Livraison
         </label>
         <select
@@ -373,7 +386,7 @@ export default function OrderPanel() {
           data-testid="ville"
           value={ville}
           onChange={(e) => setVille(e.target.value as DeliveryCity)}
-          className="mt-1 w-full rounded-lg border border-neutral-300 bg-white px-2 py-1.5 text-sm text-neutral-800"
+          className="mt-1 w-full rounded-xl border border-encre/25 bg-white px-3 py-2.5 text-base text-encre focus:border-encre"
         >
           {DELIVERY.map((d) => (
             <option key={d.city} value={d.city}>
@@ -385,8 +398,8 @@ export default function OrderPanel() {
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <label htmlFor="commande-nom" className="text-sm font-medium text-neutral-800">
-            Nom du client <span className="font-normal text-neutral-500">(facultatif)</span>
+          <label htmlFor="commande-nom" className="text-sm font-medium text-encre">
+            Nom du client <span className="font-normal text-attenue">(facultatif)</span>
           </label>
           <input
             id="commande-nom"
@@ -394,12 +407,12 @@ export default function OrderPanel() {
             autoComplete="name"
             value={nom}
             onChange={(e) => setNom(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-neutral-300 px-2 py-1.5 text-sm text-neutral-800"
+            className="mt-1 w-full rounded-xl border border-encre/25 bg-white px-3 py-2.5 text-base text-encre focus:border-encre"
           />
         </div>
         <div>
-          <label htmlFor="commande-email" className="text-sm font-medium text-neutral-800">
-            Email <span className="font-normal text-neutral-500">(facultatif)</span>
+          <label htmlFor="commande-email" className="text-sm font-medium text-encre">
+            Email <span className="font-normal text-attenue">(facultatif)</span>
           </label>
           <input
             id="commande-email"
@@ -407,13 +420,13 @@ export default function OrderPanel() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-neutral-300 px-2 py-1.5 text-sm text-neutral-800"
+            className="mt-1 w-full rounded-xl border border-encre/25 bg-white px-3 py-2.5 text-base text-encre focus:border-encre"
           />
         </div>
       </div>
 
       <div>
-        <label htmlFor="commande-telephone" className="text-sm font-medium text-neutral-800">
+        <label htmlFor="commande-telephone" className="text-sm font-medium text-encre">
           Numéro MTN MoMo du client
         </label>
         <input
@@ -424,7 +437,7 @@ export default function OrderPanel() {
           value={telephone}
           onChange={(e) => setTelephone(e.target.value)}
           placeholder="06 12 34 567"
-          className="mt-1 w-full rounded-lg border border-neutral-300 px-2 py-1.5 text-sm text-neutral-800"
+          className="mt-1 w-full rounded-xl border border-encre/25 bg-white px-3 py-2.5 text-base text-encre focus:border-encre"
         />
         {telephone.trim() !== '' && !numeroOk && (
           <p className="mt-1 text-xs text-amber-700">
@@ -433,10 +446,16 @@ export default function OrderPanel() {
         )}
       </div>
 
-      <dl className="rounded-lg bg-neutral-50 px-3 py-2 text-sm text-neutral-700" data-testid="recap-commande">
+      <dl className="rounded-lg bg-sable/50 px-3 py-2 text-sm text-encre/85" data-testid="recap-commande">
         <div className="flex justify-between">
           <dt>Prix unitaire</dt>
           <dd>{formatFcfa(prixUnitaire)}</dd>
+        </div>
+        <div className="flex justify-between">
+          <dt>Procédé</dt>
+          <dd>
+            {profil.nom} · {profil.dpi} dpi
+          </dd>
         </div>
         <div className="flex justify-between">
           <dt>Sous-total ({totals.quantity} pièce(s))</dt>
@@ -446,11 +465,11 @@ export default function OrderPanel() {
           <dt>Livraison</dt>
           <dd>{formatFcfa(totals.shippingFcfa)}</dd>
         </div>
-        <div className="mt-1 flex justify-between border-t border-neutral-200 pt-1 font-semibold text-neutral-900">
+        <div className="mt-1 flex justify-between border-t border-encre/15 pt-1 font-semibold text-encre">
           <dt>Total à payer</dt>
           <dd data-testid="total-commande">{formatFcfa(totals.totalFcfa)}</dd>
         </div>
-        <div className="mt-1 flex justify-between text-xs text-neutral-500">
+        <div className="mt-1 flex justify-between text-xs text-attenue">
           <dt>Délai estimé</dt>
           <dd>{totals.quantity > 0 ? `${delai} jour(s) maximum` : '—'}</dd>
         </div>
@@ -461,6 +480,9 @@ export default function OrderPanel() {
           <p className="font-semibold">Commande non encore validable :</p>
           <ul className="mt-1 list-disc pl-4">
             {faces.length === 0 && <li>aucun élément sur le vêtement</li>}
+            {blocagesProduction.map((raison) => (
+              <li key={raison}>{raison}</li>
+            ))}
             {totals.blockedBy.map((raison) => (
               <li key={raison}>{raison}</li>
             ))}
@@ -474,7 +496,7 @@ export default function OrderPanel() {
           disabled={!prete || !numeroOk || enCours || enPaiement}
           onClick={payer}
           data-testid="payer-momo"
-          className="rounded-xl bg-[#FFCC00] px-4 py-2.5 text-sm font-semibold text-[#200233] transition-colors hover:bg-[#E85F00] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+          className="w-full rounded-full bg-[#FFCC00] px-6 py-4 text-base font-semibold text-encre transition-colors duration-300 hover:bg-encre hover:text-creme disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:self-start"
         >
           {enPaiement
             ? 'En attente de validation sur le téléphone…'
@@ -511,7 +533,7 @@ export default function OrderPanel() {
                 ? 'border-red-200 bg-red-50 text-red-800'
                 : suivi === 'expire'
                   ? 'border-amber-200 bg-amber-50 text-amber-800'
-                  : 'border-neutral-200 bg-neutral-50 text-neutral-700'
+                  : 'border-encre/15 bg-sable/50 text-encre/85'
           }`}
         >
           <p className="font-semibold">
@@ -577,8 +599,8 @@ export default function OrderPanel() {
         </div>
       )}
 
-      <details className="rounded-lg border border-neutral-200 px-3 py-2">
-        <summary className="cursor-pointer text-xs text-neutral-500">
+      <details className="rounded-lg border border-encre/15 px-3 py-2">
+        <summary className="cursor-pointer text-xs text-attenue">
           Atelier : générer les fichiers sans paiement
         </summary>
         <button
@@ -586,9 +608,9 @@ export default function OrderPanel() {
           disabled={!prete || enCours}
           onClick={genererSansPaiement}
           data-testid="valider-commande"
-          className="mt-2 rounded-lg border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="mt-2 rounded-lg border border-encre/25 px-3 py-1.5 text-xs text-encre/85 hover:bg-sable/60 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {enCours ? 'Préparation des fichiers…' : 'Générer les fichiers d’impression (sans encaissement)'}
+          {enCours ? 'Préparation des fichiers…' : 'Générer les fichiers de production (sans encaissement)'}
         </button>
       </details>
     </div>

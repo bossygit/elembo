@@ -4,8 +4,8 @@ import { ArrowRight } from '../components/site/Icons';
 
 export default function NotFound() {
   return (
-    <section className="mx-auto flex min-h-[60vh] w-full max-w-3xl flex-col justify-center px-4 py-20 sm:px-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-action">Erreur 404</p>
+    <section className="mx-auto flex min-h-[60vh] w-full max-w-3xl flex-col justify-center px-4 py-20 sm:px-8">
+      <p className="surtitre text-orange-action">Erreur 404</p>
       <h1 className="titre-editorial mt-4 text-5xl text-encre sm:text-6xl">Cette page n’existe pas.</h1>
       <p className="mt-4 max-w-xl text-base leading-relaxed text-attenue">
         Le lien a peut-être changé. La boutique, le configurateur et les supports d’impression

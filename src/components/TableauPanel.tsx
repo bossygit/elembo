@@ -213,8 +213,8 @@ export default function TableauPanel({
   }
 
   return (
-    <section className="mt-10 rounded-2xl border border-neutral-200 bg-white p-5">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+    <section className="mt-10 rounded-2xl border border-encre/15 bg-white p-5">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-attenue">
         5. Votre tableau : format et commande
       </h2>
 
@@ -231,12 +231,12 @@ export default function TableauPanel({
               onClick={() => onFormatId(f.id)}
               className={`rounded-xl border px-3 py-2 text-left text-sm transition-colors ${
                 actif
-                  ? 'border-[#E85F00] bg-[#E85F00]/10 text-neutral-900'
-                  : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
+                  ? 'border-orange bg-orange/10 text-encre'
+                  : 'border-encre/15 bg-white text-encre/85 hover:border-encre/40'
               }`}
             >
               <span className="block font-medium">{f.label}</span>
-              <span className="block text-xs text-neutral-500">dès {formatFcfa(prix)}</span>
+              <span className="block text-xs text-attenue">dès {formatFcfa(prix)}</span>
             </button>
           );
         })}
@@ -270,8 +270,8 @@ export default function TableauPanel({
       <div className="mt-4 grid gap-4 sm:grid-cols-3">
         {/* --- montage --- */}
         <div>
-          <span className="text-sm font-medium text-neutral-800">Montage</span>
-          <div className="mt-1 flex flex-col gap-1 text-sm text-neutral-700">
+          <span className="text-sm font-medium text-encre">Montage</span>
+          <div className="mt-1 flex flex-col gap-1 text-sm text-encre/85">
             {(['chassis', 'toile-seule'] as const).map((s) => (
               <label key={s} className="flex items-center gap-2">
                 <input
@@ -279,7 +279,7 @@ export default function TableauPanel({
                   name="support-tableau"
                   checked={support === s}
                   onChange={() => setSupport(s)}
-                  className="accent-[#E85F00]"
+                  className="accent-orange"
                 />
                 {libelleSupport(s)}
               </label>
@@ -289,8 +289,8 @@ export default function TableauPanel({
 
         {/* --- bord --- */}
         <div>
-          <span className="text-sm font-medium text-neutral-800">Bord imprimé</span>
-          <div className="mt-1 flex flex-col gap-1 text-sm text-neutral-700">
+          <span className="text-sm font-medium text-encre">Bord imprimé</span>
+          <div className="mt-1 flex flex-col gap-1 text-sm text-encre/85">
             {(['galerie', 'encadrement'] as const).map((b) => (
               <label key={b} className="flex items-center gap-2">
                 <input
@@ -298,19 +298,19 @@ export default function TableauPanel({
                   name="bord-tableau"
                   checked={bord === b}
                   onChange={() => setBord(b)}
-                  className="accent-[#E85F00]"
+                  className="accent-orange"
                 />
                 {b === 'galerie' ? 'Galerie' : 'Encadrement'}
               </label>
             ))}
           </div>
-          <p className="mt-1 text-xs text-neutral-500">{libelleBord(bord)}</p>
+          <p className="mt-1 text-xs text-attenue">{libelleBord(bord)}</p>
         </div>
 
         {/* --- orientation + quantité --- */}
         <div className="flex flex-col gap-3">
           <div>
-            <span className="text-sm font-medium text-neutral-800">Orientation</span>
+            <span className="text-sm font-medium text-encre">Orientation</span>
             <div className="mt-1 flex gap-2">
               {(['portrait', 'paysage'] as const).map((o) => (
                 <button
@@ -319,8 +319,8 @@ export default function TableauPanel({
                   onClick={() => onOrientation(o)}
                   className={`rounded-lg border px-3 py-1 text-sm ${
                     orientation === o
-                      ? 'border-[#E85F00] bg-[#E85F00]/10 text-neutral-900'
-                      : 'border-neutral-200 text-neutral-700'
+                      ? 'border-orange bg-orange/10 text-encre'
+                      : 'border-encre/15 text-encre/85'
                   }`}
                 >
                   {o === 'portrait' ? 'Portrait' : 'Paysage'}
@@ -329,7 +329,7 @@ export default function TableauPanel({
             </div>
           </div>
           <div>
-            <label htmlFor="tableau-quantite" className="text-sm font-medium text-neutral-800">
+            <label htmlFor="tableau-quantite" className="text-sm font-medium text-encre">
               Quantité
             </label>
             <input
@@ -340,7 +340,7 @@ export default function TableauPanel({
               data-testid="quantite-tableau"
               value={quantite}
               onChange={(e) => setQuantite(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
-              className="mt-1 w-24 rounded-lg border border-neutral-300 px-2 py-1 text-sm text-neutral-800"
+              className="mt-1 w-24 rounded-lg border border-encre/25 px-2 py-1 text-sm text-encre"
             />
             {devis.remisePct > 0 && (
               <p className="mt-1 text-xs text-emerald-700">Remise de {devis.remisePct} % appliquée</p>
@@ -352,7 +352,7 @@ export default function TableauPanel({
       {/* --- livraison et téléphone --- */}
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="tableau-ville" className="text-sm font-medium text-neutral-800">
+          <label htmlFor="tableau-ville" className="text-sm font-medium text-encre">
             Livraison
           </label>
           <select
@@ -360,7 +360,7 @@ export default function TableauPanel({
             data-testid="ville-tableau"
             value={ville}
             onChange={(e) => setVille(e.target.value as DeliveryCity)}
-            className="mt-1 w-full rounded-lg border border-neutral-300 bg-white px-2 py-1.5 text-sm text-neutral-800"
+            className="mt-1 w-full rounded-lg border border-encre/25 bg-white px-2 py-1.5 text-sm text-encre"
           >
             {DELIVERY.map((d) => (
               <option key={d.city} value={d.city}>
@@ -370,7 +370,7 @@ export default function TableauPanel({
           </select>
         </div>
         <div>
-          <label htmlFor="tableau-telephone" className="text-sm font-medium text-neutral-800">
+          <label htmlFor="tableau-telephone" className="text-sm font-medium text-encre">
             Numéro MTN MoMo du client
           </label>
           <input
@@ -381,7 +381,7 @@ export default function TableauPanel({
             value={telephone}
             onChange={(e) => setTelephone(e.target.value)}
             placeholder="06 12 34 567"
-            className="mt-1 w-full rounded-lg border border-neutral-300 px-2 py-1.5 text-sm text-neutral-800"
+            className="mt-1 w-full rounded-lg border border-encre/25 px-2 py-1.5 text-sm text-encre"
           />
           {telephone.trim() !== '' && !numeroOk && (
             <p className="mt-1 text-xs text-amber-700">
@@ -392,7 +392,7 @@ export default function TableauPanel({
       </div>
 
       {/* --- récapitulatif --- */}
-      <dl className="mt-4 rounded-lg bg-neutral-50 px-3 py-2 text-sm text-neutral-700" data-testid="recap-tableau">
+      <dl className="mt-4 rounded-lg bg-sable/50 px-3 py-2 text-sm text-encre/85" data-testid="recap-tableau">
         <div className="flex justify-between">
           <dt>
             {formatParId(formatId)!.label} — {libelleSupport(support).toLowerCase()}
@@ -410,11 +410,11 @@ export default function TableauPanel({
           <dt>Livraison {DELIVERY.find((d) => d.city === ville)?.label}</dt>
           <dd>{formatFcfa(livraison)}</dd>
         </div>
-        <div className="mt-1 flex justify-between border-t border-neutral-200 pt-1 font-semibold text-neutral-900">
+        <div className="mt-1 flex justify-between border-t border-encre/15 pt-1 font-semibold text-encre">
           <dt>Total à payer</dt>
           <dd data-testid="total-tableau">{formatFcfa(total)}</dd>
         </div>
-        <p className="mt-1 text-xs text-neutral-500">
+        <p className="mt-1 text-xs text-attenue">
           Délai estimé : {devis.delaiJours} jour(s) maximum — fichier d&apos;impression fourni en {DPI_IMPRESSION} dpi
           {support === 'chassis'
             ? `, avec ${TARIFS.debordChassisCm} cm de débord par côté pour envelopper le châssis.`
@@ -428,7 +428,7 @@ export default function TableauPanel({
           onClick={payer}
           data-testid="payer-tableau"
           disabled={enCours || !design || total === null || !numeroOk}
-          className="mt-4 w-full rounded-xl bg-[#E85F00] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-4 w-full rounded-xl bg-orange px-4 py-3 text-sm font-semibold text-encre disabled:cursor-not-allowed disabled:opacity-50"
         >
           {enCours
             ? 'Paiement en cours…'
@@ -450,15 +450,15 @@ export default function TableauPanel({
       )}
 
       {!paiementOuvert && design && (
-        <details className="mt-3 rounded-lg border border-neutral-200 px-3 py-2">
-          <summary className="cursor-pointer text-xs text-neutral-500">
+        <details className="mt-3 rounded-lg border border-encre/15 px-3 py-2">
+          <summary className="cursor-pointer text-xs text-attenue">
             Atelier : générer le fichier sans paiement
           </summary>
           <button
             type="button"
             onClick={genererSansPaiement}
             disabled={enCours}
-            className="mt-2 rounded-lg border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="mt-2 rounded-lg border border-encre/25 px-3 py-1.5 text-xs text-encre/85 hover:bg-sable/60 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {enCours ? 'Génération…' : 'Générer le fichier d’impression (sans encaissement)'}
           </button>
@@ -466,13 +466,13 @@ export default function TableauPanel({
       )}
 
       {!design && (
-        <p className="mt-2 text-xs text-neutral-500">
+        <p className="mt-2 text-xs text-attenue">
           Uploadez d&apos;abord votre visuel (étape 2) pour pouvoir commander un tableau.
         </p>
       )}
 
       {suivi === 'attente' && (
-        <p className="mt-2 text-xs text-neutral-500" data-testid="etat-paiement-tableau">
+        <p className="mt-2 text-xs text-attenue" data-testid="etat-paiement-tableau">
           Demande envoyée (référence {paiement?.referenceId?.slice(0, 8)}…). Validez le paiement sur le téléphone :
           vous avez 5 minutes.
         </p>

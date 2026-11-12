@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { drawComposition } from '../canvas/design-canvas';
 import type { DrawParams } from '../canvas/design-canvas';
+import type { Side } from '../../types/configurator';
 
 type PanelEntry = {
   canvas: HTMLCanvasElement;
@@ -133,4 +134,83 @@ export function neutralAlbedoTexture(image: CanvasImageSource, width = 1024): TH
   perSize.set(width, texture);
   neutralCache.set(image, perSize);
   return texture;
+}
+
+/* ------------------------------------------------------- zones d'impression ----- */
+//
+// Le modèle Elembo expose une texture PAR ZONE (TEXCOORD_0), chacune transparente hors du
+// visuel. On ne recrée jamais le canvas ni la CanvasTexture : on les redessine, et seule
+// la zone réellement modifiée est marquée `needsUpdate` (voir ZonesProductModel).
+//
+// Convention glTF : l'origine des UV est EN HAUT À GAUCHE, d'où `flipY = false`. Avec la
+// valeur par défaut de three.js (true), chaque visuel apparaîtrait retourné verticalement
+// sur le vêtement — l'erreur classique de cette intégration.
+
+
+export type ZoneEntry = {
+  side: Side;
+  canvas: HTMLCanvasElement;
+  ctx: CanvasRenderingContext2D;
+  texture: THREE.CanvasTexture;
+};
+
+const zones = new Map<Side, ZoneEntry>();
+
+function createZoneEntry(side: Side, space: PanelSpace): ZoneEntry {
+  const canvas = document.createElement('canvas');
+  canvas.width = space.width;
+  canvas.height = space.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D indisponible pour la texture de la zone');
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.flipY = false; // convention glTF (origine en haut à gauche)
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.generateMipmaps = true;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+  const entry: ZoneEntry = { side, canvas, ctx, texture };
+  zones.set(side, entry);
+  return entry;
+}
+
+/** Couple canvas + texture d'une zone, au format demandé (recréé si le format change). */
+export function getZoneEntry(side: Side, space: PanelSpace): ZoneEntry {
+  const existing = zones.get(side);
+  if (existing && existing.canvas.width === space.width && existing.canvas.height === space.height) {
+    return existing;
+  }
+  if (existing) disposeZoneEntry(existing);
+  return createZoneEntry(side, space);
+}
+
+/** Redessine la zone et marque la texture comme modifiée, sans la recréer. */
+export function updateZoneTexture(
+  side: Side,
+  space: PanelSpace,
+  params: Omit<DrawParams, 'size' | 'height'>,
+): THREE.CanvasTexture {
+  const entry = getZoneEntry(side, space);
+  drawComposition(entry.ctx, { ...params, size: space.width, height: space.height });
+  entry.texture.needsUpdate = true;
+  return entry.texture;
+}
+
+/** Texture existante d'une zone (null si elle n'a pas encore été créée). */
+export function zoneTextureEntry(side: Side): ZoneEntry | null {
+  return zones.get(side) ?? null;
+}
+
+function disposeZoneEntry(entry: ZoneEntry) {
+  entry.texture.dispose();
+  entry.canvas.width = 0;
+  entry.canvas.height = 0;
+}
+
+/** Libère les textures des zones (démontage du configurateur). */
+export function disposeZoneTextures(): void {
+  for (const entry of zones.values()) disposeZoneEntry(entry);
+  zones.clear();
 }

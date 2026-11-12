@@ -20,6 +20,15 @@ export const MARQUE = {
   editeur: 'Smart Vision Congo',
 } as const;
 
+export const EMAIL_CONTACT = 'store@smartvision.cg';
+
+/**
+ * Comptes sociaux officiels. Liste VIDE tant que les comptes ne sont pas communiqués :
+ * le pied de page n'affiche la rubrique que si elle contient au moins une entrée.
+ * Ne jamais y mettre une adresse supposée.
+ */
+export const RESEAUX: { nom: string; href: string }[] = [];
+
 /** Numéro WhatsApp de l'assistance commerciale, au format international sans « + ». */
 const WHATSAPP_NUMERO = '242064781414';
 

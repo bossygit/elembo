@@ -27,15 +27,33 @@ export type TexteCollection = {
   aValider: boolean;
 };
 
+/** Habillage d'une collection : classes Tailwind complètes (détectées à la compilation). */
+export type ThemeCollection = {
+  /** Fond de l'affiche. */
+  fond: string;
+  /** Couleur du texte sur ce fond. */
+  texte: string;
+  /** Couleur du grand mot typographique et des accents. */
+  accent: string;
+};
+
 export type Collection = {
   id: string;
+  numero: string;
   titre: string;
   univers: UniversId;
   registre: Registre;
   langues: Langue[];
+  /** Une phrase, façon titre de magazine. */
+  accroche: string;
   description: string;
+  /** Grand mot typographique de l'affiche (français ou nom propre — jamais une langue non validée). */
+  motif: string;
   supports: string[];
   textes: TexteCollection[];
+  theme: ThemeCollection;
+  /** Lien d'action de la collection (créer, découvrir un univers, rejoindre les créateurs). */
+  lien: { href: string; libelle: string };
 };
 
 export type KitEvenement = {
@@ -87,9 +105,9 @@ export const UNIVERS: Univers[] = [
       'Remerciements et reconnaissance',
     ],
     exemple: 'Offrir à sa mère un mug avec sa photo et un message en lingala.',
-    image: { src: '/mockups/cadre-salon.jpg', alt: 'Cadre photo personnalisé posé dans un salon' },
+    image: { src: '/photos/mug-fond-rose.jpg', alt: 'Une main tend un mug blanc sur fond rose' },
     produits: ['mug-personnalise', 'tshirt-basic', 'tableau-canvas', 'coffret-cadeau'],
-    collections: ['pour-maman'],
+    collections: ['love-memories'],
     messageWhatsApp: 'cadeau',
     ctaWhatsApp: 'Préparer mon cadeau sur WhatsApp',
   },
@@ -108,9 +126,9 @@ export const UNIVERS: Univers[] = [
       'Collections en français, lingala et kituba',
     ],
     exemple: 'Une collection de t-shirts autour des expressions populaires de Brazzaville.',
-    image: { src: '/mockups/tshirt-studio.jpg', alt: 'T-shirt blanc prêt à recevoir un design' },
+    image: { src: '/photos/streetwear-rue.jpg', alt: 'Jeune homme en tenue streetwear dans une rue' },
     produits: ['tshirt-basic', 'tshirt-alt', 'tote-bag'],
-    collections: ['expressions-brazzaville'],
+    collections: ['brazzaville-vibes', 'expressions-du-congo'],
     messageWhatsApp: 'general',
     ctaWhatsApp: 'Proposer mon idée sur WhatsApp',
   },
@@ -150,9 +168,9 @@ export const UNIVERS: Univers[] = [
       'Passionnés de sport et de musique',
     ],
     exemple: 'Une collection spéciale pour les diplômés des universités congolaises.',
-    image: { src: '/mockups/tote-bag.jpg', alt: 'Tote bag en toile naturelle' },
+    image: { src: '/photos/diplomee-fond-jaune.jpg', alt: 'Jeune diplômée souriante en toge sur fond jaune' },
     produits: ['tshirt-basic', 'mug-personnalise', 'tote-bag', 'tableau-canvas'],
-    collections: ['diplomes'],
+    collections: ['urban-creativity'],
     messageWhatsApp: 'general',
     ctaWhatsApp: 'Demander conseil sur WhatsApp',
   },
@@ -170,77 +188,118 @@ export const UNIVERS: Univers[] = [
       'Histoire et patrimoine',
       'Garder le lien avec la famille',
     ],
-    exemple: 'La collection « Mon Congo, mon histoire » pour les Congolais vivant à l’étranger.',
+    exemple: 'La collection « Culture & Héritage » — Mon Congo, mon histoire — pour les Congolais vivant à l’étranger.',
     image: { src: '/mockups/tableau-interieur.jpg', alt: 'Tableau photo accroché dans un intérieur' },
     produits: ['tableau-canvas', 'tshirt-basic', 'mug-personnalise'],
-    collections: ['mon-congo'],
+    collections: ['culture-heritage'],
     messageWhatsApp: 'cadeau',
     ctaWhatsApp: 'Envoyer un souvenir au pays',
   },
 ];
 
 /**
- * Collections d'amorce. Les textes en lingala et en kituba sont des EMPLACEMENTS à remplacer
- * par des expressions validées — ils ne sont pas affichés tant que `aValider` est vrai.
+ * Les collections Elembo — cinq propositions éditoriales, EN PRÉPARATION : aucune n'a encore
+ * de designs finalisés à vendre. Elles sont présentées comme des sorties à venir, avec un lien
+ * vers ce qui est réellement disponible (l'atelier de création, un univers, les créateurs).
+ *
+ * Les textes en lingala et en kituba sont des EMPLACEMENTS à remplacer par des expressions
+ * validées — ils ne sont pas affichés tant que `aValider` est vrai.
  */
 export const COLLECTIONS: Collection[] = [
   {
-    id: 'expressions-brazzaville',
-    titre: 'Expressions de Brazzaville',
+    id: 'brazzaville-vibes',
+    numero: '01',
+    titre: 'Brazzaville Vibes',
     univers: 'identite',
     registre: 'Culture urbaine',
-    langues: ['lingala', 'français'],
+    langues: ['français'],
+    accroche: 'La ville, ses quartiers, son rythme.',
     description:
-      'Les mots qu’on entend au marché, dans le bus et entre amis, portés fièrement sur un t-shirt.',
+      'Brazza la verte, Ponton la belle : des designs qui portent le nom de la ville, l’indicatif du pays et l’énergie de la rue.',
+    motif: 'BZV',
     supports: ['T-shirts', 'Tote bags'],
     textes: [
-      { texte: '[Expression populaire de Brazzaville n° 1 — à valider]', langue: 'lingala', aValider: true },
-      { texte: '[Expression populaire de Brazzaville n° 2 — à valider]', langue: 'lingala', aValider: true },
-      { texte: '[Expression populaire de Brazzaville n° 3 — à valider]', langue: 'lingala', aValider: true },
+      { texte: 'Brazza la verte', langue: 'français', aValider: false },
+      { texte: 'Ponton la belle', langue: 'français', aValider: false },
+      { texte: 'BZV · 242', langue: 'français', aValider: false },
     ],
+    theme: { fond: 'bg-cobalt', texte: 'text-creme', accent: 'text-citron' },
+    lien: { href: '/personnalisation', libelle: 'Créer le mien' },
   },
   {
-    id: 'pour-maman',
-    titre: 'Pour Maman',
+    id: 'culture-heritage',
+    numero: '02',
+    titre: 'Culture & Héritage',
+    univers: 'memoire',
+    registre: 'Patrimoine culturel',
+    langues: ['français', 'lingala', 'kituba'],
+    accroche: 'Mon Congo, mon histoire.',
+    description:
+      'Pour ceux qui vivent loin, ceux qui reviennent et ceux qui veulent transmettre : les villes, les souvenirs et les symboles du pays, dessinés aujourd’hui.',
+    motif: 'Héritage',
+    supports: ['Tableaux photo', 'T-shirts', 'Mugs'],
+    textes: [
+      { texte: 'Mon Congo, mon histoire.', langue: 'français', aValider: false },
+      { texte: '[Phrase sur le pays en lingala — à valider]', langue: 'lingala', aValider: true },
+      { texte: '[Phrase sur Pointe-Noire en kituba — à valider]', langue: 'kituba', aValider: true },
+    ],
+    theme: { fond: 'bg-foret', texte: 'text-creme', accent: 'text-soleil' },
+    lien: { href: '/univers/memoire', libelle: 'Explorer l’univers' },
+  },
+  {
+    id: 'expressions-du-congo',
+    numero: '03',
+    titre: 'Expressions du Congo',
+    univers: 'identite',
+    registre: 'Culture urbaine',
+    langues: ['lingala', 'kituba', 'français'],
+    accroche: 'Les mots qu’on se dit, portés fièrement.',
+    description:
+      'Ce qu’on entend au marché, dans le bus et entre amis. Chaque expression est écrite avec des locuteurs natifs avant d’être imprimée.',
+    motif: 'Parole',
+    supports: ['T-shirts', 'Tote bags', 'Mugs'],
+    textes: [
+      { texte: '[Expression populaire n° 1 en lingala — à valider]', langue: 'lingala', aValider: true },
+      { texte: '[Expression populaire n° 2 en lingala — à valider]', langue: 'lingala', aValider: true },
+      { texte: '[Expression populaire n° 3 en kituba — à valider]', langue: 'kituba', aValider: true },
+    ],
+    theme: { fond: 'bg-citron', texte: 'text-encre', accent: 'text-encre' },
+    lien: { href: '/univers/identite', libelle: 'Explorer l’univers' },
+  },
+  {
+    id: 'love-memories',
+    numero: '04',
+    titre: 'Love & Memories',
     univers: 'cadeaux',
     registre: 'Vie sociale',
     langues: ['français', 'lingala'],
+    accroche: 'Dire merci, je t’aime, bravo.',
     description:
-      'Pour la fête des mères, un anniversaire ou simplement pour dire merci : sa photo et un mot doux, en français ou en lingala.',
+      'Une photo, un prénom, un mot doux : pour Maman, pour un couple, pour une amie. Le souvenir devient un objet.',
+    motif: 'Love',
     supports: ['Mugs', 'Tableaux photo', 'T-shirts'],
     textes: [
       { texte: 'Merci pour tout, Maman.', langue: 'français', aValider: false },
       { texte: '[Message à Maman en lingala — à valider]', langue: 'lingala', aValider: true },
     ],
+    theme: { fond: 'bg-fuchsia', texte: 'text-encre', accent: 'text-creme' },
+    lien: { href: '/univers/cadeaux', libelle: 'Trouver un cadeau' },
   },
   {
-    id: 'diplomes',
-    titre: 'Diplômés du Congo',
+    id: 'urban-creativity',
+    numero: '05',
+    titre: 'Urban Creativity',
     univers: 'quotidien',
-    registre: 'Vie sociale',
+    registre: 'Créativité contemporaine',
     langues: ['français'],
+    accroche: 'La scène créative, en édition ouverte.',
     description:
-      'Pour la remise des diplômes : le nom de la promotion, l’université et l’année, sur un t-shirt ou un mug souvenir.',
-    supports: ['T-shirts de promotion', 'Mugs', 'Tableaux photo'],
-    textes: [
-      { texte: 'Promotion 2026', langue: 'français', aValider: false },
-      { texte: 'Diplômé·e et fier·e', langue: 'français', aValider: false },
-    ],
-  },
-  {
-    id: 'mon-congo',
-    titre: 'Mon Congo, mon histoire',
-    univers: 'memoire',
-    registre: 'Patrimoine culturel',
-    langues: ['français', 'lingala', 'kituba'],
-    description:
-      'Pour les Congolais de la diaspora et ceux qui veulent transmettre : les villes, les quartiers et les souvenirs du pays.',
-    supports: ['Tableaux photo', 'T-shirts', 'Mugs'],
-    textes: [
-      { texte: 'Brazzaville, toujours dans mon cœur.', langue: 'français', aValider: false },
-      { texte: '[Phrase sur Pointe-Noire en kituba — à valider]', langue: 'kituba', aValider: true },
-      { texte: '[Phrase sur le pays en lingala — à valider]', langue: 'lingala', aValider: true },
-    ],
+      'Illustration, photographie, typographie, streetwear : une collection pensée pour accueillir les créateurs congolais.',
+    motif: 'Urban',
+    supports: ['T-shirts', 'Tableaux', 'Tote bags'],
+    textes: [],
+    theme: { fond: 'bg-orange', texte: 'text-encre', accent: 'text-creme' },
+    lien: { href: '/createurs', libelle: 'Proposer mes créations' },
   },
 ];
 

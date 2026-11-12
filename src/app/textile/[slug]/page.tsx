@@ -37,7 +37,7 @@ export default async function PageProduitTextile({ params }: Contexte) {
   const lienDevis = `/devis?famille=TEXTILE&produit=${encodeURIComponent(p.id)}`;
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
+    <div className="mx-auto w-full max-w-[90rem] px-4 py-10 sm:px-8 sm:py-14">
       <nav className="flex flex-wrap items-center gap-2 text-xs text-attenue" aria-label="Fil d’Ariane">
         <Link href="/" className="hover:text-encre">Accueil</Link>
         <span aria-hidden>/</span>
@@ -46,9 +46,9 @@ export default async function PageProduitTextile({ params }: Contexte) {
         <span className="text-encre">{p.nom}</span>
       </nav>
 
-      <div className="mt-8 grid gap-10 lg:grid-cols-[0.95fr_1.05fr]">
-        <div className="border border-filet bg-[#F3EFE6] p-4 sm:p-6">
-          <div className="aspect-[4/5] w-full">
+      <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_1fr] lg:gap-14">
+        <div className="lg:sticky lg:top-32 lg:self-start">
+          <div className="relative aspect-[4/5] w-full overflow-hidden bg-sable">
             {p.image ? (
               <Image
                 src={asset(p.image.src)}
@@ -56,13 +56,14 @@ export default async function PageProduitTextile({ params }: Contexte) {
                 width={1600}
                 height={1067}
                 sizes="(min-width: 1024px) 45vw, 100vw"
-                className="h-full w-full object-contain p-4"
+                priority
+                className="h-full w-full object-cover"
               />
             ) : (
               <PrintIllustration />
             )}
           </div>
-          <p className="mt-4 border-t border-encre/15 pt-3 text-[11px] leading-relaxed text-attenue">
+          <p className="mt-3 text-[10px] uppercase leading-relaxed tracking-[0.14em] text-attenue">
             {p.image
               ? 'Mockup de travail, à remplacer par la photo de production réelle.'
               : 'Visuel de fiche produit. Aucun modèle 3D n’est simulé pour ce produit.'}
@@ -71,11 +72,11 @@ export default async function PageProduitTextile({ params }: Contexte) {
 
         <div>
           <Etiquette>Textile</Etiquette>
-          <h1 className="titre-editorial mt-4 text-4xl text-encre sm:text-5xl">{p.nom}</h1>
-          <p className="mt-4 text-base leading-relaxed text-attenue">{p.description}</p>
+          <h1 className="titre-editorial mt-5 text-5xl text-encre sm:text-6xl">{p.nom}</h1>
+          <p className="mt-5 text-lg leading-relaxed text-attenue">{p.description}</p>
 
-          <div className="mt-6 border-y border-filet py-4">
-            <p className="text-xl font-semibold text-encre">{p.prix.libelle}</p>
+          <div className="mt-6 border-y border-encre/15 py-5">
+            <p className="font-display text-3xl text-encre">{p.prix.libelle}</p>
             <p className="mt-1 text-xs text-attenue">{p.prix.note}</p>
           </div>
 
@@ -90,9 +91,9 @@ export default async function PageProduitTextile({ params }: Contexte) {
 
           <div className="mt-8 flex flex-wrap gap-3">
             {fiche.configurable3D ? (
-              <BoutonLien href="/personnalisation" variante="primaire">
-                Ouvrir le configurateur 3D
-                <ArrowRight className="h-4 w-4" />
+              <BoutonLien href="/personnalisation" variante="accent" className="px-7 py-4 text-base">
+                Personnaliser en 3D
+                <ArrowRight className="h-5 w-5" />
               </BoutonLien>
             ) : (
               <BoutonLien href={lienDevis} variante="primaire">
@@ -177,7 +178,7 @@ export default async function PageProduitTextile({ params }: Contexte) {
         </div>
       </section>
 
-      <section className="mt-10 border border-encre bg-[#F3EFE6] p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
+      <section className="mt-10 border border-encre bg-sable p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
         <div>
           <h2 className="font-display text-2xl text-encre">Un lot, un uniforme, un événement ?</h2>
           <p className="mt-1 text-sm text-attenue">

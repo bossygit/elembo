@@ -27,7 +27,7 @@ export default function FontPicker({
         onFocusFont?.(e.target.value);
         onChange(e.target.value);
       }}
-      className="w-full rounded-lg border border-neutral-300 bg-white px-2 py-1.5 text-sm text-neutral-800"
+      className="w-full rounded-lg border border-encre/25 bg-white px-2 py-1.5 text-sm text-encre"
     >
       {fontsByCategory().map((groupe: { category: FontCategory; label: string; fonts: { id: string; name: string }[] }) => (
         <optgroup key={groupe.category} label={groupe.label}>

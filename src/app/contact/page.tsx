@@ -31,7 +31,7 @@ export default function ContactPage() {
   return (
     <>
       <section className="border-b border-filet">
-        <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 sm:py-20">
+        <div className="mx-auto w-full max-w-[90rem] px-4 py-14 sm:px-8 sm:py-20">
           <Etiquette>Contact</Etiquette>
           <h1 className="titre-editorial mt-5 max-w-3xl text-5xl text-encre sm:text-6xl">
             Parlons de votre idée.
@@ -46,7 +46,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
+      <section className="mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-20">
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
           <div>
             <h2 className="font-display text-3xl text-encre">L’atelier</h2>
@@ -95,7 +95,7 @@ export default function ContactPage() {
               </li>
             </ul>
 
-            <div className="mt-8 border border-encre bg-[#F3EFE6] p-5">
+            <div className="mt-8 border border-encre bg-sable p-5">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-orange-action">Commande entreprise</p>
               <p className="mt-2 text-sm leading-relaxed text-attenue">
                 Pour un appel d’offres, une commande récurrente ou un projet événementiel,
@@ -145,7 +145,7 @@ export default function ContactPage() {
       </section>
 
       <section className="border-t border-filet bg-white">
-        <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6">
+        <div className="mx-auto w-full max-w-[90rem] px-4 py-14 sm:px-8">
           <div className="grid gap-8 sm:grid-cols-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-orange-action">Textile</p>

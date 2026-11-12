@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
+import { Bricolage_Grotesque, Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import Footer from "../components/site/Footer";
+import BarreMobile from "../components/site/BarreMobile";
 import Header from "../components/site/Header";
+import Mouvement from "../components/motion/Mouvement";
 import WhatsAppFlottant from "../components/site/WhatsAppFlottant";
 import { MARQUE } from "../lib/site/marque";
 
@@ -14,6 +17,23 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Titres : grotesque expressive, avec l'axe de largeur pour les capitales serrées du hero.
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
+  subsets: ["latin"],
+  axes: ["opsz", "wdth"],
+  display: "swap",
+});
+
+// Accent : le mot en italique dans un titre.
+const instrument = Instrument_Serif({
+  variable: "--font-instrument",
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -49,16 +69,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="fr"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable} ${instrument.variable} h-full antialiased`}
     >
       <head>
         <link rel="stylesheet" href={`${basePath}/fonts/fonts.css`} />
-        {/* Adresse du service de paiement, modifiable sans reconstruire le site
-            (voir public/api-config.js) : c'est elle qui rebranche la boutique sur
-            le tunnel courant. Absente ou vide → adresse compilée dans le bundle.
-            `defer` : la valeur n'est lue qu'au moment de payer, donc inutile de
-            bloquer l'analyse de la page (et c'est ce que la règle Next exige). */}
-        <script src={`${basePath}/api-config.js`} defer />
+        {/*
+          Adresse du service de paiement, modifiable sans reconstruire le site
+          (voir public/api-config.js) : elle rebranche la boutique sur le tunnel courant.
+          Chargée après l'interactivité (la valeur n'est lue qu'au moment de payer), via
+          `next/script` — une balise <script> rendue par React déclenche un avertissement
+          d'hydratation.
+        */}
+        <Script src={`${basePath}/api-config.js`} strategy="afterInteractive" />
       </head>
       <body className="flex min-h-full flex-col bg-creme text-encre">
         <a href="#contenu" className="lien-evitement">
@@ -70,6 +92,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </main>
         <Footer />
         <WhatsAppFlottant />
+        <BarreMobile />
+        <Mouvement />
       </body>
     </html>
   );

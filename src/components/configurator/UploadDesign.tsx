@@ -7,6 +7,8 @@
 import { useRef, useState } from 'react';
 import { useConfiguratorStore } from '../../stores/configurator-store';
 import { validateDimensions, validateFile } from '../../lib/validate';
+import { putAsset } from '../../lib/storage/asset-store';
+import { ImageIcon } from '../site/Icons';
 
 export default function UploadDesign({ compact = false }: { compact?: boolean }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -22,7 +24,7 @@ export default function UploadDesign({ compact = false }: { compact?: boolean })
     }
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => {
+    img.onload = async () => {
       const dims = validateDimensions(img.naturalWidth, img.naturalHeight);
       if (!dims.ok) {
         URL.revokeObjectURL(url);
@@ -30,7 +32,20 @@ export default function UploadDesign({ compact = false }: { compact?: boolean })
         return;
       }
       setError(null);
-      addImage({ src: url, name: file.name, width: img.naturalWidth, height: img.naturalHeight });
+      // Le fichier d'origine est conservé sur l'appareil (IndexedDB) : le brouillon et le
+      // panier ne gardent que son identifiant, et le visuel est retrouvé au rechargement.
+      const assetId = await putAsset(file, {
+        name: file.name,
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+      });
+      addImage({
+        src: url,
+        name: file.name,
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+        ...(assetId ? { assetId } : {}),
+      });
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
@@ -61,12 +76,13 @@ export default function UploadDesign({ compact = false }: { compact?: boolean })
           const file = e.dataTransfer.files?.[0];
           if (file) handleFile(file);
         }}
-        className={`cursor-pointer rounded-xl border-2 border-dashed text-center transition-colors ${
+        className={`group flex min-h-[5.5rem] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border text-center transition-colors duration-200 ${
           compact ? 'p-3' : 'p-4'
-        } ${dragging ? 'border-[#E85F00] bg-[#E85F00]/10' : 'border-neutral-300 bg-white hover:border-[#E85F00]'}`}
+        } ${dragging ? 'border-orange bg-orange/10' : 'border-encre/20 bg-white hover:border-encre'}`}
       >
-        <p className="text-sm font-medium text-neutral-800">📷 Ajouter une image</p>
-        <p className="mt-1 text-xs text-neutral-500">PNG ou JPG · 10 Mo max · ≥ 500 px</p>
+        <ImageIcon className="h-6 w-6 text-orange-action transition-transform duration-300 group-hover:-translate-y-0.5" />
+        <p className="text-sm font-semibold text-encre">Ajouter une image</p>
+        <p className="text-[11px] leading-tight text-attenue">PNG ou JPG · 10 Mo max · ≥ 500 px</p>
       </div>
 
       <input

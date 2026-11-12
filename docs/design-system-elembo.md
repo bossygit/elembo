@@ -1,6 +1,6 @@
 # Elembo — design system : audit et proposition
 
-10 octobre 2026 · banc d'essai du moteur `ui-ux-pro-max` sur la boutique
+10 octobre 2026 · banc d'essai du moteur `ui-ux-pro-max` sur la boutique — **remplacé par `direction-artistique.md` (novembre 2026)**
 **Statut : proposition. Rien n'a été appliqué à la boutique.**
 
 ---

@@ -54,7 +54,12 @@ export default function Header() {
   }, [ouvert]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-encre/10 bg-creme/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-encre/10">
+      {/*
+        Le fond flouté est un calque à part : `backdrop-filter` posé sur l'en-tête lui-même
+        en ferait le bloc conteneur du menu mobile (position fixe), qui serait alors rogné.
+      */}
+      <div aria-hidden className="absolute inset-0 -z-10 bg-creme/90 backdrop-blur-md" />
       <div className="bg-encre text-creme">
         <div className="mx-auto flex w-full max-w-[90rem] items-center justify-between gap-4 px-4 py-2 text-[11px] font-medium tracking-wide sm:px-8">
           <p className="truncate">

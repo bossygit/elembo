@@ -356,7 +356,7 @@ export default function OrderPanel() {
                 onChange={(e) =>
                   setQuantites((prev) => ({ ...prev, [taille as GarmentSize]: Math.max(0, Math.min(500, Number(e.target.value) || 0)) }))
                 }
-                className="w-full rounded-lg border border-encre/25 px-2 py-1 text-sm text-encre"
+                className="w-full rounded-xl border border-encre/25 bg-white px-3 py-2.5 text-base text-encre"
               />
             </label>
           ))}
@@ -373,7 +373,7 @@ export default function OrderPanel() {
           data-testid="ville"
           value={ville}
           onChange={(e) => setVille(e.target.value as DeliveryCity)}
-          className="mt-1 w-full rounded-lg border border-encre/25 bg-white px-2 py-1.5 text-sm text-encre"
+          className="mt-1 w-full rounded-xl border border-encre/25 bg-white px-3 py-2.5 text-base text-encre focus:border-encre"
         >
           {DELIVERY.map((d) => (
             <option key={d.city} value={d.city}>
@@ -394,7 +394,7 @@ export default function OrderPanel() {
             autoComplete="name"
             value={nom}
             onChange={(e) => setNom(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-encre/25 px-2 py-1.5 text-sm text-encre"
+            className="mt-1 w-full rounded-xl border border-encre/25 bg-white px-3 py-2.5 text-base text-encre focus:border-encre"
           />
         </div>
         <div>
@@ -407,7 +407,7 @@ export default function OrderPanel() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-encre/25 px-2 py-1.5 text-sm text-encre"
+            className="mt-1 w-full rounded-xl border border-encre/25 bg-white px-3 py-2.5 text-base text-encre focus:border-encre"
           />
         </div>
       </div>
@@ -424,7 +424,7 @@ export default function OrderPanel() {
           value={telephone}
           onChange={(e) => setTelephone(e.target.value)}
           placeholder="06 12 34 567"
-          className="mt-1 w-full rounded-lg border border-encre/25 px-2 py-1.5 text-sm text-encre"
+          className="mt-1 w-full rounded-xl border border-encre/25 bg-white px-3 py-2.5 text-base text-encre focus:border-encre"
         />
         {telephone.trim() !== '' && !numeroOk && (
           <p className="mt-1 text-xs text-amber-700">

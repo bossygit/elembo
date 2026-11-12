@@ -19,7 +19,7 @@ export default function PersonnalisationPage() {
   return (
     <>
       <section className="trame bg-encre text-creme">
-        <div className="mx-auto w-full max-w-[90rem] px-4 py-8 sm:px-8 sm:py-12">
+        <div className="mx-auto w-full max-w-[90rem] px-4 py-7 sm:px-8 sm:py-9">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <Etiquette sombre>L’atelier de création</Etiquette>

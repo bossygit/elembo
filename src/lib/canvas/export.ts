@@ -20,8 +20,10 @@ export type RenderPrintParams = {
   area: PrintArea;
   /** Éléments de la face à imprimer, dans l'ordre des calques. */
   elements: DrawElement[];
-  /** Taille d'impression souhaitée en pixels ; par défaut 300 dpi sur la zone physique. */
+  /** Taille d'impression souhaitée en pixels ; par défaut la densité du procédé. */
   size?: { w: number; h: number };
+  /** Densité du procédé (production/profils.json) — 300 dpi par défaut. */
+  dpi?: number;
   /** Mesureur typographique (celui du canvas d'édition, pour une mise en page identique). */
   measure?: Measurer;
   /** Canvas fourni (tests) — sinon un canvas hors écran est créé. */
@@ -33,17 +35,22 @@ export async function renderPrintPng(params: RenderPrintParams): Promise<Blob | 
   const { area, elements, measure } = params;
   if (!elements.some((item) => item.element.visible !== false)) return null;
 
-  const target = params.size ?? productionTextureSize(area);
+  const target = params.size ?? productionTextureSize(area, params.dpi);
   // L'espace de composition doit avoir le format de la zone (sinon le design exporté
   // serait étiré), puis on recadre sur la zone : le fichier de production est exactement
-  // la zone d'impression, à 300 dpi de sa taille physique.
+  // la zone d'impression, à la densité de sa taille physique.
   const space = compositionSize(area, COMPOSE_SPACE);
   const zone = printAreaRect(area, space);
-  const ratio = target.w / zone.w;
+  // Échelles X et Y séparées : le format cible est calculé en arrondissant les deux
+  // dimensions, et la zone peut avoir un ratio très légèrement différent (une ou deux
+  // unités sur des milliers de pixels). Une échelle unique laisserait alors une bande
+  // transparente ou rognerait une ligne.
+  const ratioX = target.w / zone.w;
+  const ratioY = target.h / zone.h;
 
   const canvas = params.canvas ?? document.createElement('canvas');
-  canvas.width = Math.round(zone.w * ratio);
-  canvas.height = Math.round(zone.h * ratio);
+  canvas.width = target.w;
+  canvas.height = target.h;
 
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
@@ -53,7 +60,7 @@ export async function renderPrintPng(params: RenderPrintParams): Promise<Blob | 
 
   ctx.save();
   // La zone d'impression coïncide avec le coin haut-gauche du fichier de sortie.
-  ctx.scale(ratio, ratio);
+  ctx.scale(ratioX, ratioY);
   ctx.translate(-zone.x, -zone.y);
   drawComposition(ctx, {
     size: space.width,

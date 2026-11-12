@@ -191,6 +191,7 @@ describe('fiche de production', () => {
     unitPriceFcfa: 5000,
     elements: [texte({ content: 'CONGO' }), image({ side: 'back' })],
     measure: mesureur,
+    profileId: 'dtf',
   };
 
   it('ne produit que les faces réellement personnalisées', () => {
@@ -201,12 +202,50 @@ describe('fiche de production', () => {
     expect(facesToProduce({ elements: [texte(), image({ side: 'back', visible: false })] })).toEqual(['front']);
   });
 
+  it('produit un fichier par zone du T-shirt Elembo, dans l’ordre des zones', () => {
+    const elements = [
+      texte({ side: 'front' }),
+      image({ id: 'image-001', side: 'back' }),
+      image({ id: 'image-002', side: 'left-sleeve' }),
+      image({ id: 'image-003', side: 'right-sleeve' }),
+      texte({ id: 'text-002', side: 'collar' }),
+    ];
+    expect(facesToProduce({ elements })).toEqual(['front', 'back', 'left-sleeve', 'right-sleeve', 'collar']);
+
+    const sheet = buildProductionSheet({ ...draft, elements });
+    expect(sheet.faces.map((f) => f.fichier)).toEqual([
+      'front.png',
+      'back.png',
+      'left-sleeve.png',
+      'right-sleeve.png',
+      'collar.png',
+    ]);
+    expect(sheet.faces.map((f) => f.label)).toEqual([
+      'Face avant',
+      'Face arrière',
+      'Manche gauche',
+      'Manche droite',
+      'Intérieur du col',
+    ]);
+    // Dimensions physiques propres à chaque zone DTF.
+    expect(sheet.faces.map((f) => [f.zoneCm.w, f.zoneCm.h])).toEqual([
+      [21, 30],
+      [25, 32.4],
+      [9, 9],
+      [9, 9],
+      [8, 4.5],
+    ]);
+  });
+
   it('décrit faces, fichiers, quantité, livraison et montant', () => {
     const sheet = buildProductionSheet(draft, new Date('2026-10-01T12:00:00Z'));
     expect(sheet.commande).toBe('ELB-20261001-1200-AB');
     expect(sheet.faces.map((f) => f.side)).toEqual(['front', 'back']);
-    expect(sheet.faces[0].fichier).toBe('ELB-20261001-1200-AB-avant.png');
-    expect(sheet.faces[1].fichier).toBe('ELB-20261001-1200-AB-arriere.png');
+    // Noms de fichiers attendus par l'atelier (mission 02), indépendants de la référence.
+    expect(sheet.faces[0].fichier).toBe('front.png');
+    expect(sheet.faces[1].fichier).toBe('back.png');
+    expect(sheet.profil).toEqual({ id: 'dtf', nom: 'Transfert DTF', dpi: 300 });
+    expect(sheet.faces[0].dpi).toBe(300);
     expect(sheet.faces[0].pixels).toEqual({ w: 2480, h: 3543 }); // 21 × 30 cm à 300 dpi
     expect(sheet.faces[0].zoneCm).toEqual({ w: 21, h: 30 });
     expect(sheet.tailleEtQuantite.total).toBe(5);
@@ -217,6 +256,7 @@ describe('fiche de production', () => {
       montantFcfa: 5 * 5000 + 100, // 5 pièces à 5 000 (fixture) + livraison de test
     });
     expect(sheet.consignes.length).toBeGreaterThan(2);
+    expect(sheet.consignes.join(' ')).toContain('Transfert DTF');
   });
 
   it('rend une fiche texte exploitable par l’atelier', () => {

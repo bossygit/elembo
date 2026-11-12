@@ -18,11 +18,21 @@
 //             décalque (x/y/w/h = 0, 0, 1, 1) ; sa taille physique en cm reste la
 //             référence pour l'impression.
 
-import { prixProduit } from '../tarifs/grille';
+//  'zones'  — modèle Elembo à surfaces d'impression dédiées (une par zone : avant, dos,
+//             manches, intérieur du col), chacune avec ses UV propres et isotropes. Le
+//             visuel est composé dans une texture TRANSPARENTE par zone ; la couleur du
+//             tissu est portée par ses matériaux (FABRIC, FABRIC_RIB). La zone réellement
+//             imprimable dépend du procédé choisi (src/lib/products/production.ts).
 
+import { prixProduit } from '../tarifs/grille';
+import type { Side } from '../../types/configurator';
+import { SIDES } from '../../types/configurator';
+import { PROFILS, profilParId } from './production';
+import type { ProfilProduction } from './production';
+
+export type { Side };
 export type PanelDimensions = { width: number; height: number };
-export type PrintTechnique = 'uv' | 'decal';
-export type Side = 'front' | 'back';
+export type PrintTechnique = 'uv' | 'decal' | 'zones';
 
 /**
  * Zone d'impression.
@@ -43,6 +53,11 @@ export type PrintArea = {
   h: number;
   cmWidth: number;
   cmHeight: number;
+  /**
+   * 'zones' : taille physique de la TEXTURE de la zone (toute la pièce de tissu), dont la
+   * zone imprimable est un rectangle (x, y, w, h en fractions de cette texture).
+   */
+  textureCm?: { w: number; h: number };
   /** 'decal' : cadre de projection, en unités du modèle. */
   projection?: {
     center: [number, number, number];
@@ -52,6 +67,25 @@ export type PrintArea = {
 };
 
 export type ColorOption = { name: string; hex: string };
+
+/**
+ * Surface d'impression d'un modèle 'zones', telle que mesurée dans le GLB
+ * (`node scripts/glb-zones.mjs`). Les noms et les repères sont vérifiés contre le fichier
+ * par `tests/elemboModel.test.ts`.
+ */
+export type ZoneModel = {
+  /** Nom exact du maillage dans le GLB. */
+  mesh: string;
+  /** Taille physique de la texture de la zone (UV 0..1, isotropes). */
+  textureCm: { w: number; h: number };
+  /** Repères mesurés, en cm depuis le haut de la texture (axe médian). */
+  reperesCm: { col?: number; epaule?: number };
+  /**
+   * Vue de caméra qui présente la zone : angles en degrés (azimut 0 = face, 90 = côté
+   * gauche du porteur), distance relative au cadrage, hauteur de visée relative.
+   */
+  vue: { azimut: number; polaire: number; distance: number; cibleY?: number };
+};
 
 /** Rendu de la surface du vêtement fournisseur — voir `Product.surface`. */
 export type SurfaceMode = 'vendor' | 'flat-albedo' | 'blank';
@@ -77,21 +111,22 @@ export type Product = {
    *   de relief : sinon retirer l'albédo ne suffit pas, le motif reste visible.
    */
   surface?: SurfaceMode;
+  /** 'zones' : surfaces d'impression du modèle. */
+  zones?: Partial<Record<Side, ZoneModel>>;
+  /** 'zones' : matériaux du tissu, qui portent la couleur du vêtement. */
+  fabricMaterials?: string[];
   colors: ColorOption[];
   /**
    * Prix unitaire TTC en FCFA, hors livraison. Laisser vide tant qu'il n'est pas arbitré :
    * le tunnel de commande refuse alors de valider plutôt que d'afficher un montant inventé.
    */
   priceFcfa?: number | null;
-  printAreas: { front?: PrintArea; back?: PrintArea };
+  /** Zones fixes ('uv', 'decal'). Pour 'zones', elles sont calculées selon le procédé. */
+  printAreas: Partial<Record<Side, PrintArea>>;
 };
 
 export const MODEL_DIR = '/models';
 export const DEFAULT_PRODUCT_ID = 'tshirt-basic';
-
-// Modèle fournisseur : 1 unité = 1 pouce (torse de 23,7 unités ≈ 60 cm, hauteur 28,1
-// unités ≈ 71 cm — dimensions réelles d'un T-shirt homme régulier).
-const INCH = 2.54;
 
 // Placement déduit du maillage (scripts/inspect-glb.mjs) :
 //   haut du vêtement Y ≈ 64,9 — surface avant Z ≈ 3,3 → 4,8 — surface arrière Z ≈ −5,2 → −5,6
@@ -119,30 +154,67 @@ export const TSHIRT_BACK: PrintArea = {
   projection: { center: [0, 55.3, -5.5], rotationY: Math.PI, depth: 3.4 },
 };
 
+// Modèle Elembo (assets/3d/elembo-tshirt) : repères mesurés par scripts/glb-zones.mjs.
+//   avant : creux du col à 11,85 cm du haut de la texture — dos : 3,38 cm — manches :
+//   tête de manche à 1,08 cm. Textures : 63,2 × 79 / 62,4 × 78 / 60 × 30 / 12 × 6,7 cm.
+export const ELEMBO_TSHIRT_ZONES: Partial<Record<Side, ZoneModel>> = {
+  front: {
+    mesh: 'TSHIRT_FRONT_PRINT',
+    textureCm: { w: 63.2, h: 79 },
+    reperesCm: { col: 11.85 },
+    vue: { azimut: 0, polaire: 86, distance: 1 },
+  },
+  back: {
+    mesh: 'TSHIRT_BACK_PRINT',
+    textureCm: { w: 62.4, h: 78 },
+    reperesCm: { col: 3.38 },
+    vue: { azimut: 180, polaire: 86, distance: 1 },
+  },
+  'left-sleeve': {
+    mesh: 'TSHIRT_LEFT_SLEEVE_PRINT',
+    textureCm: { w: 60, h: 30 },
+    reperesCm: { epaule: 1.08 },
+    vue: { azimut: 80, polaire: 72, distance: 0.62, cibleY: 0.22 },
+  },
+  'right-sleeve': {
+    mesh: 'TSHIRT_RIGHT_SLEEVE_PRINT',
+    textureCm: { w: 60, h: 30 },
+    reperesCm: { epaule: 1.08 },
+    vue: { azimut: -80, polaire: 72, distance: 0.62, cibleY: 0.22 },
+  },
+  collar: {
+    mesh: 'TSHIRT_COLLAR_PRINT',
+    textureCm: { w: 12, h: 6.7 },
+    reperesCm: {},
+    vue: { azimut: 0, polaire: 40, distance: 0.5, cibleY: 0.42 },
+  },
+};
+
 export const CATALOG: Product[] = [
   {
+    // L'identifiant historique est CONSERVÉ : c'est lui que le service de paiement et la
+    // grille tarifaire connaissent (tarifs/grille.json). Changer d'identifiant casserait
+    // le paiement tant que le service n'aurait pas été redéployé.
     id: DEFAULT_PRODUCT_ID,
-    name: 'T-Shirt raglan',
-    modelUrl: `${MODEL_DIR}/tshirt/tshirt.glb`,
-    technique: 'decal',
-    unitToCm: INCH,
-    // Le modèle fournisseur porte un imprimé « RUN » gravé à la fois dans son albédo ET
-    // dans sa texture de normales : on n'utilise donc aucune de ses textures, pour un
-    // T-shirt vierge à la couleur exacte. La forme et les plis viennent de la géométrie
-    // et de l'éclairage.
-    surface: 'blank',
-    // PRIX DE TEST — décidé par l'exploitant le 05/10/2026 pour les essais de paiement réel
-    // entre collègues (le tarif commercial reste à arbitrer). La valeur vit dans la SOURCE
-    // UNIQUE `tarifs/grille.json`, que le service de paiement lit aussi : il n'y a plus de
-    // copie à tenir à jour. Un tableau de bord la rendra configurable.
+    name: 'T-shirt Elembo oversize',
+    modelUrl: `${MODEL_DIR}/elembo-tshirt/elembo-tshirt.glb`,
+    technique: 'zones',
+    zones: ELEMBO_TSHIRT_ZONES,
+    fabricMaterials: ['FABRIC', 'FABRIC_RIB'],
+    // PRIX : source unique tarifs/grille.json (prix de test validé par l'exploitant).
     priceFcfa: prixProduit('tshirt-basic'),
+    // Couleurs du modèle (mêmes valeurs que les extras du GLB).
     colors: [
-      { name: 'Blanc', hex: '#FFFFFF' },
-      { name: 'Noir', hex: '#1A1A1A' },
-      { name: 'Rouge', hex: '#C62828' },
-      { name: 'Bleu', hex: '#1565C0' },
+      { name: 'Blanc', hex: '#F4F3EF' },
+      { name: 'Noir', hex: '#1A1A1C' },
+      { name: 'Gris', hex: '#9C9EA1' },
+      { name: 'Bleu marine', hex: '#1F2A44' },
+      { name: 'Rouge', hex: '#B3202A' },
+      { name: 'Vert', hex: '#1E5E3B' },
+      { name: 'Jaune', hex: '#F2C230' },
+      { name: 'Orange Elembo', hex: '#FF5A12' },
     ],
-    printAreas: { front: TSHIRT_FRONT, back: TSHIRT_BACK },
+    printAreas: {},
   },
   {
     // Second modèle (Sketchfab) : col rond, maillage séparé avant/arrière, en mètres,
@@ -215,9 +287,61 @@ export function getProductById(id: string): Product | undefined {
   return [PLACEHOLDER_PRODUCT, ...CATALOG].find((p) => p.id === id);
 }
 
-export function getPrintArea(product: Product | undefined, side: Side): PrintArea | null {
+/**
+ * Zone d'impression d'un produit pour une zone du vêtement.
+ *
+ * Produits 'uv' / 'decal' : zone fixe du catalogue. Produit 'zones' : zone calculée à
+ * partir du procédé de production (dimensions et position réelles), dans la texture de
+ * la surface d'impression.
+ */
+export function getPrintArea(product: Product | undefined, side: Side, profileId?: string | null): PrintArea | null {
   if (!product) return null;
+  if (product.technique === 'zones') return zoneArea(product, side, profilParId(profileId));
   return product.printAreas[side] ?? null;
+}
+
+/** Zones exposées par un produit (dans l'ordre d'affichage). */
+export function productSides(product: Product | undefined): Side[] {
+  if (!product) return [];
+  if (product.technique === 'zones') return SIDES.filter((s) => Boolean(product.zones?.[s]));
+  return SIDES.filter((s) => Boolean(product.printAreas[s]));
+}
+
+const arrondi = (v: number) => Math.round(v * 100) / 100;
+
+/** Zone imprimable d'un procédé, placée dans la texture de la surface d'impression. */
+export function zoneArea(product: Product, side: Side, profil: ProfilProduction): PrintArea | null {
+  const model = product.zones?.[side];
+  const conf = profil.zones[side];
+  if (!model || !conf) return null;
+  const T = model.textureCm;
+  let w: number;
+  let h: number;
+  let left: number;
+  let top: number;
+  if (conf.pleine) {
+    w = T.w;
+    h = T.h;
+    left = 0;
+    top = 0;
+  } else {
+    w = Math.min(conf.largeurCm ?? T.w, T.w);
+    h = Math.min(conf.hauteurCm ?? T.h, T.h);
+    const repere = conf.repere === 'haut' || !conf.repere ? 0 : (model.reperesCm[conf.repere] ?? 0);
+    top = Math.min(Math.max(0, repere + (conf.hautCm ?? 0)), T.h - h);
+    left = Math.min(Math.max(0, (T.w - w) / 2 + (conf.decalageXCm ?? 0)), T.w - w);
+  }
+  return {
+    side,
+    technique: 'zones',
+    x: left / T.w,
+    y: top / T.h,
+    w: w / T.w,
+    h: h / T.h,
+    cmWidth: arrondi(w),
+    cmHeight: arrondi(h),
+    textureCm: T,
+  };
 }
 
 /**
@@ -258,7 +382,7 @@ export function validateProduct(product: Product): { ok: boolean; errors: string
     errors.push(`modelUrl doit commencer par ${MODEL_DIR}/ (reçu : ${product.modelUrl})`);
   }
   if (!product.modelUrl?.endsWith('.glb')) errors.push('modelUrl doit pointer un fichier .glb');
-  if (product.technique !== 'uv' && product.technique !== 'decal') {
+  if (product.technique !== 'uv' && product.technique !== 'decal' && product.technique !== 'zones') {
     errors.push(`technique inconnue : ${String(product.technique)}`);
   }
   if (!product.colors?.length) errors.push('au moins une couleur est requise');
@@ -272,6 +396,25 @@ export function validateProduct(product: Product): { ok: boolean; errors: string
   }
   if (product.technique === 'decal' && !((product.unitToCm ?? 0) > 0)) {
     errors.push('technique decal : unitToCm doit être > 0');
+  }
+
+  if (product.technique === 'zones') {
+    const zones = Object.entries(product.zones ?? {});
+    if (!zones.length) errors.push('technique zones : au moins une surface d’impression est requise');
+    for (const [key, z] of zones) {
+      if (!z) continue;
+      if (!z.mesh?.trim()) errors.push(`zone ${key} : nom de maillage manquant`);
+      if (!(z.textureCm?.w > 0) || !(z.textureCm?.h > 0)) errors.push(`zone ${key} : textureCm invalide`);
+      for (const profil of PROFILS) {
+        const area = zoneArea(product, key as Side, profil);
+        if (!area) continue;
+        if (area.x < -1e-6 || area.y < -1e-6 || area.x + area.w > 1.0001 || area.y + area.h > 1.0001) {
+          errors.push(`zone ${key} / ${profil.id} : sort de la surface d’impression`);
+        }
+      }
+    }
+    if (!product.fabricMaterials?.length) errors.push('technique zones : matériaux du tissu non déclarés');
+    return { ok: errors.length === 0, errors };
   }
 
   const areas = Object.entries(product.printAreas ?? {});

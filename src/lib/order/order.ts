@@ -10,8 +10,11 @@
 // les frais et le délai. Le rendu des PNG est dans lib/canvas/export.ts.
 
 import type { DesignElement, Side, TextElement } from '../../types/configurator';
-import { SIDES } from '../../types/configurator';
+import { SIDE_FILE, SIDE_LABELS, SIDES } from '../../types/configurator';
 import type { PrintArea, Product } from '../products/catalog';
+import { getPrintArea } from '../products/catalog';
+import { profilParId } from '../products/production';
+import type { ProfilProduction } from '../products/production';
 import { GRILLE, villesLivraison } from '../tarifs/grille';
 import { compositionSize, elementRect, elementsOfSide, printAreaRect, productionTextureSize } from '../canvas/design-canvas';
 import type { Measurer, CanvasSpace } from '../canvas/design-canvas';
@@ -210,6 +213,8 @@ export type ProductionFace = {
   side: Side;
   label: string;
   fichier: string;
+  /** Densité du fichier de production pour ce procédé (dpi). */
+  dpi: number;
   /** Dimensions du fichier d'impression et de la zone physique. */
   pixels: { w: number; h: number };
   zoneCm: { w: number; h: number };
@@ -217,10 +222,12 @@ export type ProductionFace = {
 };
 
 export type ProductionSheet = {
-  version: 1;
+  version: 2;
   commande: string;
   date: string;
   produit: { id: string; nom: string; couleur: string; technique: string };
+  /** Procédé de production retenu et ses contraintes (SOURCE : production/profils.json). */
+  profil: { id: string; nom: string; dpi: number };
   tailleEtQuantite: { lignes: SizeLine[]; total: number };
   livraison: { ville: string; fraisFcfa: number | null; delaiJours: number };
   paiement: { moyen: string; devise: string; montantFcfa: number | null };
@@ -237,6 +244,7 @@ export function productionSheetText(sheet: ProductionSheet): string {
   lignes.push(`Produit      : ${sheet.produit.nom} (${sheet.produit.id})`);
   lignes.push(`Couleur      : ${sheet.produit.couleur}`);
   lignes.push(`Technique    : ${sheet.produit.technique}`);
+  lignes.push(`Procédé      : ${sheet.profil.nom} (${sheet.profil.id}) — fichiers ${sheet.profil.dpi} dpi`);
   lignes.push(
     `Tailles      : ${sheet.tailleEtQuantite.lignes.map((l) => `${l.size}×${l.quantity}`).join(', ')} — total ${sheet.tailleEtQuantite.total} pièce(s)`,
   );
@@ -248,7 +256,7 @@ export function productionSheetText(sheet: ProductionSheet): string {
 
   for (const face of sheet.faces) {
     lignes.push(
-      `--- ${face.label.toUpperCase()} — zone ${face.zoneCm.w} × ${face.zoneCm.h} cm — ${face.fichier} (${face.pixels.w} × ${face.pixels.h} px, 300 dpi, fond transparent) ---`,
+      `--- ${face.label.toUpperCase()} — zone ${face.zoneCm.w} × ${face.zoneCm.h} cm — ${face.fichier} (${face.pixels.w} × ${face.pixels.h} px, ${face.dpi} dpi, fond transparent) ---`,
     );
     if (!face.placements.length) {
       lignes.push('  (aucun élément)');
@@ -290,6 +298,8 @@ export type OrderDraft = {
   unitPriceFcfa: number | null;
   elements: DesignElement[];
   measure: Measurer;
+  /** Procédé de production retenu (production/profils.json). */
+  profileId?: string;
 };
 
 /** Fiches et fichiers à produire : uniquement les faces réellement personnalisées. */
@@ -302,16 +312,20 @@ export function facesToProduce(order: Pick<OrderDraft, 'elements'>): Side[] {
 export function buildProductionSheet(order: OrderDraft, date = new Date()): ProductionSheet {
   const faces: ProductionFace[] = [];
   const totals = orderTotals({ lines: order.lines, unitPriceFcfa: order.unitPriceFcfa, city: order.city });
+  const profil: ProfilProduction = profilParId(order.profileId);
 
   for (const side of facesToProduce(order)) {
-    const area = order.product.printAreas[side];
+    const area = getPrintArea(order.product, side, profil.id);
     if (!area) continue;
     const space = compositionSize(area);
+    const pixels = productionTextureSize(area, profil.dpi);
     faces.push({
       side,
-      label: side === 'front' ? 'Face avant' : 'Face arrière',
-      fichier: `${order.reference}-${side === 'front' ? 'avant' : 'arriere'}.png`,
-      pixels: { w: productionTextureSize(area).w, h: productionTextureSize(area).h },
+      label: SIDE_LABELS[side],
+      // Nom exact attendu par l'atelier (mission 02) : front.png, back.png, etc.
+      fichier: SIDE_FILE[side],
+      dpi: profil.dpi,
+      pixels,
       zoneCm: { w: area.cmWidth, h: area.cmHeight },
       placements: elementsOfSide(order.elements, side)
         .filter((el) => el.visible !== false)
@@ -320,15 +334,16 @@ export function buildProductionSheet(order: OrderDraft, date = new Date()): Prod
   }
 
   return {
-    version: 1,
+    version: 2,
     commande: order.reference,
     date: date.toISOString().slice(0, 10),
     produit: {
       id: order.product.id,
       nom: order.product.name,
       couleur: order.color,
-      technique: 'DTF (transfert à chaud)',
+      technique: profil.nom,
     },
+    profil: { id: profil.id, nom: profil.nom, dpi: profil.dpi },
     tailleEtQuantite: { lignes: order.lines, total: totals.quantity },
     livraison: {
       ville: deliveryOption(order.city).label,
@@ -338,9 +353,13 @@ export function buildProductionSheet(order: OrderDraft, date = new Date()): Prod
     paiement: { moyen: 'MTN Mobile Money (MoMo)', devise: 'FCFA', montantFcfa: totals.totalFcfa },
     faces,
     consignes: [
-      'Imprimer les fichiers fournis (PNG 300 dpi, fond transparent) sans les redimensionner ni les recadrer.',
+      'Imprimer les fichiers fournis (PNG, fond transparent) sans les redimensionner ni les recadrer.',
       'Respecter le positionnement indiqué en centimètres depuis le coin haut-gauche de la zone d’impression.',
-      'Technique : DTF — découpe au contour, pressage à ajuster selon les tests de la presse.',
+      `Procédé : ${profil.nom} — ${profil.dpi} dpi, ${profil.description}`,
+      'Vérifier qu’aucun visuel ne traverse une couture : chaque zone est une pièce séparée.',
+      ...(order.product.technique === 'zones'
+        ? ['Le nom de chaque fichier indique la zone exacte du vêtement (front, back, left-sleeve, right-sleeve, collar).']
+        : []),
       'Envoyer un BAT photographique avant expédition si la quantité dépasse 10 pièces.',
     ],
   };

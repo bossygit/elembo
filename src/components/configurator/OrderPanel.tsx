@@ -18,6 +18,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useConfiguratorStore } from '../../stores/configurator-store';
 import { getPrintArea, getProductById } from '../../lib/products/catalog';
+import {
+  empechementsCommande,
+  profilParId,
+} from '../../lib/products/production';
 import { paiementEnLigneOuvert } from '../../lib/commerce/catalogue';
 import { statutPrixProduit } from '../../lib/tarifs/grille';
 import { compositionSize, drawComposition, elementsOfSide } from '../../lib/canvas/design-canvas';
@@ -42,6 +46,7 @@ import {
   type Paiement,
 } from '../../lib/payment/momo';
 import type { Side } from '../../types/configurator';
+import { SIDE_FILE, SIDE_LABELS } from '../../types/configurator';
 import { envoyerDossier, type FichierAEnvoyer, type ResultatEnvoi } from '../../lib/payment/dossier';
 import { expliquerMotif } from '../../lib/payment/motifs';
 import { construireRecap, enregistrerRecap, lienConfirmation } from '../../lib/order/confirmation';
@@ -55,15 +60,16 @@ const FENETRE_PAIEMENT_MS = 5 * 60 * 1000;
 function FacePreview({ side, titre }: { side: Side; titre: string }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const productId = useConfiguratorStore((s) => s.productId);
+  const profileId = useConfiguratorStore((s) => s.profileId);
   const color = useConfiguratorStore((s) => s.color);
   const elements = useConfiguratorStore((s) => s.elements);
   const measure = useConfiguratorStore((s) => s.measure);
   const images = useElementImages(elements);
 
   const product = getProductById(productId);
-  const area = getPrintArea(product, side);
+  const area = getPrintArea(product, side, profileId);
   const deLaFace = elementsOfSide(elements, side);
-  const space = area ? compositionSize(area, 300) : null;
+  const space = area ? compositionSize(area, 260) : null;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -110,6 +116,7 @@ export default function OrderPanel() {
   const router = useRouter();
   const productId = useConfiguratorStore((s) => s.productId);
   const color = useConfiguratorStore((s) => s.color);
+  const profileId = useConfiguratorStore((s) => s.profileId);
   const elements = useConfiguratorStore((s) => s.elements);
   const measure = useConfiguratorStore((s) => s.measure);
 
@@ -141,6 +148,7 @@ export default function OrderPanel() {
   );
 
   const product = getProductById(productId);
+  const profil = profilParId(profileId);
   const prixUnitaire = product?.priceFcfa ?? null;
   const paiementOuvert = paiementEnLigneOuvert(statutPrixProduit(productId));
   const images = useElementImages(elements);
@@ -155,8 +163,12 @@ export default function OrderPanel() {
   const totals = orderTotals({ lines: lignes, unitPriceFcfa: prixUnitaire, city: ville });
 
   const faces = product ? facesToProduce({ elements }) : [];
+  // Zones personnalisées que le procédé retenu ne sait pas produire : la commande est
+  // bloquée AVANT le paiement, avec le motif exact (aucune promesse non tenue).
+  const blocagesProduction = empechementsCommande(profil, faces);
   const numeroOk = telephonePlausible(telephone);
-  const prete = totals.blockedBy.length === 0 && faces.length > 0 && Boolean(product);
+  const prete =
+    totals.blockedBy.length === 0 && faces.length > 0 && Boolean(product) && blocagesProduction.length === 0;
   const enPaiement = suivi === 'attente';
 
   /**
@@ -175,20 +187,21 @@ export default function OrderPanel() {
       unitPriceFcfa: prixUnitaire,
       elements,
       measure,
+      profileId: profil.id,
     });
 
     const aEnvoyer: FichierAEnvoyer[] = [];
 
     for (const side of faces) {
-      const area = getPrintArea(product, side);
+      const area = getPrintArea(product, side, profil.id);
       if (!area) continue;
       const dessines = elementsOfSide(elements, side).map((element) => ({
         element,
         image: images.get(element.id) ?? null,
       }));
-      const blob = await renderPrintPng({ area, elements: dessines, measure });
+      const blob = await renderPrintPng({ area, elements: dessines, measure, dpi: profil.dpi });
       if (blob) {
-        const nom = sheet.faces.find((f) => f.side === side)?.fichier ?? `${ref}-${side}.png`;
+        const nom = sheet.faces.find((f) => f.side === side)?.fichier ?? SIDE_FILE[side];
         // Téléchargement local conservé : si l'envoi à l'atelier échoue (réseau coupé après le
         // paiement), le client a encore ses fichiers et peut les transmettre par WhatsApp.
         downloadBlob(blob, nom);
@@ -306,7 +319,7 @@ export default function OrderPanel() {
               financialTransactionId: resultat.paiement.financialTransactionId,
               nom: nom.trim() || undefined,
               telephone,
-              faces: faces.map((side) => (side === 'front' ? 'Face avant' : 'Face arrière')),
+              faces: faces.map((side) => SIDE_LABELS[side]),
               atelier: depot,
             }),
           );
@@ -337,7 +350,7 @@ export default function OrderPanel() {
 
       <div className="flex flex-wrap items-start gap-3">
         {faces.map((side) => (
-          <FacePreview key={side} side={side} titre={side === 'front' ? 'Face avant' : 'Face arrière'} />
+          <FacePreview key={side} side={side} titre={SIDE_LABELS[side]} />
         ))}
       </div>
 
@@ -439,6 +452,12 @@ export default function OrderPanel() {
           <dd>{formatFcfa(prixUnitaire)}</dd>
         </div>
         <div className="flex justify-between">
+          <dt>Procédé</dt>
+          <dd>
+            {profil.nom} · {profil.dpi} dpi
+          </dd>
+        </div>
+        <div className="flex justify-between">
           <dt>Sous-total ({totals.quantity} pièce(s))</dt>
           <dd>{formatFcfa(totals.itemsSubtotalFcfa)}</dd>
         </div>
@@ -461,6 +480,9 @@ export default function OrderPanel() {
           <p className="font-semibold">Commande non encore validable :</p>
           <ul className="mt-1 list-disc pl-4">
             {faces.length === 0 && <li>aucun élément sur le vêtement</li>}
+            {blocagesProduction.map((raison) => (
+              <li key={raison}>{raison}</li>
+            ))}
             {totals.blockedBy.map((raison) => (
               <li key={raison}>{raison}</li>
             ))}
@@ -588,7 +610,7 @@ export default function OrderPanel() {
           data-testid="valider-commande"
           className="mt-2 rounded-lg border border-encre/25 px-3 py-1.5 text-xs text-encre/85 hover:bg-sable/60 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {enCours ? 'Préparation des fichiers…' : 'Générer les fichiers d’impression (sans encaissement)'}
+          {enCours ? 'Préparation des fichiers…' : 'Générer les fichiers de production (sans encaissement)'}
         </button>
       </details>
     </div>

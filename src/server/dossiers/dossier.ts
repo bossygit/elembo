@@ -21,9 +21,11 @@
 import type { FichierDepose, Transaction } from '../momo/store';
 
 /** Un dossier = au plus un PNG par face (2) + la fiche JSON et sa version texte. */
-export const MAX_FICHIERS = 6;
+// Un T-shirt à cinq zones produit 5 PNG + 2 fiches (texte + JSON) : la limite couvre
+// largement le dossier d'un vêtement, sans permettre un dépôt arbitraire.
+export const MAX_FICHIERS = 12;
 export const MAX_TAILLE_FICHIER = 25 * 1024 * 1024;
-export const MAX_TAILLE_TOTAL = 60 * 1024 * 1024;
+export const MAX_TAILLE_TOTAL = 120 * 1024 * 1024;
 export const TYPES_ACCEPTES = ['image/png', 'application/json', 'text/plain'] as const;
 
 export type Refus = { ok: false; statut: number; motif: string };
@@ -112,7 +114,10 @@ export function verifierDepot(params: {
   }
 
   if (total > MAX_TAILLE_TOTAL) {
-    return refus(422, `Dépôt trop volumineux (${Math.round(total / 1024 / 1024)} Mo, maximum 60 Mo).`);
+    return refus(
+      422,
+      `Dépôt trop volumineux (${Math.round(total / 1024 / 1024)} Mo, maximum ${MAX_TAILLE_TOTAL / 1024 / 1024} Mo).`,
+    );
   }
 
   return { ok: true };

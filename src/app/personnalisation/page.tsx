@@ -8,9 +8,9 @@ import { paiementEnLigneOuvert } from '../../lib/commerce/catalogue';
 import { statutPrixProduit } from '../../lib/tarifs/grille';
 
 export const metadata: Metadata = {
-  title: 'Personnalisation textile',
+  title: 'Atelier de personnalisation textile',
   description:
-    'Personnalisez un T-shirt en 3D : couleur, texte, logo, face avant et arrière. Aperçu avant commande, fabrication à Brazzaville.',
+    'Composez votre T-shirt Elembo en 3D : cinq zones d’impression (avant, dos, manches, col), couleur, textes et images. Aperçu temps réel, procédé de production réel, fabrication à Brazzaville.',
 };
 
 export default function PersonnalisationPage() {
@@ -19,35 +19,34 @@ export default function PersonnalisationPage() {
   return (
     <>
       <section className="trame bg-encre text-creme">
-        <div className="mx-auto w-full max-w-[90rem] px-4 py-7 sm:px-8 sm:py-9">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <Etiquette sombre>L’atelier de création</Etiquette>
-              <h1 className="titre-geant mt-4 text-[clamp(2.2rem,6.4vw,5rem)]">
-                Composez <span className="accent-serif text-orange">votre textile.</span>
-              </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-creme/70 sm:text-base">
-                Choisissez le modèle et la couleur, ajoutez vos textes et vos images, puis
-                vérifiez le rendu sur les deux faces. Le fichier de production part vers
-                l’atelier après validation.
-              </p>
-            </div>
+        <div className="mx-auto flex w-full max-w-[100rem] flex-col gap-2 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="hidden sm:inline-flex"><Etiquette sombre>L’atelier de création</Etiquette></span>
+            <h1 className="titre-editorial text-xl text-creme sm:text-3xl">
+              Composez <span className="accent-serif text-orange">votre textile.</span>
+            </h1>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-creme/65">
+            <span><strong className="text-creme">5 zones</strong> · avant, dos, manches, col</span>
+            <span aria-hidden className="hidden text-orange sm:inline">✦</span>
+            <span><strong className="text-creme">Aperçu 3D</strong> temps réel</span>
+            <span aria-hidden className="hidden text-orange sm:inline">✦</span>
+            <span><strong className="text-creme">8 couleurs</strong> + HEX</span>
             <Link
               href="/comment-ca-marche"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-creme underline decoration-orange decoration-2 underline-offset-4 hover:text-orange"
+              className="inline-flex items-center gap-1.5 font-semibold text-orange underline underline-offset-4 hover:text-creme"
             >
-              Voir les étapes
-              <ArrowRight className="h-4 w-4" />
+              Les étapes
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
 
           {!paiementOuvert && (
-            <div className="mt-6 rounded-xl bg-creme px-4 py-3 text-sm text-encre">
-              <p className="font-semibold">Le paiement en ligne est en cours d’ouverture.</p>
-              <p className="mt-1 text-xs leading-relaxed text-attenue">
-                Vous pouvez composer votre textile et générer un aperçu. Le tarif commercial
-                n’étant pas encore validé, aucune commande ne sera facturée : demandez un devis
-                pour obtenir un prix ferme et un délai engagé.
+            <div className="w-full rounded-xl bg-creme px-4 py-2 text-xs text-encre">
+              <p>
+                <strong>Le paiement en ligne est en cours d’ouverture.</strong> Vous pouvez
+                composer et générer les fichiers de production ; aucune commande ne sera
+                facturée à un prix de test.
               </p>
             </div>
           )}

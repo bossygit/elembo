@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Bricolage_Grotesque, Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import Footer from "../components/site/Footer";
@@ -72,12 +73,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <head>
         <link rel="stylesheet" href={`${basePath}/fonts/fonts.css`} />
-        {/* Adresse du service de paiement, modifiable sans reconstruire le site
-            (voir public/api-config.js) : c'est elle qui rebranche la boutique sur
-            le tunnel courant. Absente ou vide → adresse compilée dans le bundle.
-            `defer` : la valeur n'est lue qu'au moment de payer, donc inutile de
-            bloquer l'analyse de la page (et c'est ce que la règle Next exige). */}
-        <script src={`${basePath}/api-config.js`} defer />
+        {/*
+          Adresse du service de paiement, modifiable sans reconstruire le site
+          (voir public/api-config.js) : elle rebranche la boutique sur le tunnel courant.
+          Chargée après l'interactivité (la valeur n'est lue qu'au moment de payer), via
+          `next/script` — une balise <script> rendue par React déclenche un avertissement
+          d'hydratation.
+        */}
+        <Script src={`${basePath}/api-config.js`} strategy="afterInteractive" />
       </head>
       <body className="flex min-h-full flex-col bg-creme text-encre">
         <a href="#contenu" className="lien-evitement">

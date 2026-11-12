@@ -3,11 +3,15 @@
 // État unique du configurateur (Zustand). Le Canvas 2D et Three.js lisent le MÊME état :
 // aucune duplication, aucune divergence entre l'aperçu et le modèle 3D.
 //
-// Un design est une LISTE D'ÉLÉMENTS (image ou texte), chacun indépendant, avec sa face,
-// son calque, sa position, son échelle et sa rotation. Toute modification passe par
-// `clampElement()` : un élément ne peut donc jamais être poussé hors de la zone
-// d'impression, quelle que soit l'action (glisser, redimensionner, tourner, changer de
-// face ou de produit).
+// Un design est une LISTE D'ÉLÉMENTS (image ou texte), chacun indépendant, avec sa ZONE
+// (avant, dos, manches, col), son calque, sa position, son échelle et sa rotation. Toute
+// modification passe par `clampElement()` : un élément ne peut donc jamais être poussé hors
+// de la zone imprimable du procédé choisi, quelle que soit l'action (glisser, redimensionner,
+// tourner, changer de zone, changer de procédé ou de produit).
+//
+// Le store porte aussi l'HISTORIQUE (annuler/rétablir) : chaque action de conception pousse
+// un instantané complet de l'état sérialisable. Les actions continues (glisser, curseurs)
+// sont fusionnées sur une courte fenêtre pour qu'un seul geste = un seul « annuler ».
 
 import { create } from 'zustand';
 import type {
@@ -18,9 +22,10 @@ import type {
   Side,
   TextElement,
 } from '../types/configurator';
-import { ELEMENT_LIMITS } from '../types/configurator';
-import { CATALOG, DEFAULT_PRODUCT_ID, getPrintArea, getProductById } from '../lib/products/catalog';
+import { ELEMENT_LIMITS, isSide } from '../types/configurator';
+import { CATALOG, DEFAULT_PRODUCT_ID, getPrintArea, getProductById, productSides } from '../lib/products/catalog';
 import type { Product } from '../lib/products/catalog';
+import { PROFIL_PAR_DEFAUT, profilParId } from '../lib/products/production';
 import {
   clampElement,
   compositionSize,
@@ -65,23 +70,29 @@ export type SerializableSlice = {
   productId: string;
   color: string;
   side: Side;
+  profileId?: string;
   elements: DesignElement[];
 };
 
+/** Version courante du format de configuration (v3 : zones multiples + procédé). */
+export const CONFIG_VERSION = 3;
+
 /**
  * Sérialisation pure de la configuration — UNE SEULE définition, partagée par le store et
- * par l'interface (le panneau JSON affiche exactement ce que le store produirait).
+ * par l'interface.
  *
- * Les images ne sont pas embarquées (`src` est un object URL de session) : la
- * configuration décrit la mise en page, pas les fichiers. Le texte, lui, est décrit
- * entièrement : il peut être recréé à l'identique, y compris en haute résolution.
+ * Les images ne sont pas embarquées (leur `src` est un object URL de session) : la
+ * configuration décrit la mise en page, pas les fichiers. `assetId` désigne en revanche le
+ * fichier d'origine conservé sur l'appareil (IndexedDB), ce qui permet de retrouver le
+ * projet après un rechargement ou depuis le panier.
  */
 export function serializeConfig(slice: SerializableSlice): ConfiguratorConfig {
   return {
-    version: 2,
+    version: CONFIG_VERSION,
     productId: slice.productId,
     color: slice.color,
     side: slice.side,
+    profileId: slice.profileId ?? PROFIL_PAR_DEFAUT.id,
     elements: [...slice.elements]
       .sort((a, b) => a.z - b.z)
       .map<SerializedElement>((el) =>
@@ -99,43 +110,76 @@ export function serializeConfig(slice: SerializableSlice): ConfiguratorConfig {
               side: el.side,
               z: el.z,
               visible: el.visible,
+              ...(el.assetId ? { assetId: el.assetId } : {}),
             }
           : { ...el, fontFamily: resolveFont(el.fontId).name },
       ),
   };
 }
 
+/** Instantané d'historique : tout ce qu'un « annuler » doit restaurer. */
+type HistoryEntry = {
+  color: string;
+  side: Side;
+  profileId: string;
+  elements: DesignElement[];
+  /** Action d'origine et horodatage : servent à fusionner un geste continu. */
+  cle?: string;
+  at?: number;
+};
+
+const HISTORY_MAX = 60;
+/** Fenêtre de fusion des actions continues (glisser, curseur de couleur). */
+const HISTORY_FUSION_MS = 600;
+
 export type ConfiguratorState = {
   productId: string;
   color: string;
   side: Side;
+  /** Procédé de production choisi — pilote les dimensions réellement imprimables. */
+  profileId: string;
   elements: DesignElement[];
   selectedId: string | null;
   showGuides: boolean;
   /** Mesureur typographique : remplacé par celui du canvas réel pour un bornage exact. */
   measure: Measurer;
+  past: HistoryEntry[];
+  future: HistoryEntry[];
 
   product: () => Product | undefined;
   selected: () => DesignElement | undefined;
-  /** Éléments d'une face (par défaut la face courante), du calque le plus bas au plus haut. */
+  /** Éléments d'une zone (par défaut la zone courante), du calque le plus bas au plus haut. */
   elementsForSide: (side?: Side) => DesignElement[];
+  canUndo: () => boolean;
+  canRedo: () => boolean;
 
   setProduct: (id: string) => void;
   setColor: (hex: string) => void;
   setSide: (side: Side) => void;
+  setProfile: (id: string) => void;
   setShowGuides: (on: boolean) => void;
   setMeasurer: (measure: Measurer) => void;
 
   addText: (patch?: Partial<TextElement>) => string;
-  addImage: (asset: Omit<ImageElement, 'id' | 'type' | 'x' | 'y' | 'scale' | 'rotation' | 'side' | 'z' | 'visible'>) => string;
+  addImage: (
+    asset: Omit<ImageElement, 'id' | 'type' | 'x' | 'y' | 'scale' | 'rotation' | 'side' | 'z' | 'visible'>,
+  ) => string;
   updateElement: (id: string, patch: Partial<DesignElement>) => void;
   removeElement: (id: string) => void;
+  duplicateElement: (id: string) => string | null;
   selectElement: (id: string | null) => void;
   setElementSide: (id: string, side: Side) => void;
+  /** Renseigne l'URL d'une image restaurée depuis son fichier local (IndexedDB). */
+  setImageSource: (id: string, src: string) => void;
   moveElement: (id: string, direction: 'up' | 'down') => void;
   toggleElementVisible: (id: string) => void;
   nudge: (id: string, dx: number, dy: number) => void;
   clearElements: () => void;
+  /** Vide une seule zone (les autres personnalisations sont conservées). */
+  clearSide: (side: Side) => void;
+
+  undo: () => void;
+  redo: () => void;
 
   reset: () => void;
   serialize: () => ConfiguratorConfig;
@@ -145,63 +189,113 @@ export type ConfiguratorState = {
 
 const initialProduct = getProductById(DEFAULT_PRODUCT_ID) ?? CATALOG[0];
 
-/** Applique le bornage métier à un élément, selon sa propre face. */
-function clampFor(state: { productId: string; measure: Measurer }, el: DesignElement): DesignElement {
-  const area = getPrintArea(getProductById(state.productId), el.side);
+/**
+ * Applique le bornage métier à un élément, selon sa propre zone ET le procédé courant :
+ * c'est la zone réellement imprimable du procédé qui borne le visuel, pas la pièce 3D
+ * entière (sinon on laisserait composer un visuel que la presse ne peut pas produire).
+ */
+function clampFor(
+  state: { productId: string; profileId: string; measure: Measurer },
+  el: DesignElement,
+): DesignElement {
+  const area = getPrintArea(getProductById(state.productId), el.side, state.profileId);
   return clampElement(el, area, area ? compositionSize(area) : { width: 1024, height: 1024 }, state.measure);
 }
 
-/** Borne une liste entière (après un changement de produit ou de mesure). */
-function clampAll(state: { productId: string; measure: Measurer }, elements: DesignElement[]): DesignElement[] {
+/** Borne une liste entière (après un changement de produit, de procédé ou de mesure). */
+function clampAll(
+  state: { productId: string; profileId: string; measure: Measurer },
+  elements: DesignElement[],
+): DesignElement[] {
   return elements.map((el) => clampFor(state, el));
+}
+
+/** Zone de repli quand un produit ne propose pas la zone demandée. */
+function zoneDeRepli(product: Product | undefined): Side {
+  return productSides(product)[0] ?? 'front';
 }
 
 export const useConfiguratorStore = create<ConfiguratorState>()((set, get) => ({
   productId: initialProduct.id,
   color: initialProduct.colors[0].hex,
   side: 'front',
+  profileId: PROFIL_PAR_DEFAUT.id,
   elements: [],
   selectedId: null,
   showGuides: true,
   measure: roughMeasurer,
+  past: [],
+  future: [],
 
   product: () => getProductById(get().productId),
   selected: () => get().elements.find((el) => el.id === get().selectedId),
   elementsForSide: (side) => elementsOfSide(get().elements, side ?? get().side),
+  canUndo: () => get().past.length > 0,
+  canRedo: () => get().future.length > 0,
 
   setProduct: (id) => {
     const product = getProductById(id);
     if (!product) return;
-    const hasBack = Boolean(getPrintArea(product, 'back'));
-    const side: Side = get().side === 'back' && !hasBack ? 'front' : get().side;
-    // Un produit sans zone arrière ne peut pas porter d'élément au dos : on les ramène
-    // devant plutôt que de les perdre silencieusement.
+    const disponibles = productSides(product);
+    if (!disponibles.length) return;
+    const side: Side = disponibles.includes(get().side) ? get().side : disponibles[0];
+    // Un produit qui n'expose pas une zone ne peut pas porter d'élément dessus : on les
+    // ramène sur la première zone disponible plutôt que de les perdre silencieusement.
     const elements = get().elements.map((el) =>
-      !hasBack && el.side === 'back' ? { ...el, side: 'front' as Side } : el,
+      disponibles.includes(el.side) ? el : { ...el, side: zoneDeRepli(product) },
     );
-    const base = { productId: product.id, measure: get().measure };
+    const base = { productId: product.id, profileId: get().profileId, measure: get().measure };
+    // Changer de produit = nouveau projet : l'historique du précédent n'a plus de sens.
     set({
       productId: product.id,
       color: product.colors[0].hex,
       side,
       elements: clampAll(base, elements),
       selectedId: null,
+      past: [],
+      future: [],
     });
   },
 
   setColor: (hex) => {
     if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
-    set({ color: hex });
+    const state = get();
+    set({ ...pushHistory(state, 'color'), color: hex });
   },
 
   setSide: (side) => {
-    if (!getPrintArea(getProductById(get().productId), side)) return;
-    // Les zones avant/arrière n'ont pas la même taille : les éléments sont revalidés.
+    const product = getProductById(get().productId);
+    if (!productSides(product).includes(side)) return;
+    // Les zones n'ont ni la même taille ni le même ratio : les éléments sont revalidés.
     set({ side, elements: clampedOnSide(get(), side) });
   },
 
+  setProfile: (id) => {
+    const profil = profilParId(id);
+    if (profil.id === get().profileId) return;
+    const state = get();
+    const historique = pushHistory(state, 'profile');
+        const next = { ...state, profileId: profil.id };
+    // Le procédé change la zone imprimable : on revalide TOUS les éléments. Un visuel
+    // posé sur une zone que ce procédé ne couvre pas n'est pas supprimé — il est ramené
+    // dans la surface de sa pièce, et l'interface signale la zone non commandable.
+    set({
+      ...historique,
+      profileId: profil.id,
+      elements: clampAll(next, state.elements),
+      selectedId: state.selectedId && state.elements.some((el) => el.id === state.selectedId) ? state.selectedId : null,
+    });
+  },
+
   setShowGuides: (on) => set({ showGuides: on }),
-  setMeasurer: (measure) => set({ measure, elements: clampAll({ productId: get().productId, measure }, get().elements) }),
+  setMeasurer: (measure) =>
+    set({
+      measure,
+      elements: clampAll(
+        { productId: get().productId, profileId: get().profileId, measure },
+        get().elements,
+      ),
+    }),
 
   addText: (patch) => {
     const state = get();
@@ -220,10 +314,7 @@ export const useConfiguratorStore = create<ConfiguratorState>()((set, get) => ({
       z: nextZ(state.elements, patch?.side ?? state.side),
       visible: true,
     };
-    set({
-      elements: [...state.elements, clampFor(state, element)],
-      selectedId: id,
-    });
+    set({ ...pushHistory(state, 'add'), elements: [...state.elements, clampFor(state, element)], selectedId: id });
     return id;
   },
 
@@ -242,13 +333,18 @@ export const useConfiguratorStore = create<ConfiguratorState>()((set, get) => ({
       z: nextZ(state.elements, state.side),
       visible: true,
     };
-    set({ elements: [...state.elements, clampFor(state, element)], selectedId: id });
+    set({ ...pushHistory(state, 'add'), elements: [...state.elements, clampFor(state, element)], selectedId: id });
     return id;
   },
 
   updateElement: (id, patch) => {
     const state = get();
+    const cible = state.elements.find((el) => el.id === id);
+    if (!cible) return;
+    // Les curseurs et le glisser appellent cette action des dizaines de fois : on fusionne
+    // les écritures du même champ pour qu'un geste = un seul « annuler ».
     set({
+      ...pushHistory(state, `update:${id}:${Object.keys(patch).sort().join(',')}`),
       elements: state.elements.map((el) =>
         el.id === id ? clampFor(state, { ...el, ...patch, id: el.id, type: el.type } as DesignElement) : el,
       ),
@@ -258,25 +354,54 @@ export const useConfiguratorStore = create<ConfiguratorState>()((set, get) => ({
   removeElement: (id) => {
     const state = get();
     set({
+      ...pushHistory(state, `remove:${id}`),
       elements: state.elements.filter((el) => el.id !== id),
       selectedId: state.selectedId === id ? null : state.selectedId,
     });
+  },
+
+  duplicateElement: (id) => {
+    const state = get();
+    const source = state.elements.find((el) => el.id === id);
+    if (!source) return null;
+    const nouvelId = nextElementId(state.elements, source.type);
+    const copie = clampFor(state, {
+      ...source,
+      id: nouvelId,
+      x: Math.min(0.4, source.x + 0.04),
+      y: Math.min(0.4, source.y + 0.04),
+      z: nextZ(state.elements, source.side),
+      visible: true,
+    } as DesignElement);
+    set({ ...pushHistory(state, `duplicate:${id}`), elements: [...state.elements, copie], selectedId: nouvelId });
+    return nouvelId;
   },
 
   selectElement: (id) => set({ selectedId: id && get().elements.some((el) => el.id === id) ? id : null }),
 
   setElementSide: (id, side) => {
     const state = get();
-    if (!getPrintArea(getProductById(state.productId), side)) return;
+    const product = getProductById(state.productId);
+    if (!productSides(product).includes(side)) return;
     const cible = state.elements.find((el) => el.id === id);
     if (!cible) return;
     set({
+      ...pushHistory(state, `side:${id}`),
       elements: state.elements.map((el) =>
         el.id === id
           ? clampFor(state, { ...el, side, z: nextZ(state.elements.filter((e) => e.id !== id), side) })
           : el,
       ),
       side, // on suit l'élément : on voit immédiatement où il vient d'être posé
+    });
+  },
+
+  setImageSource: (id, src) => {
+    if (!src) return;
+    set({
+      elements: get().elements.map((el) =>
+        el.id === id && el.type === 'image' ? { ...el, src } : el,
+      ),
     });
   },
 
@@ -294,18 +419,23 @@ export const useConfiguratorStore = create<ConfiguratorState>()((set, get) => ({
     [face[index], face[cibleIndex]] = [face[cibleIndex], face[index]];
     const z = new Map(face.map((elementId, i) => [elementId, i + 1]));
     set({
+      ...pushHistory(state, `layer:${id}`),
       elements: state.elements.map((el) => (z.has(el.id) ? { ...el, z: z.get(el.id)! } : el)),
     });
   },
 
   toggleElementVisible: (id) => {
     const state = get();
-    set({ elements: state.elements.map((el) => (el.id === id ? { ...el, visible: !el.visible } : el)) });
+    set({
+      ...pushHistory(state, `visible:${id}`),
+      elements: state.elements.map((el) => (el.id === id ? { ...el, visible: !el.visible } : el)),
+    });
   },
 
   nudge: (id, dx, dy) => {
     const state = get();
     set({
+      ...pushHistory(state, `nudge:${id}`),
       elements: state.elements.map((el) =>
         el.id === id
           ? clampFor(state, { ...el, x: el.x + dx * ELEMENT_LIMITS.nudge, y: el.y + dy * ELEMENT_LIMITS.nudge })
@@ -314,27 +444,68 @@ export const useConfiguratorStore = create<ConfiguratorState>()((set, get) => ({
     });
   },
 
-  clearElements: () => set({ elements: [], selectedId: null }),
+  clearElements: () => {
+    const state = get();
+    if (!state.elements.length) return;
+    set({ ...pushHistory(state, 'clear'), elements: [], selectedId: null });
+  },
 
-  reset: () => set({ elements: [], selectedId: null }),
+  clearSide: (side) => {
+    const state = get();
+    const restants = state.elements.filter((el) => el.side !== side);
+    if (restants.length === state.elements.length) return;
+    set({
+      ...pushHistory(state, `clear:${side}`),
+      elements: restants,
+      selectedId: state.elements.some((el) => el.id === state.selectedId && el.side === side)
+        ? null
+        : state.selectedId,
+    });
+  },
+
+  undo: () => {
+    const state = get();
+    const precedent = state.past[state.past.length - 1];
+    if (!precedent) return;
+    const futur = [...state.future, snapshot(state)];
+    const restaure = restore(state, precedent);
+    set({ ...restaure, past: state.past.slice(0, -1), future: futur });
+  },
+
+  redo: () => {
+    const state = get();
+    const suivant = state.future[state.future.length - 1];
+    if (!suivant) return;
+    const passe = [...state.past, snapshot(state)];
+    const restaure = restore(state, suivant);
+    set({ ...restaure, past: passe, future: state.future.slice(0, -1) });
+  },
+
+  reset: () => set({ elements: [], selectedId: null, past: [], future: [] }),
 
   serialize: () => serializeConfig(get()),
 
   loadConfig: (config) => {
     const errors: string[] = [];
     const warnings: string[] = [];
-    const c = config as Partial<ConfiguratorConfig> & { design?: unknown; transform?: unknown } | null;
+    const c = config as (Partial<ConfiguratorConfig> & { design?: unknown; transform?: unknown }) | null;
     if (!c || typeof c !== 'object') return { ok: false, errors: ['configuration illisible'], warnings };
 
     const product = c.productId ? getProductById(String(c.productId)) : undefined;
     if (!product) errors.push(`produit inconnu : ${String(c.productId)}`);
 
-    const side: Side = c.side === 'back' ? 'back' : 'front';
-    if (product && !getPrintArea(product, side)) errors.push(`le produit n'a pas de zone « ${side} »`);
+    const disponibles = productSides(product);
+    const sideBrute: Side = isSide(c.side) ? c.side : 'front';
+    const side: Side = disponibles.includes(sideBrute) ? sideBrute : (disponibles[0] ?? 'front');
+    if (product && !disponibles.includes(sideBrute)) {
+      warnings.push(`zone « ${sideBrute} » absente de ce produit : repli sur « ${side} »`);
+    }
 
     const hex = /^#[0-9a-fA-F]{6}$/.test(String(c.color)) ? String(c.color) : product?.colors[0].hex;
     if (!hex) errors.push('couleur invalide');
     if (errors.length) return { ok: false, errors, warnings };
+
+    const profil = profilParId(c.profileId ?? undefined);
 
     const brut = Array.isArray(c.elements)
       ? c.elements
@@ -342,10 +513,10 @@ export const useConfiguratorStore = create<ConfiguratorState>()((set, get) => ({
         ? [legacyElement(c.design, side)]
         : [];
 
-    const state = { productId: product!.id, measure: get().measure };
+    const state = { productId: product!.id, profileId: profil.id, measure: get().measure };
     const elements: DesignElement[] = [];
     brut.forEach((item, index) => {
-      const el = normalizeElement(item, index, side, errors, warnings);
+      const el = normalizeElement(item, index, side, disponibles, errors, warnings);
       if (el) elements.push(clampFor(state, el));
     });
     if (brut.length && !elements.length) return { ok: false, errors, warnings };
@@ -354,18 +525,68 @@ export const useConfiguratorStore = create<ConfiguratorState>()((set, get) => ({
       productId: product!.id,
       side,
       color: hex!,
+      profileId: profil.id,
       elements,
       selectedId: elements[0]?.id ?? null,
+      past: [],
+      future: [],
     });
     return { ok: errors.length === 0, errors, warnings };
   },
 }));
 
-/** Revalide les éléments de la face nouvellement active (zones de tailles différentes). */
-function clampedOnSide(state: { productId: string; measure: Measurer; elements: DesignElement[] }, side: Side): DesignElement[] {
+/* --------------------------------------------------------------- historique ------ */
+
+/** Instantané de l'état sérialisable courant. */
+function snapshot(state: ConfiguratorState): HistoryEntry {
+  return {
+    color: state.color,
+    side: state.side,
+    profileId: state.profileId,
+    elements: state.elements.map((el) => ({ ...el })),
+  };
+}
+
+/**
+ * Instantané AVANT une mutation, prêt à être passé à `set`. `cle` identifie l'action :
+ * deux écritures de la même clé dans la fenêtre de fusion ne produisent qu'une seule
+ * entrée (curseurs, glisser). Renvoie `{}` quand il n'y a rien à empiler.
+ */
+function pushHistory(state: ConfiguratorState, cle: string): Partial<ConfiguratorState> {
+  const dernier = state.past[state.past.length - 1];
+  const fusion = dernier?.cle === cle && Date.now() - (dernier.at ?? 0) < HISTORY_FUSION_MS;
+  // Même en fusion, une nouvelle écriture invalide la branche « rétablir ».
+  if (fusion) return state.future.length ? { future: [] } : {};
+  const past = [...state.past, { ...snapshot(state), cle, at: Date.now() }].slice(-HISTORY_MAX);
+  return { past, future: [] };
+}
+
+/** Restaure un instantané en revalidant les éléments contre le procédé du moment. */
+function restore(
+  state: ConfiguratorState,
+  entry: HistoryEntry,
+): Pick<ConfiguratorState, 'color' | 'side' | 'profileId' | 'elements' | 'selectedId'> {
+  const base = { productId: state.productId, profileId: entry.profileId, measure: state.measure };
+  const elements = clampAll(base, entry.elements.map((el) => ({ ...el })));
+  return {
+    color: entry.color,
+    side: entry.side,
+    profileId: entry.profileId,
+    elements,
+    selectedId: state.selectedId && elements.some((el) => el.id === state.selectedId) ? state.selectedId : null,
+  };
+}
+
+/* ------------------------------------------------------------- revalidation ------ */
+
+/** Revalide les éléments d'une zone nouvellement active (zones de tailles différentes). */
+function clampedOnSide(
+  state: { productId: string; profileId: string; measure: Measurer; elements: DesignElement[] },
+  side: Side,
+): DesignElement[] {
   return state.elements.map((el) => {
     if (el.side !== side) return el;
-    const area = getPrintArea(getProductById(state.productId), side);
+    const area = getPrintArea(getProductById(state.productId), side, state.profileId);
     return clampElement(el, area, area ? compositionSize(area) : { width: 1024, height: 1024 }, state.measure);
   });
 }
@@ -398,6 +619,7 @@ function normalizeElement(
   item: unknown,
   index: number,
   side: Side,
+  disponibles: Side[],
   errors: string[],
   warnings: string[],
 ): DesignElement | null {
@@ -411,13 +633,15 @@ function normalizeElement(
     errors.push(`élément ${index} : type inconnu (${String(raw.type)})`);
     return null;
   }
+  const zoneBrute: Side = isSide(raw.side) ? raw.side : side;
+  const zone: Side = disponibles.includes(zoneBrute) ? zoneBrute : (disponibles[0] ?? 'front');
   const base = {
     id: typeof raw.id === 'string' && raw.id ? raw.id : `${type}-${String(index + 1).padStart(3, '0')}`,
     x: Number(raw.x ?? 0) || 0,
     y: Number(raw.y ?? 0) || 0,
     scale: Number(raw.scale ?? 1) || 1,
     rotation: Number(raw.rotation ?? 0) || 0,
-    side: raw.side === 'back' ? ('back' as Side) : side,
+    side: zone,
     z: Number(raw.z ?? index + 1) || index + 1,
     visible: raw.visible !== false,
   };
@@ -441,13 +665,16 @@ function normalizeElement(
     };
   }
   const src = typeof raw.src === 'string' ? raw.src : '';
+  const assetId = typeof raw.assetId === 'string' && raw.assetId ? raw.assetId : undefined;
   // Une image n'est jamais embarquée dans la configuration : son absence n'est pas une
-  // erreur, juste un fichier à recharger (le texte, lui, est toujours restauré).
-  if (!src) warnings.push(`image « ${String(raw.name ?? index + 1)} » à recharger`);
+  // erreur, juste un fichier à recharger (le texte, lui, est toujours restauré). Un
+  // `assetId` permet de la retrouver automatiquement sur l'appareil.
+  if (!src && !assetId) warnings.push(`image « ${String(raw.name ?? index + 1)} » à recharger`);
   return {
     ...base,
     type: 'image',
     src,
+    ...(assetId ? { assetId } : {}),
     name: String(raw.name ?? 'visuel'),
     width: Number(raw.width ?? 1) || 1,
     height: Number(raw.height ?? 1) || 1,
@@ -455,8 +682,13 @@ function normalizeElement(
 }
 
 /** Sélecteur pratique : boîte d'un élément dans l'espace de composition courant. */
-export function elementRectFor(product: Product | undefined, el: DesignElement, measure: Measurer = roughMeasurer) {
-  const area = getPrintArea(product, el.side);
+export function elementRectFor(
+  product: Product | undefined,
+  el: DesignElement,
+  measure: Measurer = roughMeasurer,
+  profileId?: string,
+) {
+  const area = getPrintArea(product, el.side, profileId);
   if (!area) return null;
   const space = compositionSize(area);
   return {

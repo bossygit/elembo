@@ -8,9 +8,11 @@
 // couleur, graisse, alignement, interlettrage).
 
 import { useConfiguratorStore } from '../../stores/configurator-store';
-import { getPrintArea, getProductById } from '../../lib/products/catalog';
+import { getPrintArea, getProductById, productSides } from '../../lib/products/catalog';
+import { LIBELLE_STATUT, profilParId, statutZone } from '../../lib/products/production';
 import { TEXT_LIMITS } from '../../types/configurator';
 import type { Side, TextElement } from '../../types/configurator';
+import { SIDE_LABELS } from '../../types/configurator';
 import { compositionSize, elementOverflow } from '../../lib/canvas/design-canvas';
 import { nearestWeight, resolveFont } from '../../lib/fonts';
 import ColorField from './ColorField';
@@ -217,25 +219,28 @@ export default function ElementControls() {
   const removeElement = useConfiguratorStore((s) => s.removeElement);
   const nudge = useConfiguratorStore((s) => s.nudge);
   const setElementSide = useConfiguratorStore((s) => s.setElementSide);
+  const duplicateElement = useConfiguratorStore((s) => s.duplicateElement);
   const moveElement = useConfiguratorStore((s) => s.moveElement);
   const toggleElementVisible = useConfiguratorStore((s) => s.toggleElementVisible);
   const productId = useConfiguratorStore((s) => s.productId);
+  const profileId = useConfiguratorStore((s) => s.profileId);
   const measure = useConfiguratorStore((s) => s.measure);
   const setSide = useConfiguratorStore((s) => s.setSide);
 
   const element = elements.find((el) => el.id === selectedId) ?? null;
   const product = getProductById(productId);
-  const aUneFaceArriere = Boolean(getPrintArea(product, 'back'));
+  const zones = productSides(product);
+  const profil = profilParId(profileId);
 
-  /** Espace de composition d'une face (format de la zone), pour mesurer le débordement. */
+  /** Espace de composition d'une zone (format de la texture), pour mesurer le débordement. */
   const spaceFor = (side: Side) => {
-    const a = getPrintArea(product, side);
+    const a = getPrintArea(product, side, profileId);
     return a ? compositionSize(a) : { width: 1024, height: 1024 };
   };
 
-  // Débordement de la zone d'impression : signalé et corrigeable en un clic (§21).
+  // Débordement de la zone d'impression : signalé et corrigeable en un clic.
   const debordement = element
-    ? elementOverflow(element, getPrintArea(product, element.side), spaceFor(element.side), measure)
+    ? elementOverflow(element, getPrintArea(product, element.side, profileId), spaceFor(element.side), measure)
     : { over: false, factor: 1 };
 
   function ajuster() {
@@ -279,32 +284,35 @@ export default function ElementControls() {
       {estTexte && <TextControls element={element as TextElement} />}
 
       <div>
-        <span className="text-sm font-medium text-encre">Face</span>
-        <div className="mt-1 flex overflow-hidden rounded-lg border border-encre/25">
-          {(
-            [
-              ['front', 'Avant'],
-              ['back', 'Arrière'],
-            ] as const
-          ).map(([valeur, libelle], i) => (
-            <button
-              key={valeur}
-              type="button"
-              data-testid={`element-side-${valeur}`}
-              disabled={valeur === 'back' && !aUneFaceArriere}
-              aria-pressed={element.side === valeur}
-              onClick={() => {
-                setElementSide(element.id, valeur as Side);
-                setSide(valeur as Side);
-              }}
-              className={`flex-1 px-2 py-1 text-xs disabled:opacity-40 ${i > 0 ? 'border-l border-encre/25' : ''} ${
-                element.side === valeur ? 'bg-encre text-creme' : 'bg-white text-encre/85'
-              }`}
-            >
-              {libelle}
-            </button>
-          ))}
-        </div>
+        <label htmlFor="element-zone" className="text-sm font-medium text-encre">
+          Zone du vêtement
+        </label>
+        <select
+          id="element-zone"
+          data-testid="element-zone"
+          value={element.side}
+          onChange={(e) => {
+            const zone = e.target.value as Side;
+            setElementSide(element.id, zone);
+            setSide(zone);
+          }}
+          className="mt-1 w-full rounded-lg border border-encre/25 bg-white px-2.5 py-1.5 text-sm text-encre"
+        >
+          {zones.map((zone) => {
+            const statut = statutZone(profil, zone);
+            return (
+              <option key={zone} value={zone}>
+                {SIDE_LABELS[zone]} — {LIBELLE_STATUT[statut]}
+              </option>
+            );
+          })}
+        </select>
+        {statutZone(profil, element.side) !== 'disponible' && (
+          <p className="mt-1 rounded-lg bg-amber-50 px-2 py-1 text-[11px] text-amber-800">
+            Cette zone n’est pas encore commandable avec « {profil.nom} » : l’aperçu reste
+            modifiable, la commande sera bloquée tant qu’elle contient un visuel.
+          </p>
+        )}
       </div>
 
       <div>
@@ -411,6 +419,14 @@ export default function ElementControls() {
       )}
 
       <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          data-testid="duplicate-element"
+          onClick={() => duplicateElement(element.id)}
+          className="rounded-lg border border-encre/25 px-3 py-1.5 text-sm text-encre/85 hover:bg-sable/60"
+        >
+          Dupliquer
+        </button>
         <button
           type="button"
           onClick={() => moveElement(element.id, 'up')}

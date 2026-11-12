@@ -6,28 +6,30 @@
 // repli par nom de matériau, pour rester tolérant avec des modèles fournisseurs.
 
 import * as THREE from 'three';
-import type { Side } from '../../types/configurator';
 
-export const PANEL_NODE: Record<Side | 'body', string> = {
+/** Panneaux de la technique 'uv' — distincts des zones d'impression du modèle Elembo. */
+export type Panel = 'front' | 'back' | 'body';
+
+export const PANEL_NODE: Record<Panel, string> = {
   front: 'FrontPanel',
   back: 'BackPanel',
   body: 'Body',
 };
 
-export const PANEL_MATERIAL: Record<Side | 'body', string> = {
+export const PANEL_MATERIAL: Record<Panel, string> = {
   front: 'elembo-front',
   back: 'elembo-back',
   body: 'elembo-body',
 };
 
-const FALLBACK_NAMES: Record<Side | 'body', RegExp> = {
+const FALLBACK_NAMES: Record<Panel, RegExp> = {
   front: /front|avant/i,
   back: /back|arri/i,
   body: /body|sleeve|manche|torso/i,
 };
 
 /** Trouve le mesh d'un panneau : par nom de nœud, puis par nom de matériau, puis par motif. */
-export function findPanelMesh(scene: THREE.Object3D, panel: Side | 'body'): THREE.Mesh | null {
+export function findPanelMesh(scene: THREE.Object3D, panel: Panel): THREE.Mesh | null {
   let found: THREE.Mesh | null = null;
 
   scene.traverse((child) => {

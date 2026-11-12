@@ -11,17 +11,41 @@
 export type { Zone, ProductDef } from './studio';
 export { PRODUCTS, getProduct } from './studio';
 
-export type { PrintArea, ColorOption, Product, PanelDimensions, PrintTechnique, Side } from './catalog';
+export type {
+  PrintArea,
+  ColorOption,
+  Product,
+  PanelDimensions,
+  PrintTechnique,
+  Side,
+  ZoneModel,
+} from './catalog';
 export {
   CATALOG,
   MODEL_DIR,
   DEFAULT_PRODUCT_ID,
+  ELEMBO_TSHIRT_ZONES,
   PLACEHOLDER_PRODUCT,
   TSHIRT_FRONT,
   TSHIRT_BACK,
   decalFrame,
   getProductById,
   getPrintArea,
+  productSides,
   resolveModelUrl,
   validateProduct,
+  zoneArea,
 } from './catalog';
+export type { ProfilProduction, StatutProduction, ZoneProduction } from './production';
+export {
+  LIBELLE_STATUT,
+  PROFIL_PAR_DEFAUT,
+  PROFILS,
+  empechementsCommande,
+  motifZone,
+  profilParId,
+  statutZone,
+  validerProfils,
+  zoneCommandable,
+  zonesProposees,
+} from './production';

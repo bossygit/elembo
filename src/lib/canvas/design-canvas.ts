@@ -34,10 +34,18 @@ export type CanvasSpace = { width: number; height: number };
  *  - technique 'decal' : la zone EST la texture du décalque ; l'espace doit donc avoir le
  *                        format physique de la zone (21 × 30 cm → 1024 × 1463), sinon le
  *                        visuel serait étiré en projection.
+ *  - technique 'zones' : la zone est un rectangle DANS la texture de la surface d'impression
+ *                        (UV 0..1, isotropes). L'espace de composition doit donc avoir le
+ *                        format de CETTE texture (63,2 × 79 cm → 1024 × 1280), sinon le
+ *                        visuel serait étiré à l'écran comme à l'impression. La zone
+ *                        imprimable n'y occupe qu'un sous-rectangle (voir printAreaRect).
  */
 export function compositionSize(area: PrintArea, base = PREVIEW_TEXTURE_SIZE): CanvasSpace {
   if (area.technique === 'decal') {
     return { width: base, height: Math.round(base * (area.cmHeight / area.cmWidth)) };
+  }
+  if (area.technique === 'zones' && area.textureCm && area.textureCm.w > 0) {
+    return { width: base, height: Math.round(base * (area.textureCm.h / area.textureCm.w)) };
   }
   return { width: base, height: base };
 }
@@ -248,7 +256,11 @@ export function elementOverflow(
   const box = rotatedBox(rect.w, rect.h, el.rotation);
   const largeurUtile = zone.w - 2 * margin * zone.w;
   const hauteurUtile = zone.h - 2 * margin * zone.h;
-  const factor = Math.min(1, largeurUtile / box.w, hauteurUtile / box.h);
+  // Marge volontaire de 1,5 % : la correction « Ajuster à la zone » arrondit la taille de
+  // police à l'entier. Sans cette marge, un arrondi au pixel supérieur laissait le texte
+  // encore 1 % trop large et le bouton semblait ne pas fonctionner.
+  const securite = 0.985;
+  const factor = Math.min(1, (largeurUtile / box.w) * securite, (hauteurUtile / box.h) * securite);
   return { over: factor < 0.999, factor };
 }
 
@@ -505,13 +517,19 @@ export function clampTransform(
   return { x: centre.x, y: centre.y, scale, rotation };
 }
 
-/** Taille en pixels du fichier de production, à la densité d'impression cible. */
+/**
+ * Taille en pixels du fichier de production, à la densité d'impression du procédé.
+ *
+ * Le garde-fou de taille s'applique aux DEUX dimensions avec le MÊME facteur : plafonner
+ * chaque axe séparément déformerait le visuel (un rectangle 35 × 40 cm devenait 4096²).
+ */
 export function productionTextureSize(area: PrintArea, dpi = PRINT_DPI): { w: number; h: number } {
-  const px = (cm: number) => Math.round((cm / 2.54) * dpi);
-  return {
-    w: Math.min(MAX_PRINT_TEXTURE_SIZE, px(area.cmWidth)),
-    h: Math.min(MAX_PRINT_TEXTURE_SIZE, px(area.cmHeight)),
-  };
+  const px = (cm: number) => Math.max(1, Math.round((cm / 2.54) * dpi));
+  const brut = { w: px(area.cmWidth), h: px(area.cmHeight) };
+  const plusGrand = Math.max(brut.w, brut.h);
+  if (plusGrand <= MAX_PRINT_TEXTURE_SIZE) return brut;
+  const facteur = MAX_PRINT_TEXTURE_SIZE / plusGrand;
+  return { w: Math.max(1, Math.round(brut.w * facteur)), h: Math.max(1, Math.round(brut.h * facteur)) };
 }
 
 /** Zone d'impression d'un côté, ou null si le produit ne l'expose pas. */

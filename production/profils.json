@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "maj": "2026-11-12",
+  "note": "SOURCE UNIQUE DES CAPACITÉS DE PRODUCTION. L'atelier 3D laisse composer sur les cinq zones du vêtement ; ce fichier dit ce qui est RÉELLEMENT imprimable, avec quel procédé et à quelle taille. Statuts : « disponible » = commandable ; « a-valider » = prévu mais non confirmé par l'atelier (composition et aperçu possibles, commande bloquée) ; « indisponible » = non proposé. Ne passer une zone ou un procédé à « disponible » qu'après validation par l'atelier ou le prestataire. Repères : « col » = creux du col sur l'axe médian, « epaule » = tête de manche, « haut » = bord haut de la zone. hautCm = distance entre ce repère et le haut de la zone imprimable.",
+  "parDefaut": "dtf",
+  "profils": [
+    {
+      "id": "dtf",
+      "nom": "Transfert DTF",
+      "description": "Film imprimé puis pressé à chaud. Procédé utilisé aujourd'hui par l'atelier Elembo.",
+      "statut": "disponible",
+      "dpi": 300,
+      "zones": {
+        "front": { "statut": "disponible", "largeurCm": 21, "hauteurCm": 30, "repere": "col", "hautCm": 7 },
+        "back": { "statut": "disponible", "largeurCm": 25, "hauteurCm": 32.4, "repere": "col", "hautCm": 7 },
+        "left-sleeve": {
+          "statut": "a-valider",
+          "largeurCm": 9,
+          "hauteurCm": 9,
+          "repere": "epaule",
+          "hautCm": 6,
+          "note": "Pressage sur manche à valider avec l'atelier (taille du plateau de presse)."
+        },
+        "right-sleeve": {
+          "statut": "a-valider",
+          "largeurCm": 9,
+          "hauteurCm": 9,
+          "repere": "epaule",
+          "hautCm": 6,
+          "note": "Pressage sur manche à valider avec l'atelier (taille du plateau de presse)."
+        },
+        "collar": {
+          "statut": "a-valider",
+          "largeurCm": 8,
+          "hauteurCm": 4.5,
+          "repere": "haut",
+          "hautCm": 1,
+          "note": "Étiquette imprimée à l'intérieur du col : à valider avec l'atelier."
+        }
+      }
+    },
+    {
+      "id": "flex",
+      "nom": "Flex / vinyle découpé",
+      "description": "Vinyle textile découpé au plotter puis pressé : aplats de couleur, textes, logos simples.",
+      "statut": "a-valider",
+      "note": "Équipement et dimensions de découpe à confirmer par l'atelier.",
+      "dpi": 300,
+      "zones": {
+        "front": { "statut": "a-valider", "largeurCm": 28, "hauteurCm": 35, "repere": "col", "hautCm": 7 },
+        "back": { "statut": "a-valider", "largeurCm": 28, "hauteurCm": 35, "repere": "col", "hautCm": 7 },
+        "left-sleeve": { "statut": "a-valider", "largeurCm": 9, "hauteurCm": 9, "repere": "epaule", "hautCm": 6 },
+        "right-sleeve": { "statut": "a-valider", "largeurCm": 9, "hauteurCm": 9, "repere": "epaule", "hautCm": 6 },
+        "collar": { "statut": "indisponible", "largeurCm": 8, "hauteurCm": 4.5, "repere": "haut", "hautCm": 1 }
+      }
+    },
+    {
+      "id": "dtg",
+      "nom": "Impression directe (DTG)",
+      "description": "Encre imprimée directement dans le coton du T-shirt assemblé.",
+      "statut": "indisponible",
+      "note": "Aucune imprimante DTG chez l'atelier ou ses partenaires à ce jour.",
+      "dpi": 300,
+      "zones": {
+        "front": { "statut": "a-valider", "largeurCm": 35, "hauteurCm": 40, "repere": "col", "hautCm": 7 },
+        "back": { "statut": "a-valider", "largeurCm": 35, "hauteurCm": 40, "repere": "col", "hautCm": 7 },
+        "left-sleeve": { "statut": "indisponible", "largeurCm": 9, "hauteurCm": 9, "repere": "epaule", "hautCm": 6 },
+        "right-sleeve": { "statut": "indisponible", "largeurCm": 9, "hauteurCm": 9, "repere": "epaule", "hautCm": 6 },
+        "collar": { "statut": "indisponible", "largeurCm": 8, "hauteurCm": 4.5, "repere": "haut", "hautCm": 1 }
+      }
+    },
+    {
+      "id": "sublimation",
+      "nom": "Sublimation intégrale",
+      "description": "Pièces imprimées à plat avant assemblage : toute la surface peut recevoir le visuel.",
+      "statut": "indisponible",
+      "note": "Nécessite un textile polyester clair et un prestataire équipé (impression avant couture).",
+      "dpi": 150,
+      "zones": {
+        "front": { "statut": "a-valider", "pleine": true },
+        "back": { "statut": "a-valider", "pleine": true },
+        "left-sleeve": { "statut": "a-valider", "pleine": true },
+        "right-sleeve": { "statut": "a-valider", "pleine": true },
+        "collar": { "statut": "a-valider", "pleine": true }
+      }
+    }
+  ]
+}

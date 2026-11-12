@@ -7,6 +7,7 @@
 import { useRef, useState } from 'react';
 import { useConfiguratorStore } from '../../stores/configurator-store';
 import { validateDimensions, validateFile } from '../../lib/validate';
+import { putAsset } from '../../lib/storage/asset-store';
 import { ImageIcon } from '../site/Icons';
 
 export default function UploadDesign({ compact = false }: { compact?: boolean }) {
@@ -23,7 +24,7 @@ export default function UploadDesign({ compact = false }: { compact?: boolean })
     }
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => {
+    img.onload = async () => {
       const dims = validateDimensions(img.naturalWidth, img.naturalHeight);
       if (!dims.ok) {
         URL.revokeObjectURL(url);
@@ -31,7 +32,20 @@ export default function UploadDesign({ compact = false }: { compact?: boolean })
         return;
       }
       setError(null);
-      addImage({ src: url, name: file.name, width: img.naturalWidth, height: img.naturalHeight });
+      // Le fichier d'origine est conservé sur l'appareil (IndexedDB) : le brouillon et le
+      // panier ne gardent que son identifiant, et le visuel est retrouvé au rechargement.
+      const assetId = await putAsset(file, {
+        name: file.name,
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+      });
+      addImage({
+        src: url,
+        name: file.name,
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+        ...(assetId ? { assetId } : {}),
+      });
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);

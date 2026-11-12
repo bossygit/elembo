@@ -5,9 +5,44 @@
 // texte), chacun avec sa position, son échelle, sa rotation et sa face. Le Canvas 2D les
 // compose dans l'ordre des calques ; Three.js ne reçoit qu'une texture finale.
 
-export type Side = 'front' | 'back';
+/**
+ * Zone d'impression du vêtement. Le nom historique `Side` est conservé (il est utilisé
+ * partout) ; un T-shirt Elembo en expose cinq, un produit plus simple seulement avant/dos.
+ */
+export type Side = 'front' | 'back' | 'left-sleeve' | 'right-sleeve' | 'collar';
 
-export const SIDES: Side[] = ['front', 'back'];
+/** Ordre d'affichage et de production des zones. */
+export const SIDES: Side[] = ['front', 'back', 'left-sleeve', 'right-sleeve', 'collar'];
+
+export const SIDE_LABELS: Record<Side, string> = {
+  front: 'Face avant',
+  back: 'Face arrière',
+  'left-sleeve': 'Manche gauche',
+  'right-sleeve': 'Manche droite',
+  collar: 'Intérieur du col',
+};
+
+/** Libellé court (navigation, pastilles). */
+export const SIDE_SHORT: Record<Side, string> = {
+  front: 'Avant',
+  back: 'Dos',
+  'left-sleeve': 'Manche G.',
+  'right-sleeve': 'Manche D.',
+  collar: 'Col',
+};
+
+/** Nom du fichier de production d'une zone (sans la référence de commande). */
+export const SIDE_FILE: Record<Side, string> = {
+  front: 'front.png',
+  back: 'back.png',
+  'left-sleeve': 'left-sleeve.png',
+  'right-sleeve': 'right-sleeve.png',
+  collar: 'collar.png',
+};
+
+export function isSide(value: unknown): value is Side {
+  return typeof value === 'string' && (SIDES as string[]).includes(value);
+}
 
 /** Propriétés communes à tout élément posé sur le vêtement. */
 export type ElementBase = {
@@ -30,10 +65,15 @@ export type ElementBase = {
   visible: boolean;
 };
 
-/** Image déposée par l'utilisateur. `src` est un object URL de session, jamais persisté. */
+/**
+ * Image déposée par l'utilisateur. `src` est un object URL de session, jamais persisté ;
+ * `assetId` désigne le fichier d'origine conservé sur l'appareil (IndexedDB), ce qui
+ * permet de retrouver le projet après un rechargement ou depuis le panier.
+ */
 export type ImageElement = ElementBase & {
   type: 'image';
   src: string;
+  assetId?: string;
   name: string;
   /** Dimensions natives, en pixels — servent au « contain » dans la zone. */
   width: number;
@@ -152,10 +192,13 @@ export type SerializedElement =
   | SerializedTextElement;
 
 export type ConfiguratorConfig = {
-  version: 2;
+  /** 2 : avant/arrière ; 3 : zones multiples, procédé de production, fichiers d'origine. */
+  version: 2 | 3;
   productId: string;
   color: string;
   side: Side;
+  /** Procédé de production choisi (voir production/profils.json). */
+  profileId?: string;
   /** Ordre = calques, du dessous au dessus. */
   elements: SerializedElement[];
 };

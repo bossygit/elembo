@@ -179,7 +179,8 @@ describe('store du configurateur — éléments de design', () => {
     store().updateElement(t2, { rotation: 15, scale: 0.8 });
 
     const config = store().serialize();
-    expect(config.version).toBe(2);
+    expect(config.version).toBe(3);
+    expect(config.profileId).toBe('dtf');
     expect(config.elements.map((e) => e.id)).toEqual([t1, i1, i2, t2]);
     expect(config.elements.map((e) => e.type)).toEqual(['text', 'image', 'image', 'text']);
 

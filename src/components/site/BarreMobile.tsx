@@ -8,9 +8,9 @@ import { lienWhatsApp, MESSAGES_WHATSAPP } from '@/lib/site/marque';
 import { Bag, Chat, Grid, Home, Plus } from './Icons';
 
 /**
- * Barre de navigation basse, sur téléphone et tablette : les quatre destinations qui comptent
- * et « Créer » au centre, sous le pouce. Il n'y a pas de panier sur Elembo : la commande se
- * fait dans l'atelier de création, d'où l'accès direct.
+ * Barre de navigation basse, sur téléphone et tablette : les destinations qui comptent et
+ * « Créer » au centre, sous le pouce. Le panier vit dans le studio de création (bouton
+ * « Panier ») et sur /panier : la commande se finalise depuis l'atelier.
  */
 const ONGLETS = [
   { href: '/', label: 'Accueil', Icone: Home },

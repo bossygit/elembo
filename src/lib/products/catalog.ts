@@ -27,8 +27,8 @@
 import { prixProduit } from '../tarifs/grille';
 import type { Side } from '../../types/configurator';
 import { SIDES } from '../../types/configurator';
-import { PROFILS, profilParId } from './production';
-import type { ProfilProduction } from './production';
+import { profilParId, profilsDuProduit } from './production';
+import type { ProfilProduction, SupportProduction } from './production';
 
 export type { Side };
 export type PanelDimensions = { width: number; height: number };
@@ -113,8 +113,19 @@ export type Product = {
   surface?: SurfaceMode;
   /** 'zones' : surfaces d'impression du modèle. */
   zones?: Partial<Record<Side, ZoneModel>>;
-  /** 'zones' : matériaux du tissu, qui portent la couleur du vêtement. */
+  /** 'zones' : matériaux qui portent la couleur du produit (tissu, céramique…). */
   fabricMaterials?: string[];
+  /** Famille de support : choisit les procédés de production applicables ('textile' par défaut). */
+  support?: SupportProduction;
+  /** Le produit se commande-t-il par tailles (S…3XL) ? `false` = quantité seule (mug). */
+  tailles?: boolean;
+  /** Encre brillante (mug émaillé) : la finition du GLB est conservée, pas matifiée. */
+  impressionBrillante?: boolean;
+  /**
+   * `false` : produit composable dans l'atelier mais pas encore vendu en ligne (pas de prix
+   * dans tarifs/grille.json) — commande sur devis ou WhatsApp, jamais par MoMo.
+   */
+  venteEnLigne?: boolean;
   colors: ColorOption[];
   /**
    * Prix unitaire TTC en FCFA, hors livraison. Laisser vide tant qu'il n'est pas arbitré :
@@ -190,6 +201,22 @@ export const ELEMBO_TSHIRT_ZONES: Partial<Record<Side, ZoneModel>> = {
   },
 };
 
+// Mug Elembo 330 ml (assets/3d/elembo-mug) : une seule surface d'impression qui fait tout le
+// tour (MUG_PRINT_SURFACE, UV 0..1 = 257,6 × 80 mm, couture sous l'anse à U = 0/1, face
+// visible à U = 0,5). Noms vérifiés par tests/elemboMug.test.ts.
+export const ELEMBO_MUG_ZONES: Partial<Record<Side, ZoneModel>> = {
+  wrap: {
+    mesh: 'MUG_PRINT_SURFACE',
+    textureCm: { w: 25.76, h: 8 },
+    reperesCm: {},
+    // Recul ×1,5 : vu légèrement de dessus, le bord en ellipse et l'anse dépassent le cadrage
+    // calculé sur la hauteur seule (mesuré dans le navigateur).
+    vue: { azimut: 0, polaire: 80, distance: 1.5 },
+  },
+};
+
+export const MUG_PRODUCT_ID = 'mug-personnalise';
+
 export const CATALOG: Product[] = [
   {
     // L'identifiant historique est CONSERVÉ : c'est lui que le service de paiement et la
@@ -212,6 +239,35 @@ export const CATALOG: Product[] = [
       { name: 'Rouge', hex: '#B3202A' },
       { name: 'Vert', hex: '#1E5E3B' },
       { name: 'Jaune', hex: '#F2C230' },
+      { name: 'Orange Elembo', hex: '#FF5A12' },
+    ],
+    printAreas: {},
+  },
+  {
+    // Même identifiant que la fiche vitrine (src/lib/commerce/catalogue.ts) : le lien de la
+    // boutique ouvre l'atelier sur ce produit. Aucun prix dans tarifs/grille.json → « Prix sur
+    // demande » et paiement en ligne fermé, sans montant inventé.
+    id: MUG_PRODUCT_ID,
+    name: 'Mug Elembo 330 ml',
+    modelUrl: `${MODEL_DIR}/elembo-mug/elembo-mug.glb`,
+    technique: 'zones',
+    support: 'mug',
+    tailles: false,
+    impressionBrillante: true,
+    venteEnLigne: false,
+    zones: ELEMBO_MUG_ZONES,
+    // Toute la céramique prend la couleur choisie ; l'impression (MAT_MUG_PRINT) jamais.
+    fabricMaterials: ['MAT_MUG_CERAMIC', 'MAT_MUG_INTERIOR', 'MAT_MUG_HANDLE', 'MAT_MUG_BOTTOM'],
+    priceFcfa: prixProduit(MUG_PRODUCT_ID),
+    // Couleurs du modèle (assets/3d/elembo-mug/zones.json).
+    colors: [
+      { name: 'Blanc', hex: '#F4F1EA' },
+      { name: 'Noir', hex: '#171719' },
+      { name: 'Crème', hex: '#EADFC8' },
+      { name: 'Rouge', hex: '#B3262D' },
+      { name: 'Bleu', hex: '#1E3A63' },
+      { name: 'Vert', hex: '#225C43' },
+      { name: 'Jaune', hex: '#F0C33C' },
       { name: 'Orange Elembo', hex: '#FF5A12' },
     ],
     printAreas: {},
@@ -296,7 +352,7 @@ export function getProductById(id: string): Product | undefined {
  */
 export function getPrintArea(product: Product | undefined, side: Side, profileId?: string | null): PrintArea | null {
   if (!product) return null;
-  if (product.technique === 'zones') return zoneArea(product, side, profilParId(profileId));
+  if (product.technique === 'zones') return zoneArea(product, side, profilParId(profileId, product));
   return product.printAreas[side] ?? null;
 }
 
@@ -405,7 +461,7 @@ export function validateProduct(product: Product): { ok: boolean; errors: string
       if (!z) continue;
       if (!z.mesh?.trim()) errors.push(`zone ${key} : nom de maillage manquant`);
       if (!(z.textureCm?.w > 0) || !(z.textureCm?.h > 0)) errors.push(`zone ${key} : textureCm invalide`);
-      for (const profil of PROFILS) {
+      for (const profil of profilsDuProduit(product)) {
         const area = zoneArea(product, key as Side, profil);
         if (!area) continue;
         if (area.x < -1e-6 || area.y < -1e-6 || area.x + area.w > 1.0001 || area.y + area.h > 1.0001) {

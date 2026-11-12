@@ -50,7 +50,7 @@ export async function apercuProjet({ config, elements, images, measure }: Apercu
   if (typeof document === 'undefined') return null;
   const product = getProductById(config.productId);
   if (!product) return null;
-  const profil = profilParId(config.profileId);
+  const profil = profilParId(config.profileId, product);
   const side = zonePrincipale(config) ?? config.side;
   const area = getPrintArea(product, side, profil.id);
   if (!area) return null;

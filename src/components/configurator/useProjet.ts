@@ -12,7 +12,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useConfiguratorStore } from '../../stores/configurator-store';
-import { getProductById } from '../../lib/products/catalog';
+import { CATALOG, getProductById } from '../../lib/products/catalog';
 import { formatFcfa } from '../../lib/order/order';
 import { getAssetUrl, elaguerAssets } from '../../lib/storage/asset-store';
 import {
@@ -210,6 +210,60 @@ export function useProjet() {
     }
   }, [construire]);
 
+  /**
+   * Ouvre l'atelier sur un autre produit (lien « ?produit= » de la boutique, ou changement de
+   * support dans le studio). Le travail en cours n'est jamais perdu : s'il contient des
+   * éléments, il est rangé dans « Mes créations » avant de démarrer un projet vierge.
+   */
+  const ouvrirProduit = useCallback(
+    async (id: string) => {
+      const state = useConfiguratorStore.getState();
+      const cible = getProductById(id);
+      if (!cible || id === state.productId) return;
+      let misDeCote = false;
+      if (state.elements.length > 0) {
+        const projet = await construire(false);
+        if (projet) {
+          misDeCote = sauverProjet({ ...projet, id: projetId.current, creeLe: creeLe.current, modifieLe: maintenant() });
+        }
+      }
+      const store = useConfiguratorStore.getState();
+      store.reset();
+      store.setProduct(id);
+      projetId.current = identifiant();
+      creeLe.current = maintenant();
+      setEnregistreLe(null);
+      setReprise(false);
+      setMessage({
+        ton: 'ok',
+        texte: misDeCote
+          ? `Nouvelle création : ${cible.name}. Votre création précédente est rangée dans « Mes créations ».`
+          : `Nouvelle création : ${cible.name}.`,
+      });
+    },
+    [construire],
+  );
+
+  // Lien direct vers un produit (`/personnalisation?produit=mug-personnalise`) : traité une
+  // fois, APRÈS la restauration du brouillon, puis retiré de l'URL pour qu'un rechargement ne
+  // rebascule pas le studio. Lu côté client : la page reste exportable en statique.
+  const lienTraite = useRef(false);
+  useEffect(() => {
+    if (!pret || lienTraite.current || typeof window === 'undefined') return;
+    // Différé (et annulable) : en mode strict, React monte deux fois — le lien n'est traité
+    // qu'une seule fois, par le montage qui reste.
+    const timer = setTimeout(() => {
+      lienTraite.current = true;
+      const url = new URL(window.location.href);
+      const demande = url.searchParams.get('produit');
+      if (!demande) return;
+      url.searchParams.delete('produit');
+      window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+      if (CATALOG.some((p) => p.id === demande)) void ouvrirProduit(demande);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [pret, ouvrirProduit]);
+
   /** Nouvelle création vierge (le panier n'est pas touché). */
   const nouvelleCreation = useCallback(() => {
     effacerBrouillon();
@@ -232,6 +286,7 @@ export function useProjet() {
     enregistrer,
     ajouterLePanier,
     nouvelleCreation,
+    ouvrirProduit,
   };
 }
 

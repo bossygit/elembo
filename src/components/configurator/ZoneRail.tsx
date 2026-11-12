@@ -29,7 +29,7 @@ export default function ZoneRail() {
 
   const product = getProductById(productId);
   const zones = productSides(product);
-  const profil = profilParId(profileId);
+  const profil = profilParId(profileId, product);
 
   if (zones.length <= 1) return null;
 

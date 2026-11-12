@@ -32,9 +32,14 @@ export type ZoneProduction = {
   note?: string;
 };
 
+/** Famille de support à laquelle un procédé s'applique (un mug ne se presse pas en DTF textile). */
+export type SupportProduction = 'textile' | 'mug';
+
 export type ProfilProduction = {
   id: string;
   nom: string;
+  /** Supports concernés ; absent = textile (procédés historiques). */
+  supports?: SupportProduction[];
   description: string;
   statut: StatutProduction;
   note?: string;
@@ -43,7 +48,12 @@ export type ProfilProduction = {
   zones: Partial<Record<Side, ZoneProduction>>;
 };
 
-type FichierProfils = { version: number; parDefaut: string; profils: ProfilProduction[] };
+type FichierProfils = {
+  version: number;
+  parDefaut: string;
+  parDefautParSupport?: Partial<Record<SupportProduction, string>>;
+  profils: ProfilProduction[];
+};
 
 const fichier = brut as unknown as FichierProfils;
 
@@ -52,9 +62,41 @@ export const PROFILS: ProfilProduction[] = fichier.profils;
 export const PROFIL_PAR_DEFAUT: ProfilProduction =
   PROFILS.find((p) => p.id === fichier.parDefaut) ?? PROFILS[0];
 
-/** Profil par identifiant ; un identifiant inconnu retombe sur le profil par défaut. */
-export function profilParId(id: string | undefined | null): ProfilProduction {
-  return PROFILS.find((p) => p.id === id) ?? PROFIL_PAR_DEFAUT;
+/** Ce qu'il faut savoir d'un produit pour choisir ses procédés (évite une dépendance au catalogue). */
+export type ProduitSupport = { support?: SupportProduction } | null | undefined;
+
+function supportDe(produit: ProduitSupport): SupportProduction {
+  return produit?.support ?? 'textile';
+}
+
+/** Supports d'un procédé ('textile' par défaut). */
+export function supportsDuProfil(profil: ProfilProduction): SupportProduction[] {
+  return profil.supports?.length ? profil.supports : ['textile'];
+}
+
+/** Procédés applicables à un produit, dans l'ordre du fichier. */
+export function profilsDuProduit(produit: ProduitSupport): ProfilProduction[] {
+  const support = supportDe(produit);
+  return PROFILS.filter((p) => supportsDuProfil(p).includes(support));
+}
+
+/** Procédé proposé d'emblée pour un produit. */
+export function profilParDefautDuProduit(produit: ProduitSupport): ProfilProduction {
+  const support = supportDe(produit);
+  const candidats = profilsDuProduit(produit);
+  const voulu = fichier.parDefautParSupport?.[support];
+  return candidats.find((p) => p.id === voulu) ?? candidats[0] ?? PROFIL_PAR_DEFAUT;
+}
+
+/**
+ * Profil par identifiant ; un identifiant inconnu retombe sur le profil par défaut.
+ *
+ * Avec un produit, la recherche est limitée à SES procédés : un identifiant qui ne le
+ * concerne pas (procédé textile sur un mug) retombe sur le procédé par défaut du produit.
+ */
+export function profilParId(id: string | undefined | null, produit?: ProduitSupport): ProfilProduction {
+  if (produit === undefined) return PROFILS.find((p) => p.id === id) ?? PROFIL_PAR_DEFAUT;
+  return profilsDuProduit(produit).find((p) => p.id === id) ?? profilParDefautDuProduit(produit);
 }
 
 export function zoneProduction(profil: ProfilProduction, side: Side): ZoneProduction | null {
@@ -147,6 +189,18 @@ export function validerProfils(profils: ProfilProduction[] = PROFILS): string[] 
         }
         if (!(Number(z.hautCm) >= 0)) erreurs.push(`profil ${p.id}/${cle} : hautCm manquant`);
       }
+    }
+  }
+  for (const p of profils) {
+    for (const support of p.supports ?? []) {
+      if (support !== 'textile' && support !== 'mug') erreurs.push(`profil ${p.id} : support inconnu « ${support} »`);
+    }
+  }
+  for (const [support, id] of Object.entries(fichier.parDefautParSupport ?? {})) {
+    const profil = profils.find((p) => p.id === id);
+    if (!profil) erreurs.push(`procédé par défaut du support ${support} introuvable : ${id}`);
+    else if (!supportsDuProfil(profil).includes(support as SupportProduction)) {
+      erreurs.push(`procédé par défaut ${id} ne s'applique pas au support ${support}`);
     }
   }
   if (!profils.some((p) => p.statut === 'disponible')) erreurs.push('aucun procédé disponible');

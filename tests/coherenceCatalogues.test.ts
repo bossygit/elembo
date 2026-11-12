@@ -18,7 +18,10 @@ import { GRILLE } from '../src/lib/tarifs/grille';
 import { CATALOGUE, FORMATS_TABLEAU, PALIERS_TABLEAU, VILLES } from '../momo-service/src/catalogue';
 
 /** Produits réellement commandables : le produit de démonstration (uv/placeholder) n'en fait pas partie. */
-const produitsVendables = CATALOG.filter((p) => p.id !== PLACEHOLDER_PRODUCT.id);
+// Produits vendus en ligne : ceux du configurateur, hors placeholder et hors produits déclarés
+// « sur devis » (`venteEnLigne: false`, vérifiés à part ci-dessous).
+const produitsVendables = CATALOG.filter((p) => p.id !== PLACEHOLDER_PRODUCT.id && p.venteEnLigne !== false);
+const produitsSurDevis = CATALOG.filter((p) => p.venteEnLigne === false);
 
 /** Grille de référence VALIDÉE provisoirement (elle devra être révisée après chiffrage réel). */
 const GRILLE_ATTENDUE: Record<string, { toileSeule: number; chassis: number }> = {
@@ -81,6 +84,14 @@ describe('prix du catalogue — navigateur et service identiques', () => {
     for (const produit of produitsVendables) {
       expect(produit.priceFcfa, `prix manquant pour ${produit.id}`).toBeTypeOf('number');
       expect(produit.priceFcfa ?? 0).toBeGreaterThan(0);
+    }
+  });
+
+  it('un produit sur devis n’a ni prix ni existence côté serveur : aucun paiement possible', () => {
+    expect(produitsSurDevis.length).toBeGreaterThan(0);
+    for (const produit of produitsSurDevis) {
+      expect(produit.priceFcfa, `prix inattendu pour ${produit.id}`).toBeNull();
+      expect(CATALOGUE.some((p) => p.id === produit.id), `${produit.id} connu du service de paiement`).toBe(false);
     }
   });
 

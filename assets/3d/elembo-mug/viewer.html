@@ -1,0 +1,1046 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>ELEMBO — Ceramic Mug 11 oz · Three.js print lab</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%23ff5a12'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-family='Arial' font-size='36' font-weight='700' fill='%23fff7ed'%3EE%3C/text%3E%3C/svg%3E">
+<!--
+  Independent Three.js test viewer for public/models/elembo-mug/elembo-mug.glb.
+
+  Serve the REPOSITORY ROOT (the Three.js modules are taken from node_modules):
+
+      python3 -m http.server 8765 --bind 127.0.0.1
+      open http://127.0.0.1:8765/assets/3d/elembo-mug/viewer.html
+
+  Query parameters (optional):
+      ?view=front|back|three-quarter|handle|top|print
+      ?preset=front|back|sides|full|seam|transparent
+      ?surface=exterior|interior|handle|foot|all&color=%23B3262D
+      ?capture=1          hides all UI for clean screenshots
+      ?autorotate=1       slow turntable
+
+  Diagnostics:
+      window.__elemboQC.ready, .objects, .materials, .triangles, .state(),
+      .setView(name), .setColor(surface,hex), .setPreset(name), .uploadFile(file)
+-->
+<style>
+  :root {
+    --ink: #171218;
+    --paper: #f3ede3;
+    --paper-2: #e8dfd2;
+    --orange: #ff5a12;
+    --line: rgba(23, 18, 24, .14);
+    --muted: rgba(23, 18, 24, .58);
+    --panel: rgba(250, 246, 239, .86);
+    --shadow: 0 22px 70px rgba(33, 22, 12, .14);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; overflow: hidden; background: var(--paper); color: var(--ink);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  #stage { position: fixed; inset: 0; }
+  #stage canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+  #stage canvas:active { cursor: grabbing; }
+  .grain {
+    pointer-events: none; position: fixed; inset: 0; opacity: .32; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.16'/%3E%3C/svg%3E");
+  }
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 5;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 26px 30px; pointer-events: none;
+  }
+  .brand { pointer-events: auto; display: flex; gap: 13px; align-items: center; }
+  .brand-mark {
+    width: 37px; height: 37px; border-radius: 50%; background: var(--orange);
+    display: grid; place-items: center; color: #fff7ed; font-weight: 800; font-size: 16px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.25);
+  }
+  .brand-text { line-height: 1.1; }
+  .brand-name { font-weight: 800; letter-spacing: .18em; font-size: 13px; }
+  .brand-sub { font-size: 11px; color: var(--muted); margin-top: 4px; letter-spacing: .08em; text-transform: uppercase; }
+  .views {
+    pointer-events: auto; display: flex; align-items: center; gap: 4px;
+    border: 1px solid var(--line); border-radius: 999px; padding: 4px;
+    background: rgba(247, 242, 234, .72); backdrop-filter: blur(14px); box-shadow: var(--shadow);
+  }
+  .views button {
+    appearance: none; border: 0; background: transparent; color: var(--ink);
+    padding: 9px 13px; border-radius: 999px; font: 600 11px/1 "Helvetica Neue", Arial, sans-serif;
+    letter-spacing: .045em; cursor: pointer; white-space: nowrap; transition: background .2s, color .2s;
+  }
+  .views button:hover { background: rgba(23,18,24,.06); }
+  .views button.active { background: var(--ink); color: var(--paper); }
+  .panel-wrap {
+    position: fixed; z-index: 6; right: 28px; top: 92px; bottom: 28px; width: 354px;
+    display: flex; flex-direction: column; justify-content: flex-end; pointer-events: none;
+  }
+  .panel {
+    pointer-events: auto; width: 100%; max-height: 100%; overflow-y: auto;
+    border-radius: 22px; background: var(--panel); border: 1px solid rgba(255,255,255,.7);
+    box-shadow: var(--shadow); backdrop-filter: blur(20px) saturate(1.15);
+    padding: 22px 22px 18px; scrollbar-width: thin; scrollbar-color: rgba(23,18,24,.2) transparent;
+  }
+  .panel::-webkit-scrollbar { width: 5px; }
+  .panel::-webkit-scrollbar-thumb { background: rgba(23,18,24,.18); border-radius: 5px; }
+  .eyebrow { color: var(--muted); font-size: 10px; letter-spacing: .19em; text-transform: uppercase; font-weight: 700; }
+  .product-title { margin: 8px 0 0; font-family: Georgia, "Times New Roman", serif; font-weight: 400; font-size: 30px; letter-spacing: -.025em; line-height: 1.02; }
+  .product-title em { font-style: italic; color: var(--orange); }
+  .product-meta { display: flex; flex-wrap: wrap; gap: 5px 12px; color: var(--muted); font-size: 11px; margin: 9px 0 0; }
+  .rule { height: 1px; background: var(--line); margin: 18px 0; }
+  .section { margin-top: 18px; }
+  .section:first-of-type { margin-top: 0; }
+  .section h2 { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; margin: 0 0 10px; font-weight: 800; display: flex; justify-content: space-between; align-items: baseline; }
+  .section h2 span { color: var(--muted); font-weight: 500; letter-spacing: .02em; text-transform: none; font-size: 10px; }
+  .surfaces { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; border: 1px solid var(--line); padding: 4px; border-radius: 12px; background: rgba(255,255,255,.45); }
+  .surfaces button {
+    appearance: none; border: 0; border-radius: 8px; background: transparent; color: var(--ink);
+    padding: 8px 2px; font: 600 9.5px/1 "Helvetica Neue", Arial, sans-serif; letter-spacing: .025em; cursor: pointer;
+  }
+  .surfaces button:hover { background: rgba(23,18,24,.06); }
+  .surfaces button.active { background: var(--ink); color: var(--paper); }
+  .swatches { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; align-items: center; }
+  .swatch {
+    width: 30px; height: 30px; border: 1px solid rgba(23,18,24,.16); border-radius: 50%;
+    cursor: pointer; padding: 0; position: relative; transition: transform .18s ease;
+    box-shadow: inset 0 1px 2px rgba(255,255,255,.35);
+  }
+  .swatch:hover { transform: translateY(-2px); }
+  .swatch.active { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .custom-color {
+    display: flex; align-items: center; gap: 8px; margin-left: auto; padding: 4px 8px 4px 5px;
+    border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.55);
+  }
+  .custom-color input { appearance: none; border: 0; width: 24px; height: 24px; padding: 0; border-radius: 50%; background: none; cursor: pointer; overflow: hidden; }
+  .custom-color input::-webkit-color-swatch-wrapper { padding: 0; }
+  .custom-color input::-webkit-color-swatch { border: 0; border-radius: 50%; }
+  .custom-color span { font-size: 9px; letter-spacing: .1em; color: var(--muted); font-weight: 700; }
+  .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .preset {
+    appearance: none; text-align: left; border: 1px solid var(--line); border-radius: 10px;
+    background: rgba(255,255,255,.48); color: var(--ink); padding: 9px 10px; cursor: pointer;
+    font: 600 10.5px/1.25 "Helvetica Neue", Arial, sans-serif; transition: border-color .2s, background .2s;
+  }
+  .preset:hover { border-color: rgba(23,18,24,.32); background: rgba(255,255,255,.8); }
+  .preset.active { border-color: var(--orange); background: rgba(255, 90, 18, .08); }
+  .preset small { display: block; font-weight: 400; color: var(--muted); font-size: 9px; margin-top: 2px; letter-spacing: .015em; }
+  .wide-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .action {
+    appearance: none; border: 1px solid var(--line); border-radius: 999px; padding: 8px 11px;
+    background: rgba(255,255,255,.5); color: var(--ink); font: 700 9.5px/1 "Helvetica Neue", Arial, sans-serif;
+    letter-spacing: .06em; text-transform: uppercase; cursor: pointer; flex: 1; text-align: center;
+  }
+  .action:hover { background: #fff; }
+  .file-action { position: relative; overflow: hidden; }
+  .file-action input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .uv-card { margin-top: 13px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #d9d1c4; }
+  .uv-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: rgba(255,255,255,.35); border-bottom: 1px solid var(--line); }
+  .uv-head span { font-size: 9px; letter-spacing: .1em; font-weight: 700; text-transform: uppercase; }
+  .uv-head b { font-size: 9px; font-weight: 500; color: var(--muted); letter-spacing: .04em; }
+  .uv-wrap { aspect-ratio: 3072 / 954; background-color: #cdc4b7; background-image: conic-gradient(#c4baac 25%, #d9d0c3 0 50%, #c4baac 0 75%, #d9d0c3 0); background-size: 14px 14px; }
+  .uv-wrap canvas { width: 100%; height: 100%; display: block; }
+  .uv-meta { padding: 8px 10px; font-size: 9px; color: var(--muted); display: flex; justify-content: space-between; background: rgba(255,255,255,.35); }
+  .offset { margin-top: 13px; }
+  .offset label { display: flex; justify-content: space-between; font-size: 9.5px; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+  .offset label b { color: var(--ink); font-weight: 700; }
+  input[type="range"] { width: 100%; accent-color: var(--orange); margin: 5px 0 0; height: 16px; }
+  .note { margin: 10px 0 0; color: var(--muted); font-size: 9.5px; line-height: 1.5; }
+  .hint {
+    position: fixed; left: 30px; bottom: 28px; z-index: 4; color: var(--muted);
+    font-size: 10px; letter-spacing: .04em; pointer-events: none; display: flex; align-items: center; gap: 10px;
+  }
+  .hint kbd { font: 600 9px/1 "Helvetica Neue", Arial, sans-serif; border: 1px solid var(--line); border-radius: 5px; padding: 4px 6px; background: rgba(255,255,255,.35); letter-spacing: .05em; }
+  .status {
+    position: fixed; left: 30px; top: 96px; z-index: 4; min-height: 24px;
+    color: var(--muted); font-size: 10px; letter-spacing: .06em; pointer-events: none;
+    display: flex; align-items: center; gap: 8px; transition: opacity .3s;
+  }
+  .status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--orange); }
+  .loading {
+    position: fixed; inset: 0; display: grid; place-items: center; z-index: 20;
+    background: var(--paper); transition: opacity .6s ease, visibility .6s;
+  }
+  .loading.hidden { opacity: 0; visibility: hidden; }
+  .loading-card { text-align: center; }
+  .loader-ring { width: 42px; height: 42px; border: 2px solid rgba(23,18,24,.15); border-top-color: var(--orange); border-radius: 50%; margin: 0 auto 14px; animation: spin 1s linear infinite; }
+  .loading-card p { color: var(--muted); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; margin: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (max-width: 900px) {
+    .topbar { padding: 16px 16px; }
+    .brand-sub { display: none; }
+    .views { gap: 2px; max-width: calc(100vw - 32px); overflow-x: auto; position: fixed; top: 68px; left: 16px; right: 16px; justify-content: flex-start; }
+    .views button { padding: 8px 10px; font-size: 10px; }
+    .panel-wrap { top: auto; left: 10px; right: 10px; bottom: 10px; width: auto; max-height: 53vh; }
+    .panel { border-radius: 18px; padding: 16px; }
+    .product-title { font-size: 25px; }
+    .hint, .status { display: none; }
+    .uv-card { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .swatch, .preset { transition: none; }
+    .loader-ring { animation-duration: 2.4s; }
+  }
+  body.capture .topbar, body.capture .panel-wrap, body.capture .hint, body.capture .status { display: none; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "../../../node_modules/three/build/three.module.js",
+    "three/addons/": "../../../node_modules/three/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="stage" aria-label="Interactive 3D preview of the Elembo ceramic mug"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">E</div>
+    <div class="brand-text">
+      <div class="brand-name">ELEMBO</div>
+      <div class="brand-sub">Personalised goods · Studio preview</div>
+    </div>
+  </div>
+  <nav class="views" aria-label="Camera views">
+    <button data-view="front" class="active">Front</button>
+    <button data-view="back">Back</button>
+    <button data-view="three-quarter">3/4</button>
+    <button data-view="handle">Handle</button>
+    <button data-view="top">Top</button>
+    <button data-view="print">Print</button>
+  </nav>
+</header>
+
+<div class="status" id="status"><span class="dot"></span><span id="status-text">Preparing the ceramic mug…</span></div>
+
+<div class="panel-wrap">
+  <aside class="panel" aria-label="Mug customisation">
+    <div>
+      <div class="eyebrow">Eleven-ounce ceramic</div>
+      <h1 class="product-title">The perfect<br><em>blank canvas.</em></h1>
+      <p class="product-meta"><span>Ø 82 mm</span><span>H 95 mm</span><span>330 ml</span><span>Glazed ceramic</span></p>
+    </div>
+    <div class="rule"></div>
+
+    <section class="section">
+      <h2>01 / Ceramic <span id="surface-label">all surfaces</span></h2>
+      <div class="surfaces" role="group" aria-label="Choose which ceramic surface to colour">
+        <button data-surface="all" class="active">All</button>
+        <button data-surface="exterior">Ext.</button>
+        <button data-surface="interior">Int.</button>
+        <button data-surface="handle">Handle</button>
+        <button data-surface="foot">Foot</button>
+      </div>
+      <div class="swatches" id="swatches" aria-label="Ceramic palette"></div>
+      <div class="swatches" style="margin-top:9px">
+        <div class="custom-color">
+          <input type="color" id="color-picker" value="#f4f1ea" aria-label="Custom ceramic colour">
+          <span>CUSTOM HEX</span>
+        </div>
+        <button class="action" id="reset-colors" style="flex:0 0 auto">Reset white</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>02 / Print wrap <span>U = 360° · V = 80 mm</span></h2>
+      <div class="preset-grid" id="presets">
+        <button class="preset" data-preset="front">Front logo<small>U 0.50 · transparent PNG</small></button>
+        <button class="preset" data-preset="back">Back mark<small>U 0.00 · around the handle</small></button>
+        <button class="preset" data-preset="sides">Side artwork<small>U 0.25 / 0.75 · independent</small></button>
+        <button class="preset" data-preset="full">Full wrap<small>continuous 360° composition</small></button>
+        <button class="preset" data-preset="seam">Seam crossing<small>reads across U 1 → 0</small></button>
+        <button class="preset" data-preset="transparent">Alpha PNG<small>no background printed</small></button>
+      </div>
+      <div class="wide-actions">
+        <label class="action file-action">Upload PNG / JPG<input type="file" id="upload" accept="image/png,image/jpeg,image/webp" aria-label="Upload artwork"></label>
+        <button class="action" id="clear-print" style="flex:0 0 74px">Clear</button>
+      </div>
+      <div class="uv-card">
+        <div class="uv-head"><span>Texture 0..1</span><b>3072 × 954 px recommended</b></div>
+        <div class="uv-wrap"><canvas id="uv-preview" width="1024" height="318"></canvas></div>
+        <div class="uv-meta"><span>U 0 = handle / back seam</span><span>U 0.5 = front</span><span>V 0 = rim</span></div>
+      </div>
+      <div class="offset">
+        <label for="wrap-offset">Wrap offset <b id="wrap-offset-label">0°</b></label>
+        <input type="range" id="wrap-offset" min="0" max="100" value="0" step="1">
+      </div>
+      <p class="note">The print is a transparent, glazed layer over the ceramic. Changing the ceramic colour below never tints the artwork.</p>
+      <div class="wide-actions">
+        <button class="action" id="autorotate">Turntable</button>
+        <button class="action" id="reset-view">Reset view</button>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<div class="hint"><kbd>DRAG</kbd><span>orbit</span><kbd>SCROLL</kbd><span>zoom</span><kbd>1–6</kbd><span>views</span></div>
+
+<div class="loading" id="loading">
+  <div class="loading-card">
+    <div class="loader-ring"></div>
+    <p>Loading the ceramic mug</p>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const params = new URLSearchParams(location.search);
+if (params.get('capture') === '1') document.body.classList.add('capture');
+const ui = {
+  stage: document.getElementById('stage'),
+  loading: document.getElementById('loading'),
+  status: document.getElementById('status'),
+  statusText: document.getElementById('status-text'),
+  swatches: document.getElementById('swatches'),
+  colorPicker: document.getElementById('color-picker'),
+  surfaceLabel: document.getElementById('surface-label'),
+  uvPreview: document.getElementById('uv-preview'),
+  offset: document.getElementById('wrap-offset'),
+  offsetLabel: document.getElementById('wrap-offset-label'),
+  presets: document.getElementById('presets'),
+  autoRotate: document.getElementById('autorotate'),
+};
+const COLORS = [
+  { id: 'white', name: 'Glazed white', hex: '#F4F1EA' },
+  { id: 'black', name: 'Midnight', hex: '#171719' },
+  { id: 'cream', name: 'Crème', hex: '#EADFC8' },
+  { id: 'red', name: 'Elembo red', hex: '#B3262D' },
+  { id: 'blue', name: 'Cobalt', hex: '#1E3A63' },
+  { id: 'green', name: 'Forest', hex: '#225C43' },
+  { id: 'yellow', name: 'Saffron', hex: '#F0C33C' },
+  { id: 'orange', name: 'Elembo orange', hex: '#FF5A12' },
+];
+const MATERIAL_BY_SURFACE = {
+  exterior: 'MAT_MUG_CERAMIC',
+  interior: 'MAT_MUG_INTERIOR',
+  handle: 'MAT_MUG_HANDLE',
+  foot: 'MAT_MUG_BOTTOM',
+};
+const VIEWS = {
+  front:          { azimuth: 0, elevation: 0.12, distance: 0.325, target: [0, 0.048, 0.002] },
+  back:           { azimuth: Math.PI, elevation: 0.14, distance: 0.335, target: [0, 0.048, -0.005] },
+  'three-quarter':{ azimuth: THREE.MathUtils.degToRad(63), elevation: 0.18, distance: 0.35, target: [0, 0.048, -0.002] },
+  handle:         { azimuth: THREE.MathUtils.degToRad(145), elevation: 0.16, distance: 0.33, target: [0, 0.047, -0.018] },
+  top:            { azimuth: 0.35, elevation: 1.02, distance: 0.32, target: [0, 0.047, -0.004] },
+  print:          { azimuth: 0, elevation: 0.015, distance: 0.29, target: [0, 0.048, 0.012] },
+};
+
+// ── Renderer & scene ──────────────────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.NeutralToneMapping;
+renderer.toneMappingExposure = 1.02;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+ui.stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#e9e3da');
+scene.fog = new THREE.Fog('#e9e3da', 0.7, 1.7);
+
+const camera = new THREE.PerspectiveCamera(28, window.innerWidth / window.innerHeight, 0.005, 20);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.075;
+controls.rotateSpeed = 0.6;
+controls.zoomSpeed = 0.7;
+controls.enablePan = false;
+controls.minPolarAngle = 0.15;
+controls.maxPolarAngle = Math.PI / 2 - 0.012;
+controls.minDistance = 0.16;
+controls.maxDistance = 1.0;
+controls.target.set(0, 0.048, 0);
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+const environment = pmrem.fromScene(new RoomEnvironment(), 0.035).texture;
+scene.environment = environment;
+scene.environmentIntensity = 0.72;
+
+const hemi = new THREE.HemisphereLight('#fff8ed', '#b6a99a', 0.65);
+scene.add(hemi);
+const key = new THREE.DirectionalLight('#fff3e3', 2.25);
+key.position.set(-0.26, 0.42, 0.32);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.near = 0.04;
+key.shadow.camera.far = 1.2;
+key.shadow.camera.left = -0.14;
+key.shadow.camera.right = 0.14;
+key.shadow.camera.top = 0.16;
+key.shadow.camera.bottom = -0.06;
+key.shadow.bias = -0.00025;
+key.shadow.normalBias = 0.0004;
+scene.add(key);
+const fill = new THREE.DirectionalLight('#eaf1ff', 0.62);
+fill.position.set(0.36, 0.17, 0.22);
+scene.add(fill);
+const rim = new THREE.DirectionalLight('#ffffff', 1.2);
+rim.position.set(0.12, 0.34, -0.34);
+scene.add(rim);
+const under = new THREE.DirectionalLight('#fff6e8', 0.18);
+under.position.set(0, -0.3, 0.1);
+scene.add(under);
+
+// Invisible shadow receiver (the warm page remains the background).
+const shadowMat = new THREE.ShadowMaterial({ color: '#5d4a36', opacity: 0.16, transparent: true });
+const floor = new THREE.Mesh(new THREE.CircleGeometry(0.42, 96), shadowMat);
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = -0.0004;
+floor.receiveShadow = true;
+scene.add(floor);
+// A whisper of reflected light under the object avoids a floating look.
+const disc = new THREE.Mesh(
+  new THREE.CircleGeometry(0.14, 96),
+  new THREE.MeshBasicMaterial({ color: '#d9d0c4', transparent: true, opacity: 0.38, depthWrite: false })
+);
+disc.rotation.x = -Math.PI / 2;
+disc.position.y = -0.0008;
+scene.add(disc);
+
+// ── Load model ────────────────────────────────────────────────────────────────
+const MODEL_URL = new URL('../../../public/models/elembo-mug/elembo-mug.glb', location.href).href;
+const loader = new GLTFLoader();
+let gltf;
+try {
+  gltf = await loader.loadAsync(MODEL_URL);
+} catch (error) {
+  ui.statusText.textContent = 'Model failed to load — serve the repository root over HTTP.';
+  console.error(error);
+  throw error;
+}
+const root = gltf.scene.getObjectByName('ELEMBO_MUG') ?? gltf.scene;
+scene.add(gltf.scene);
+const printMesh = gltf.scene.getObjectByName('MUG_PRINT_SURFACE');
+const printMaterial = [printMesh.material].flat()[0];
+const byName = new Map();
+const objectInfo = [];
+gltf.scene.traverse((object) => {
+  if (!object.isMesh) return;
+  for (const material of [object.material].flat()) byName.set(material.name, material);
+  const material = [object.material].flat()[0];
+  object.castShadow = object.name !== 'MUG_PRINT_SURFACE';
+  object.receiveShadow = true;
+  objectInfo.push({
+    name: object.name,
+    material: material?.name ?? '',
+    triangles: object.geometry.index ? object.geometry.index.count / 3 : object.geometry.attributes.position.count / 3,
+    uvSets: Object.keys(object.geometry.attributes).filter((key) => key.startsWith('uv')),
+    mapChannel: material?.map?.channel ?? null,
+    normalMapChannel: material?.normalMap?.channel ?? null,
+  });
+});
+const qcObjects = objectInfo;
+const qcTriangles = objectInfo.reduce((sum, item) => sum + item.triangles, 0);
+
+// Keep a single instance of each material and never mutate the loaded asset globally.
+for (const object of [gltf.scene, ...gltf.scene.children]) {
+  if (!object.isMesh) continue;
+  object.material = [object.material].flat().map((material) => material.clone());
+}
+// Rebuild lookup after cloning.
+for (const object of objectInfo) {
+  // names are stable in the GLB; byName below is used only for colours.
+}
+byName.clear();
+gltf.scene.traverse((object) => {
+  if (!object.isMesh) return;
+  for (const material of [object.material].flat()) byName.set(material.name, material);
+});
+
+// Print surface: transparent glaze over the body, never a separate decal look.
+const printMaterialInstance = [printMesh.material].flat()[0];
+printMaterialInstance.transparent = true;
+printMaterialInstance.depthWrite = false;
+printMaterialInstance.alphaTest = 0.0;
+printMaterialInstance.side = THREE.FrontSide;
+printMaterialInstance.roughness = 0.26;
+printMaterialInstance.needsUpdate = true;
+
+// ── The full-wrap print texture ───────────────────────────────────────────────
+const PRINT_W = 2048;
+const PRINT_H = Math.round(PRINT_W * 954 / 3072); // 636 px, same physical aspect as the UV map
+const printCanvas = document.createElement('canvas');
+printCanvas.width = PRINT_W;
+printCanvas.height = PRINT_H;
+const pc = printCanvas.getContext('2d');
+const printTexture = new THREE.CanvasTexture(printCanvas);
+printTexture.flipY = false; // glTF UV origin is top-left; without this the art is upside down
+printTexture.colorSpace = THREE.SRGBColorSpace;
+printTexture.wrapS = THREE.RepeatWrapping;
+printTexture.wrapT = THREE.ClampToEdgeWrapping;
+printTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+printTexture.generateMipmaps = true;
+printTexture.minFilter = THREE.LinearMipmapLinearFilter;
+printTexture.magFilter = THREE.LinearFilter;
+printTexture.needsUpdate = true;
+printMaterialInstance.map = printTexture;
+printMaterialInstance.needsUpdate = true;
+
+const state = {
+  view: 'front',
+  surface: 'all',
+  colors: {
+    exterior: '#F4F1EA',
+    interior: '#F4F1EA',
+    handle: '#F4F1EA',
+    foot: '#F4F1EA',
+  },
+  preset: 'blank',
+  offset: 0,
+  autoRotate: false,
+};
+
+function setSurfaceColor(surface, hex) {
+  const targets = surface === 'all' ? Object.keys(MATERIAL_BY_SURFACE) : [surface];
+  for (const name of targets) {
+    const materialName = MATERIAL_BY_SURFACE[name];
+    if (!materialName) continue;
+    const material = byName.get(materialName);
+    if (material) {
+      material.color.set(hex);
+      material.needsUpdate = true;
+    }
+    state.colors[name] = hex;
+  }
+  if (surface === 'all') ui.colorPicker.value = hex;
+}
+
+function paintClear() {
+  pc.clearRect(0, 0, PRINT_W, PRINT_H);
+  drawPreview();
+  printTexture.needsUpdate = true;
+  state.preset = 'blank';
+}
+function finishArt(name) {
+  state.preset = name;
+  printTexture.needsUpdate = true;
+  drawPreview();
+  document.querySelectorAll('.preset').forEach((b) => b.classList.toggle('active', b.dataset.preset === name));
+}
+function drawPreview() {
+  const c = ui.uvPreview.getContext('2d');
+  c.clearRect(0, 0, ui.uvPreview.width, ui.uvPreview.height);
+  c.drawImage(printCanvas, 0, 0, ui.uvPreview.width, ui.uvPreview.height);
+}
+
+// Draw a motif twice around the seam so it is physically continuous at U=0/1.
+function wrapped(draw, x, y) {
+  for (const dx of [-PRINT_W, 0, PRINT_W]) {
+    pc.save();
+    pc.translate(x + dx, y);
+    draw();
+    pc.restore();
+  }
+}
+function fitCanvasFont(size, weight = 700, family = '"Helvetica Neue", Arial, sans-serif') {
+  pc.font = `${weight} ${size}px ${family}`;
+}
+
+function frontArt() {
+  paintClear();
+  const cx = PRINT_W / 2;
+  const cy = PRINT_H / 2;
+  pc.save();
+  pc.translate(cx, cy);
+  // Orange sun / registration mark
+  pc.fillStyle = '#FF5A12';
+  pc.beginPath();
+  pc.arc(0, -145, 43, 0, Math.PI * 2);
+  pc.fill();
+  pc.strokeStyle = '#171218';
+  pc.lineWidth = 3;
+  pc.beginPath();
+  for (let i = 0; i < 24; i++) {
+    const a = (i / 24) * Math.PI * 2;
+    const r0 = 56;
+    const r1 = i % 2 === 0 ? 72 : 64;
+    pc.moveTo(Math.cos(a) * r0, -145 + Math.sin(a) * r0);
+    pc.lineTo(Math.cos(a) * r1, -145 + Math.sin(a) * r1);
+  }
+  pc.stroke();
+  pc.fillStyle = '#171218';
+  pc.textAlign = 'center';
+  fitCanvasFont(132, 800);
+  if ('letterSpacing' in pc) pc.letterSpacing = '16px';
+  pc.fillText('ELEMBO', 0, 18);
+  if ('letterSpacing' in pc) pc.letterSpacing = '0px';
+  fitCanvasFont(25, 600);
+  pc.letterSpacing = '7px';
+  pc.fillStyle = 'rgba(23,18,24,.68)';
+  pc.fillText('CERAMIC STUDIO', 0, 66);
+  if ('letterSpacing' in pc) pc.letterSpacing = '0px';
+  pc.strokeStyle = 'rgba(23,18,24,.22)';
+  pc.lineWidth = 2;
+  pc.beginPath(); pc.moveTo(-150, 96); pc.lineTo(150, 96); pc.stroke();
+  fitCanvasFont(21, 500);
+  pc.fillStyle = 'rgba(23,18,24,.54)';
+  pc.fillText('11 OZ  ·  330 ML  ·  MADE TO BE YOURS', 0, 135);
+  pc.restore();
+  finishArt('front');
+}
+
+function backArt() {
+  paintClear();
+  // Two coordinated marks sit either side of the handle, in the back zone.
+  // Both are round-trip-safe: artwork can also be placed exactly on the seam.
+  for (const [x, letter] of [[PRINT_W * 0.12, 'B'], [PRINT_W * 0.88, 'B']]) {
+    pc.save();
+    pc.translate(x, PRINT_H * 0.37);
+    pc.strokeStyle = '#171218';
+    pc.lineWidth = 3;
+    pc.beginPath(); pc.arc(0, 0, 78, 0, Math.PI * 2); pc.stroke();
+    pc.fillStyle = '#FF5A12';
+    pc.beginPath(); pc.arc(0, -92, 15, 0, Math.PI * 2); pc.fill();
+    pc.fillStyle = '#171218';
+    pc.textAlign = 'center';
+    fitCanvasFont(88, 800, 'Georgia, serif');
+    pc.fillText(letter, 0, 26);
+    fitCanvasFont(17, 700);
+    pc.fillText('BACK / 03', 0, 128);
+    fitCanvasFont(15, 500);
+    pc.fillStyle = 'rgba(23,18,24,.55)';
+    pc.fillText('THE OTHER SIDE', 0, 154);
+    pc.restore();
+  }
+  // A large soft arc bridges the back seam without creating a device.
+  wrapped(() => {
+    pc.strokeStyle = 'rgba(23,18,24,.10)';
+    pc.lineWidth = 2;
+    pc.beginPath();
+    pc.arc(0, 0, 225, Math.PI * 1.12, Math.PI * 1.88);
+    pc.stroke();
+  }, 0, PRINT_H * 0.54);
+  finishArt('back');
+}
+
+function sidesArt() {
+  paintClear();
+  const stations = [
+    [PRINT_W * 0.25, 'L', 'LEFT / 04'],
+    [PRINT_W * 0.75, 'R', 'RIGHT / 05'],
+  ];
+  for (const [x, letter, label] of stations) {
+    pc.save();
+    pc.translate(x, PRINT_H * 0.49);
+    pc.fillStyle = '#171218';
+    pc.textAlign = 'center';
+    fitCanvasFont(24, 700);
+    pc.letterSpacing = '8px';
+    pc.fillStyle = 'rgba(23,18,24,.42)';
+    pc.fillText('SIDE', 0, -126);
+    pc.letterSpacing = '0px';
+    pc.fillStyle = '#FF5A12';
+    pc.beginPath(); pc.arc(0, -58, 12, 0, Math.PI * 2); pc.fill();
+    pc.fillStyle = '#171218';
+    fitCanvasFont(160, 800, 'Georgia, serif');
+    pc.fillText(letter, 0, 54);
+    pc.strokeStyle = 'rgba(23,18,24,.20)';
+    pc.lineWidth = 2;
+    pc.beginPath(); pc.moveTo(-62, 84); pc.lineTo(62, 84); pc.stroke();
+    fitCanvasFont(17, 700);
+    pc.fillText(label, 0, 119);
+    pc.restore();
+  }
+  finishArt('sides');
+}
+
+function fullWrapArt() {
+  paintClear();
+  // Full-bleed editorial wrap. All edges are periodic so the seam disappears.
+  pc.fillStyle = '#1B3540';
+  pc.fillRect(0, 0, PRINT_W, PRINT_H);
+  // Soft continuous horizon bands.
+  const g = pc.createLinearGradient(0, 0, 0, PRINT_H);
+  g.addColorStop(0, 'rgba(250,239,218,.14)');
+  g.addColorStop(0.46, 'rgba(250,239,218,.02)');
+  g.addColorStop(1, 'rgba(8,20,25,.36)');
+  pc.fillStyle = g;
+  pc.fillRect(0, 0, PRINT_W, PRINT_H);
+  // Stylised suns, spaced so the pattern wraps exactly.
+  const spacing = PRINT_W / 8;
+  for (let i = 0; i < 8; i++) {
+    const x = spacing * (i + 0.5);
+    const y = PRINT_H * 0.28;
+    wrapped(() => {
+      pc.strokeStyle = 'rgba(244,234,217,.20)';
+      pc.lineWidth = 2;
+      for (let k = 0; k < 20; k++) {
+        const a = (k / 20) * Math.PI * 2;
+        pc.beginPath();
+        pc.moveTo(Math.cos(a) * 29, Math.sin(a) * 29);
+        pc.lineTo(Math.cos(a) * (k % 2 ? 44 : 52), Math.sin(a) * (k % 2 ? 44 : 52));
+        pc.stroke();
+      }
+      pc.fillStyle = i % 3 === 1 ? '#FF5A12' : 'rgba(244,234,217,.85)';
+      pc.beginPath(); pc.arc(0, 0, 13, 0, Math.PI * 2); pc.fill();
+    }, x, y);
+  }
+  // Giant type across the front, repeated on the back.
+  for (const [x, text, size, color, y] of [
+    [PRINT_W * 0.5, 'ELEMBO', 168, '#F4EADD', PRINT_H * 0.55],
+    [PRINT_W * 0.0, 'CERAMIC', 92, 'rgba(244,234,217,.55)', PRINT_H * 0.55],
+    [PRINT_W * 1.0, 'CERAMIC', 92, 'rgba(244,234,217,.55)', PRINT_H * 0.55],
+  ]) {
+    wrapped(() => {
+      pc.textAlign = 'center';
+      pc.fillStyle = color;
+      fitCanvasFont(size, 800);
+      if ('letterSpacing' in pc) pc.letterSpacing = '10px';
+      pc.fillText(text, 0, y);
+      if ('letterSpacing' in pc) pc.letterSpacing = '0px';
+    }, x, 0);
+  }
+  // Continuous double pinstripe; it crosses the seam without a break.
+  pc.fillStyle = 'rgba(255,90,18,.9)';
+  pc.fillRect(0, PRINT_H * 0.76, PRINT_W, 3);
+  pc.fillStyle = 'rgba(244,234,217,.35)';
+  pc.fillRect(0, PRINT_H * 0.79, PRINT_W, 1.2);
+  // Small repeating sunrise motif on the lower band.
+  for (let i = 0; i < 16; i++) {
+    const x = (i + 0.5) * PRINT_W / 16;
+    pc.strokeStyle = 'rgba(244,234,217,.33)';
+    pc.lineWidth = 1.4;
+    pc.beginPath();
+    pc.arc(x, PRINT_H * 0.88, 16, Math.PI, 0);
+    pc.stroke();
+  }
+  finishArt('full');
+}
+
+function seamArt() {
+  paintClear();
+  // Two wide fields; a continuous circle is drawn across the U=1/0 seam.
+  pc.fillStyle = 'rgba(30,58,99,.92)';
+  pc.fillRect(0, 0, PRINT_W / 2 - 28, PRINT_H);
+  pc.fillStyle = 'rgba(179,38,45,.92)';
+  pc.fillRect(PRINT_W / 2 + 28, 0, PRINT_W / 2 - 28, PRINT_H);
+  // Gaps at the seam and at U=0/1 expose the ceramic, making the seam easy to see.
+  // Text in both fields, upright by construction.
+  for (const [x, label, sub] of [
+    [PRINT_W * 0.24, 'SEAM', 'READS LEFT → RIGHT'],
+    [PRINT_W * 0.72, '360°', 'NO MIRROR · NO FLIP'],
+  ]) {
+    pc.save();
+    pc.translate(x, PRINT_H * 0.5);
+    pc.textAlign = 'center';
+    pc.fillStyle = '#F4EADD';
+    fitCanvasFont(96, 800, 'Georgia, serif');
+    pc.fillText(label, 0, 8);
+    fitCanvasFont(19, 600);
+    if ('letterSpacing' in pc) pc.letterSpacing = '4px';
+    pc.fillStyle = 'rgba(244,234,217,.72)';
+    pc.fillText(sub, 0, 58);
+    if ('letterSpacing' in pc) pc.letterSpacing = '0px';
+    pc.restore();
+  }
+  // The orange ring is deliberately centred on the seam. Because it is drawn with
+  // wrapped(), the two clipped halves join perfectly across U=1 → U=0.
+  wrapped(() => {
+    pc.strokeStyle = '#FF5A12';
+    pc.lineWidth = 10;
+    pc.beginPath(); pc.arc(0, 0, 122, 0, Math.PI * 2); pc.stroke();
+    pc.fillStyle = '#F4EADD';
+    pc.textAlign = 'center';
+    fitCanvasFont(30, 800);
+    pc.fillText('CONTINUOUS', 0, 10);
+  }, 0, PRINT_H * 0.5);
+  // Horizontal rules touching both edges prove the wrap is continuous.
+  pc.fillStyle = 'rgba(244,234,217,.55)';
+  pc.fillRect(0, PRINT_H * 0.16, PRINT_W, 2);
+  pc.fillRect(0, PRINT_H * 0.84, PRINT_W, 2);
+  finishArt('seam');
+}
+
+function transparentArt() {
+  paintClear();
+  const x = PRINT_W / 2;
+  const y = PRINT_H / 2;
+  pc.save();
+  pc.translate(x, y);
+  // No rectangle behind the roundel: the underlying ceramic must show through.
+  const g = pc.createLinearGradient(-120, -120, 120, 120);
+  g.addColorStop(0, '#FF7A39');
+  g.addColorStop(1, '#E33C00');
+  pc.fillStyle = g;
+  pc.beginPath(); pc.arc(0, -34, 128, 0, Math.PI * 2); pc.fill();
+  pc.fillStyle = '#FFF7EE';
+  pc.textAlign = 'center';
+  fitCanvasFont(42, 800);
+  pc.fillText('PNG', 0, -22);
+  fitCanvasFont(22, 500);
+  pc.fillText('ALPHA / TRANSPARENCY', 0, 16);
+  pc.strokeStyle = 'rgba(23,18,24,.55)';
+  pc.lineWidth = 2;
+  pc.beginPath(); pc.moveTo(-94, 55); pc.lineTo(94, 55); pc.stroke();
+  pc.fillStyle = '#171218';
+  fitCanvasFont(15, 700);
+  pc.fillText('THE CERAMIC COLOUR SHOWS THROUGH', 0, 87);
+  pc.restore();
+  finishArt('transparent');
+}
+
+function drawPreset(name) {
+  ({
+    front: frontArt,
+    back: backArt,
+    sides: sidesArt,
+    full: fullWrapArt,
+    seam: seamArt,
+    transparent: transparentArt,
+  })[name]?.();
+  if (name === 'back') setView('back');
+  if (name === 'seam') setView('back');
+  if (name === 'sides') setAzimuth(90, 0.14, 0.33);
+}
+
+async function uploadFile(file) {
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  try {
+    const bitmap = await createImageBitmap(file);
+    paintClear();
+    const maxW = PRINT_W * 0.92;
+    const maxH = PRINT_H * 0.86;
+    const scale = Math.min(maxW / bitmap.width, maxH / bitmap.height);
+    const w = bitmap.width * scale;
+    const h = bitmap.height * scale;
+    pc.drawImage(bitmap, (PRINT_W - w) / 2, (PRINT_H - h) / 2, w, h);
+    finishArt('upload');
+    ui.statusText.textContent = `${file.name} applied to the printable wrap`;
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    ui.statusText.textContent = 'That image could not be decoded.';
+    console.error(error);
+  }
+}
+
+// ── Camera views ──────────────────────────────────────────────────────────────
+const animation = { active: false, t: 0, from: null, to: null };
+function cameraPose(view) {
+  const v = VIEWS[view] ?? VIEWS.front;
+  const target = new THREE.Vector3(...v.target);
+  const dir = new THREE.Vector3(
+    Math.sin(v.azimuth) * Math.cos(v.elevation),
+    Math.sin(v.elevation),
+    Math.cos(v.azimuth) * Math.cos(v.elevation),
+  ).normalize();
+  const pos = target.clone().addScaledVector(dir, v.distance);
+  return { pos, target };
+}
+function applyPose(pose) {
+  camera.position.copy(pose.pos);
+  controls.target.copy(pose.target);
+  camera.lookAt(pose.target);
+  controls.update();
+}
+function setView(view, instant = false) {
+  state.view = view;
+  document.querySelectorAll('[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
+  const to = cameraPose(view);
+  if (instant || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    applyPose(to); animation.active = false; return;
+  }
+  const from = { pos: camera.position.clone(), target: controls.target.clone() };
+  Object.assign(animation, { active: true, t: 0, from, to });
+}
+function setAzimuth(degrees, elevation = 0.16, distance = null) {
+  animation.active = false;
+  const target = controls.target.clone();
+  const radius = distance ?? camera.position.distanceTo(target);
+  const az = THREE.MathUtils.degToRad(degrees);
+  const dir = new THREE.Vector3(
+    Math.sin(az) * Math.cos(elevation),
+    Math.sin(elevation),
+    Math.cos(az) * Math.cos(elevation),
+  ).normalize();
+  camera.position.copy(target).addScaledVector(dir, radius);
+  camera.lookAt(target);
+  controls.update();
+  state.view = `azimuth-${degrees}`;
+  document.querySelectorAll('[data-view]').forEach((b) => b.classList.remove('active'));
+}
+
+function updateAnimation(dt) {
+  if (!animation.active) return;
+  animation.t = Math.min(1, animation.t + dt / 0.46);
+  const eased = 1 - Math.pow(1 - animation.t, 3);
+  camera.position.lerpVectors(animation.from.pos, animation.to.pos, eased);
+  controls.target.lerpVectors(animation.from.target, animation.to.target, eased);
+  camera.lookAt(controls.target);
+  controls.update();
+  if (animation.t >= 1) animation.active = false;
+}
+
+// ── UI wiring ────────────────────────────────────────────────────────────────
+function buildSwatches() {
+  for (const color of COLORS) {
+    const button = document.createElement('button');
+    button.className = 'swatch';
+    button.style.background = color.hex;
+    button.title = `${color.name} — ${color.hex}`;
+    button.setAttribute('aria-label', `${color.name}, ${color.hex}`);
+    button.addEventListener('click', () => {
+      setSurfaceColor(state.surface, color.hex);
+      document.querySelectorAll('.swatch').forEach((s) => s.classList.remove('active'));
+      button.classList.add('active');
+      ui.colorPicker.value = color.hex;
+    });
+    if (color.id === 'white') button.classList.add('active');
+    ui.swatches.appendChild(button);
+  }
+}
+function updateSurfaceLabel() {
+  const labels = { all: 'all surfaces', exterior: 'exterior', interior: 'interior', handle: 'handle', foot: 'foot' };
+  ui.surfaceLabel.textContent = labels[state.surface] ?? state.surface;
+}
+function selectSurface(surface) {
+  state.surface = surface;
+  document.querySelectorAll('[data-surface]').forEach((b) => b.classList.toggle('active', b.dataset.surface === surface));
+  updateSurfaceLabel();
+  if (surface !== 'all') ui.colorPicker.value = state.colors[surface] || '#F4F1EA';
+}
+ui.swatches.addEventListener('click', (event) => event.stopPropagation());
+buildSwatches();
+document.querySelectorAll('[data-surface]').forEach((button) => {
+  button.addEventListener('click', () => selectSurface(button.dataset.surface));
+});
+ui.colorPicker.addEventListener('input', () => {
+  setSurfaceColor(state.surface, ui.colorPicker.value.toUpperCase());
+});
+document.getElementById('reset-colors').addEventListener('click', () => {
+  setSurfaceColor('all', '#F4F1EA');
+  document.querySelectorAll('.swatch').forEach((s, i) => s.classList.toggle('active', COLORS[i].hex === '#F4F1EA'));
+});
+document.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => setView(button.dataset.view)));
+document.querySelectorAll('[data-preset]').forEach((button) => button.addEventListener('click', () => drawPreset(button.dataset.preset)));
+document.getElementById('clear-print').addEventListener('click', () => {
+  paintClear();
+  document.querySelectorAll('.preset').forEach((b) => b.classList.remove('active'));
+  ui.statusText.textContent = 'Print layer cleared — blank glazed ceramic';
+});
+document.getElementById('upload').addEventListener('change', (event) => uploadFile(event.target.files?.[0]));
+ui.offset.addEventListener('input', () => {
+  state.offset = Number(ui.offset.value);
+  // Full-wrap texture: offset is a physical rotation of the design around the mug.
+  printTexture.offset.x = state.offset / 100;
+  printTexture.needsUpdate = true;
+  ui.offsetLabel.textContent = `${Math.round(state.offset * 3.6)}°`;
+});
+ui.autoRotate.addEventListener('click', () => {
+  state.autoRotate = !state.autoRotate;
+  controls.autoRotate = state.autoRotate;
+  controls.autoRotateSpeed = state.autoRotate ? 0.75 : 0;
+  ui.autoRotate.classList.toggle('active', state.autoRotate);
+  ui.statusText.textContent = state.autoRotate ? 'Turntable running — 360° inspection' : 'Turntable paused';
+});
+document.getElementById('reset-view').addEventListener('click', () => setView('front'));
+
+window.addEventListener('keydown', (event) => {
+  const map = { 1: 'front', 2: 'back', 3: 'three-quarter', 4: 'handle', 5: 'top', 6: 'print' };
+  if (map[event.key]) setView(map[event.key]);
+});
+function resizeViewport() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  camera.aspect = w / h;
+  // On desktop the control panel overlays the right side. Shift the optical centre
+  // slightly left so the product stays balanced in the visible area.
+  if (w > 1000 && !document.body.classList.contains('capture')) {
+    const shift = Math.min(150, w * 0.095);
+    camera.setViewOffset(w, h, shift, 0, w, h);
+  } else {
+    camera.clearViewOffset();
+  }
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener('resize', resizeViewport);
+
+// ── Query parameters & diagnostics ────────────────────────────────────────────
+const qc = {
+  ready: false,
+  model: MODEL_URL,
+  triangles: qcTriangles,
+  objects: qcObjects,
+  materials: [...byName.keys()],
+  materialSnapshot: () => [...byName.entries()].map(([name, m]) => ({
+    name,
+    color: `#${m.color?.getHexString?.() ?? '000000'}`.toUpperCase(),
+    roughness: m.roughness ?? null,
+    metalness: m.metalness ?? null,
+    transparent: Boolean(m.transparent),
+    hasMap: Boolean(m.map),
+    mapWrapS: m.map?.wrapS ?? null,
+    mapWrapT: m.map?.wrapT ?? null,
+    mapFlipY: m.map?.flipY ?? null,
+    mapChannel: m.map?.channel ?? null,
+    normalMapChannel: m.normalMap?.channel ?? null,
+  })),
+  bounds: () => {
+    const box = new THREE.Box3().setFromObject(gltf.scene);
+    const size = box.getSize(new THREE.Vector3());
+    return { min: box.min.toArray(), max: box.max.toArray(), size: size.toArray() };
+  },
+  print: { width: PRINT_W, height: PRINT_H, uv: { uFront: 0.5, uBack: 0, vTop: 0 } },
+  state: () => JSON.parse(JSON.stringify({ ...state, colors: { ...state.colors } })),
+  setView,
+  setAzimuth,
+  setColor: (surface, hex) => setSurfaceColor(surface, hex),
+  setPreset: drawPreset,
+  uploadFile,
+  screenshotReady: false,
+};
+window.__elemboQC = qc;
+
+// Initial state first, then URL overrides (so ?preset= is not overwritten by the defaults).
+paintClear();
+setSurfaceColor('all', '#F4F1EA');
+selectSurface('all');
+resizeViewport();
+setView(VIEWS[params.get('view')] ? params.get('view') : 'front', true);
+
+if (params.get('surface') && params.get('color')) {
+  setSurfaceColor(params.get('surface'), params.get('color'));
+}
+if (params.get('preset')) {
+  try { drawPreset(params.get('preset')); } catch (error) { console.error(error); }
+}
+if (params.get('autorotate') === '1') {
+  state.autoRotate = true;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.75;
+}
+if (params.get('ui') === '0') { document.body.classList.add('capture'); resizeViewport(); }
+document.getElementById('loading').classList.add('hidden');
+ui.statusText.textContent = 'Ready · drag to orbit · upload a PNG to test the wrap';
+
+let lastFrame = performance.now();
+renderer.setAnimationLoop(() => {
+  const now = performance.now();
+  const dt = Math.min((now - lastFrame) / 1000, 0.05);
+  lastFrame = now;
+  updateAnimation(dt);
+  controls.update();
+  renderer.render(scene, camera);
+  if (!qc.screenshotReady) {
+    qc.screenshotReady = true;
+    qc.ready = true;
+    document.body.dataset.ready = 'true';
+    renderer.domElement.setAttribute('data-ready', 'true');
+  }
+});
+</script>
+</body>
+</html>

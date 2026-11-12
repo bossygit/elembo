@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ELEMBO_TSHIRT_ZONES, getProductById } from '../src/lib/products/catalog';
-import { SIDES, SIDE_LABELS } from '../src/types/configurator';
+import { ELEMBO_TSHIRT_ZONES, getProductById, productSides } from '../src/lib/products/catalog';
+import { SIDE_LABELS } from '../src/types/configurator';
 
 // Vérifie le MODÈLE 3D RÉEL (pas la documentation) : noms de nœuds, matériaux, jeux d'UV,
 // métadonnées et repères. Le parseur est le même que celui utilisé pour l'intégration
@@ -54,6 +54,8 @@ const parseur = (await import('../scripts/glb-zones.mjs')) as unknown as {
 const glb = parseur.readGlb(chemin);
 const description = parseur.describeGlb(chemin);
 const product = getProductById('tshirt-basic')!;
+// Zones du T-shirt (le type `Side` couvre aussi le pourtour du mug).
+const SIDES = productSides(product);
 
 /** Clé de zone dans les extras du GLB : `left-sleeve` (app) → `left_sleeve` (GLB). */
 const cleGlb = (side: string) => side.replace('-', '_');

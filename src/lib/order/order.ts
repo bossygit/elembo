@@ -67,7 +67,9 @@ export function deliveryDays(quantity: number, city: DeliveryCity = 'brazzaville
 /* ------------------------------------------------------------------ prix ------ */
 
 export const SIZE_ORDER = ['S', 'M', 'L', 'XL', 'XXL', '3XL'] as const;
-export type GarmentSize = (typeof SIZE_ORDER)[number];
+/** Produit sans tailles (mug, objet) : une seule ligne « taille unique ». */
+export const TAILLE_UNIQUE = ['TU'] as const;
+export type GarmentSize = (typeof SIZE_ORDER)[number] | (typeof TAILLE_UNIQUE)[number];
 
 export type SizeLine = { size: GarmentSize; quantity: number };
 
@@ -312,7 +314,7 @@ export function facesToProduce(order: Pick<OrderDraft, 'elements'>): Side[] {
 export function buildProductionSheet(order: OrderDraft, date = new Date()): ProductionSheet {
   const faces: ProductionFace[] = [];
   const totals = orderTotals({ lines: order.lines, unitPriceFcfa: order.unitPriceFcfa, city: order.city });
-  const profil: ProfilProduction = profilParId(order.profileId);
+  const profil: ProfilProduction = profilParId(order.profileId, order.product);
 
   for (const side of facesToProduce(order)) {
     const area = getPrintArea(order.product, side, profil.id);

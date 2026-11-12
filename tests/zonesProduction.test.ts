@@ -26,7 +26,7 @@ describe('profils de production — source unique', () => {
   it('le fichier production/profils.json est valide', () => {
     expect(validerProfils()).toEqual([]);
     expect(profilsJson.parDefaut).toBe(PROFIL_PAR_DEFAUT.id);
-    expect(PROFILS.map((p) => p.id)).toEqual(['dtf', 'flex', 'dtg', 'sublimation']);
+    expect(PROFILS.map((p) => p.id)).toEqual(['dtf', 'flex', 'dtg', 'sublimation', 'sublimation-mug', 'sublimation-mug-tour']);
     // Les procédés réellement vendus restent distingués des procédés à valider.
     expect(dtf.statut).toBe('disponible');
     expect(flex.statut).toBe('a-valider');
@@ -47,8 +47,10 @@ describe('profils de production — source unique', () => {
   });
 
   it('propose les cinq zones, même quand un procédé n’en autorise que deux', () => {
-    expect(zonesProposees(dtf)).toEqual(SIDES);
-    expect(zonesProposees(dtg)).toEqual(SIDES);
+    // Les cinq zones du T-shirt (le pourtour `wrap` est celui du mug, hors procédés textiles).
+    const zonesTshirt = SIDES.filter((side) => side !== 'wrap');
+    expect(zonesProposees(dtf)).toEqual(zonesTshirt);
+    expect(zonesProposees(dtg)).toEqual(zonesTshirt);
   });
 });
 

@@ -59,7 +59,7 @@ function CarteProjet({
   libelleRetirer: string;
 }) {
   const product = getProductById(projet.config.productId);
-  const profil = profilParId(projet.config.profileId);
+  const profil = profilParId(projet.config.profileId, product);
   return (
     <li data-testid="carte-projet" className="flex gap-3 rounded-2xl border border-encre/10 bg-white p-3 shadow-sm">
       <div className="h-[104px] w-[88px] shrink-0 overflow-hidden rounded-xl bg-sable">

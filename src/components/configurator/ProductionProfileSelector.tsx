@@ -13,9 +13,9 @@ import { useConfiguratorStore } from '../../stores/configurator-store';
 import { getPrintArea, getProductById } from '../../lib/products/catalog';
 import {
   LIBELLE_STATUT,
-  PROFILS,
   motifZone,
   profilParId,
+  profilsDuProduit,
   statutZone,
   zonesProposees,
 } from '../../lib/products/production';
@@ -33,7 +33,7 @@ export default function ProductionProfileSelector() {
   const profileId = useConfiguratorStore((s) => s.profileId);
   const setProfile = useConfiguratorStore((s) => s.setProfile);
   const product = getProductById(productId);
-  const profil = profilParId(profileId);
+  const profil = profilParId(profileId, product);
 
   if (!product) return null;
   // Les procédés n'ont de sens que pour le modèle à zones ; les autres produits gardent
@@ -43,7 +43,7 @@ export default function ProductionProfileSelector() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1.5" role="radiogroup" aria-label="Procédé de production">
-        {PROFILS.map((p) => {
+        {profilsDuProduit(product).map((p) => {
           const actif = p.id === profil.id;
           return (
             <button

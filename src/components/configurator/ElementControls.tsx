@@ -230,7 +230,7 @@ export default function ElementControls() {
   const element = elements.find((el) => el.id === selectedId) ?? null;
   const product = getProductById(productId);
   const zones = productSides(product);
-  const profil = profilParId(profileId);
+  const profil = profilParId(profileId, product);
 
   /** Espace de composition d'une zone (format de la texture), pour mesurer le débordement. */
   const spaceFor = (side: Side) => {
@@ -285,7 +285,7 @@ export default function ElementControls() {
 
       <div>
         <label htmlFor="element-zone" className="text-sm font-medium text-encre">
-          Zone du vêtement
+          Zone d’impression
         </label>
         <select
           id="element-zone"

@@ -31,7 +31,7 @@ export default function ExportPanel() {
   const [fait, setFait] = useState<Side[] | null>(null);
 
   const product = getProductById(productId);
-  const profil = profilParId(profileId);
+  const profil = profilParId(profileId, product);
   const faces = facesToProduce({ elements });
 
   async function exporter() {

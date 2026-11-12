@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "fixtures": "node scripts/e2e/make-fixtures.mjs",
+    "test:e2e": "node scripts/e2e/studio.mjs",
+    "zones:gabarits": "node scripts/prepare-zone-templates.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

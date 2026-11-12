@@ -1,0 +1,162 @@
+{
+  "test": "ELEMBO mug GLB in three.js / headless Chromium WebGL 2",
+  "date": "2026-11-12",
+  "product": "elembo-mug",
+  "model": {
+    "triangles": 24292,
+    "objects": [
+      "MUG_BODY",
+      "MUG_BOTTOM",
+      "MUG_HANDLE",
+      "MUG_INTERIOR",
+      "MUG_PRINT_SURFACE"
+    ],
+    "materials": [
+      "MAT_MUG_CERAMIC",
+      "MAT_MUG_BOTTOM",
+      "MAT_MUG_HANDLE",
+      "MAT_MUG_INTERIOR",
+      "MAT_MUG_PRINT"
+    ],
+    "bounds_m": {
+      "min": [
+        -0.04109993,
+        0.0,
+        -0.07857201
+      ],
+      "max": [
+        0.04109993,
+        0.095,
+        0.04109993
+      ],
+      "size": [
+        0.08219986,
+        0.095,
+        0.11967193
+      ]
+    },
+    "print_material": {
+      "name": "MAT_MUG_PRINT",
+      "color": "#FFFFFF",
+      "transparent": true,
+      "map": true,
+      "wrapS": 1000,
+      "wrapT": 1001,
+      "flipY": false,
+      "map_channel": 0,
+      "normal_map_channel": 1
+    },
+    "ceramic_materials": {
+      "exterior": {
+        "name": "MAT_MUG_CERAMIC",
+        "roughness": 0.105,
+        "metalness": 0.0
+      },
+      "interior": {
+        "name": "MAT_MUG_INTERIOR",
+        "roughness": 0.17,
+        "metalness": 0.0
+      },
+      "handle": {
+        "name": "MAT_MUG_HANDLE",
+        "roughness": 0.105,
+        "metalness": 0.0
+      },
+      "foot": {
+        "name": "MAT_MUG_BOTTOM",
+        "roughness": 0.26,
+        "metalness": 0.0
+      }
+    }
+  },
+  "viewer": "assets/3d/elembo-mug/viewer.html",
+  "browser": "Google Chrome 157.0.8103.51 headless / WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+  "viewport": {
+    "qc_screenshots": [
+      1600,
+      1200
+    ],
+    "final_load": [
+      1200,
+      900
+    ]
+  },
+  "screenshots": [
+    "browser-360-000.png",
+    "browser-360-090.png",
+    "browser-360-180.png",
+    "browser-360-270.png",
+    "browser-back.png",
+    "browser-colors-detail.png",
+    "browser-colors-interior.png",
+    "browser-front.png",
+    "browser-fullwrap-back.png",
+    "browser-fullwrap-front.png",
+    "browser-seam.png",
+    "browser-side-left.png",
+    "browser-side-right.png",
+    "browser-transparent-black.png",
+    "browser-uploaded-alpha.png",
+    "final-webgl-load.png"
+  ],
+  "tests": {
+    "glb_loads_in_three_js": true,
+    "webgl2_context_created": true,
+    "object_names_preserved": true,
+    "material_names_preserved": true,
+    "print_texture_runtime_replacement": true,
+    "front_art_upright_and_unmirrored": true,
+    "front_is_opposite_handle": true,
+    "left_and_right_artwork_independent": true,
+    "full_wrap_continuous_at_seam": true,
+    "seam_crossing_artwork_continuous": true,
+    "transparent_png_uploaded_and_decoded": true,
+    "ceramic_colors_independent_from_artwork": true,
+    "independent_exterior_interior_handle_foot_colors": true,
+    "handle_never_receives_print_texture": true,
+    "print_does_not_cover_rim_or_foot": true,
+    "turntable_360_degrees": true,
+    "no_page_errors": true
+  },
+  "surface_color_test": {
+    "exterior": "#B3262D",
+    "interior": "#EADFC8",
+    "handle": "#171719",
+    "foot": "#1E3A63",
+    "print_material_color": "#FFFFFF",
+    "print_texture_unchanged": true
+  },
+  "upload_test": {
+    "file": "transparent-test.png",
+    "type": "image/png",
+    "generated_in_page": true,
+    "alpha_background_preserved": true,
+    "stage": "upload"
+  },
+  "screenshots_note": "UI hidden with ?capture=1. Chrome runs under SwiftShader in this verification environment. The screenshots demonstrate alpha compositing, independent surfaces, full-wrap continuity and turntable views.",
+  "console": {
+    "errors": [],
+    "warnings": "Expected SwiftShader GPU-stall performance messages only; no JavaScript exceptions."
+  },
+  "final_load_check": {
+    "status": "pass",
+    "triangles": 24292,
+    "page_errors": [],
+    "objects": [
+      "MUG_BODY",
+      "MUG_BOTTOM",
+      "MUG_HANDLE",
+      "MUG_INTERIOR",
+      "MUG_PRINT_SURFACE"
+    ],
+    "print_texture": {
+      "wrapS": 1000,
+      "wrapT": 1001,
+      "flipY": false,
+      "mapChannel": 0,
+      "normalMapChannel": 1,
+      "materialColor": "#FFFFFF",
+      "transparent": true
+    }
+  }
+}

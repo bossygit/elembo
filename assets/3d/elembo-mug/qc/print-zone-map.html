@@ -1,0 +1,101 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;width:3072px;height:954px;overflow:hidden;background:#1e3a63}
+svg{display:block;width:3072px;height:954px}
+text{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif}
+.serif{font-family:Georgia,"Times New Roman",serif}
+.mono{font-family:Menlo,monospace}
+</style></head><body>
+<svg viewBox="0 0 3072 954" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="front" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff6b28"/><stop offset="1" stop-color="#e64605"/>
+    </linearGradient>
+    <linearGradient id="left" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a7b80"/><stop offset="1" stop-color="#174f55"/>
+    </linearGradient>
+    <linearGradient id="right" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c1913b"/><stop offset="1" stop-color="#8d6118"/>
+    </linearGradient>
+    <linearGradient id="back" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#284b7d"/><stop offset="1" stop-color="#142844"/>
+    </linearGradient>
+    <pattern id="hatch" width="28" height="28" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="28" height="28" fill="#1e3a63" fill-opacity=".6"/>
+      <path d="M0 0V28" stroke="#ff5a12" stroke-opacity=".9" stroke-width="8"/>
+    </pattern>
+    <pattern id="dots" width="54" height="54" patternUnits="userSpaceOnUse">
+      <circle cx="27" cy="27" r="2.3" fill="#f7f1e7" opacity=".22"/>
+    </pattern>
+  </defs>
+
+  <!-- four printable quadrants, edges meet at U=0 / 1 -->
+  <rect x="0" y="0" width="384" height="954" fill="url(#back)"/>
+  <rect x="2688" y="0" width="384" height="954" fill="url(#back)"/>
+  <rect x="384" y="0" width="768" height="954" fill="url(#left)"/>
+  <rect x="1152" y="0" width="768" height="954" fill="url(#front)"/>
+  <rect x="1920" y="0" width="768" height="954" fill="url(#right)"/>
+  <rect x="0" y="0" width="3072" height="954" fill="url(#dots)"/>
+
+  <!-- continuous wrap pinstripes -->
+  <rect x="0" y="56" width="3072" height="3" fill="#f7f1e7" opacity=".42"/>
+  <rect x="0" y="895" width="3072" height="3" fill="#f7f1e7" opacity=".42"/>
+
+  <!-- zone labels -->
+  <g fill="#f7f1e7">
+    <text x="192" y="510" text-anchor="middle" font-size="31" font-weight="700" letter-spacing="7">BACK / 03</text>
+    <text x="2880" y="510" text-anchor="middle" font-size="31" font-weight="700" letter-spacing="7">BACK / 03</text>
+    <text x="768" y="506" text-anchor="middle" font-size="35" font-weight="700" letter-spacing="8">LEFT / 04</text>
+    <text x="768" y="551" text-anchor="middle" font-size="17" letter-spacing="4" opacity=".7">U 0.25 · VIEWER LEFT</text>
+    <text x="2304" y="506" text-anchor="middle" font-size="35" font-weight="700" letter-spacing="8">RIGHT / 05</text>
+    <text x="2304" y="551" text-anchor="middle" font-size="17" letter-spacing="4" opacity=".7">U 0.75 · VIEWER RIGHT</text>
+  </g>
+
+  <!-- front lockup -->
+  <g fill="#fff8ee" text-anchor="middle">
+    <text x="1536" y="398" font-size="24" font-weight="700" letter-spacing="12">ZONE 02 · PRIMARY DISPLAY</text>
+    <text x="1536" y="520" class="serif" font-size="122">FRONT</text>
+    <text x="1536" y="579" font-size="20" font-weight="500" letter-spacing="7" opacity=".82">U 0.50 · OPPOSITE THE HANDLE</text>
+    <circle cx="1536" cy="690" r="38" fill="none" stroke="#fff8ee" stroke-width="2" opacity=".7"/>
+    <path d="M1536 638v104M1484 690h104" stroke="#fff8ee" stroke-width="1.4" opacity=".45"/>
+    <circle cx="1536" cy="690" r="4" fill="#fff8ee"/>
+  </g>
+
+  <!-- seam-crossing circle, centred on U = 1 / 0 -->
+  <g fill="none" stroke="#f7f1e7" stroke-opacity=".65" stroke-width="5">
+    <circle cx="0" cy="705" r="140"/>
+    <circle cx="3072" cy="705" r="140"/>
+  </g>
+  <g fill="#f7f1e7" font-weight="700" letter-spacing="4">
+    <text x="90" y="712" font-size="20">SEAM</text>
+    <text x="2982" y="712" text-anchor="end" font-size="20">SEAM</text>
+  </g>
+
+  <!-- safe print band, 4 mm top and bottom -->
+  <g stroke="#fff8ee" stroke-opacity=".55" stroke-width="2" stroke-dasharray="14 10" fill="none">
+    <line x1="0" y1="48" x2="3072" y2="48"/>
+    <line x1="0" y1="906" x2="3072" y2="906"/>
+  </g>
+
+  <!-- handle keep-out, exactly at the two attachment zones -->
+  <g fill="url(#hatch)">
+    <rect x="0" y="113" width="107.5" height="717"/>
+    <rect x="2964.5" y="113" width="107.5" height="717"/>
+  </g>
+  <g stroke="#ff5a12" stroke-opacity=".9" stroke-width="2" fill="none">
+    <rect x="0" y="113" width="107.5" height="717"/>
+    <rect x="2964.5" y="113" width="107.5" height="717"/>
+  </g>
+
+  <!-- caption / proof marks -->
+  <g fill="#fff8ee" font-family="Menlo,monospace" opacity=".6">
+    <text x="790" y="885" font-size="15">PRINT SURFACE TEST · SEAM AT U = 0 / 1 · FRONT AT U = 0.5</text>
+    <text x="1536" y="94" text-anchor="middle" font-size="15" letter-spacing="2">TOP OF MUG / RIM SIDE · glTF V = 0 · IMAGE TOP</text>
+    <text x="1536" y="866" text-anchor="middle" font-size="15" letter-spacing="2">BOTTOM OF PRINT / FOOT SIDE · glTF V = 1 · IMAGE BOTTOM</text>
+  </g>
+
+  <!-- registration ticks at corners -->
+  <g stroke="#fff8ee" stroke-opacity=".5" stroke-width="2">
+    <path d="M24 24h80M24 24v80M3048 24h-80M3048 24v80M24 930v-80M24 930h80M3048 930v-80M3048 930h-80"/>
+  </g>
+</svg>
+</body></html>

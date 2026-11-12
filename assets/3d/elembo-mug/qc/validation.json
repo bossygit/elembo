@@ -1,0 +1,303 @@
+{
+  "file": "public/models/elembo-mug/elembo-mug.glb",
+  "bytes": 718304,
+  "nodes": [
+    "MUG_BODY",
+    "MUG_BOTTOM",
+    "MUG_HANDLE",
+    "MUG_INTERIOR",
+    "MUG_PRINT_SURFACE",
+    "ELEMBO_MUG"
+  ],
+  "meshes": {
+    "MUG_BODY": {
+      "triangles": 10752,
+      "vertices": 5546,
+      "material": "MAT_MUG_CERAMIC",
+      "uvSets": [
+        "TEXCOORD_0"
+      ],
+      "bbox": {
+        "min": [
+          -0.041,
+          0.0,
+          -0.041
+        ],
+        "max": [
+          0.041,
+          0.095,
+          0.041
+        ]
+      }
+    },
+    "MUG_BOTTOM": {
+      "triangles": 3968,
+      "vertices": 2128,
+      "material": "MAT_MUG_BOTTOM",
+      "uvSets": [
+        "TEXCOORD_0"
+      ],
+      "bbox": {
+        "min": [
+          -0.040932,
+          7.6e-05,
+          -0.040932
+        ],
+        "max": [
+          0.040932,
+          0.007642,
+          0.040932
+        ]
+      }
+    },
+    "MUG_HANDLE": {
+      "triangles": 2276,
+      "vertices": 1179,
+      "material": "MAT_MUG_HANDLE",
+      "uvSets": [
+        "TEXCOORD_0"
+      ],
+      "bbox": {
+        "min": [
+          -0.006,
+          0.019193,
+          -0.078572
+        ],
+        "max": [
+          0.006,
+          0.078039,
+          -0.038498
+        ]
+      }
+    },
+    "MUG_INTERIOR": {
+      "triangles": 3712,
+      "vertices": 1999,
+      "material": "MAT_MUG_INTERIOR",
+      "uvSets": [
+        "TEXCOORD_0"
+      ],
+      "bbox": {
+        "min": [
+          -0.03686,
+          0.0065,
+          -0.03686
+        ],
+        "max": [
+          0.03686,
+          0.0942,
+          0.03686
+        ]
+      }
+    },
+    "MUG_PRINT_SURFACE": {
+      "triangles": 3584,
+      "vertices": 1935,
+      "material": "MAT_MUG_PRINT",
+      "uvSets": [
+        "TEXCOORD_0",
+        "TEXCOORD_1"
+      ],
+      "bbox": {
+        "min": [
+          -0.0411,
+          0.0075,
+          -0.0411
+        ],
+        "max": [
+          0.0411,
+          0.0875,
+          0.0411
+        ]
+      }
+    }
+  },
+  "checks": {
+    "one_uv_island": true,
+    "no_centroid_overlap": true,
+    "uv_covers_rectangle": true,
+    "v_zero_is_top": true,
+    "v_one_is_bottom": true,
+    "front_is_plus_z": true,
+    "back_is_minus_z_handle_side": true,
+    "left_is_minus_x_viewer_left": true,
+    "right_is_plus_x_viewer_right": true,
+    "print_above_foot": true,
+    "print_below_rim": true,
+    "print_material_separate": true,
+    "print_material_name": true,
+    "handle_never_gets_print_material": true,
+    "embedded_images": true,
+    "no_external_buffers": true,
+    "no_cameras_or_lights": true,
+    "no_animation": true,
+    "no_draco": true
+  },
+  "materials": [
+    "MAT_MUG_CERAMIC",
+    "MAT_MUG_BOTTOM",
+    "MAT_MUG_HANDLE",
+    "MAT_MUG_INTERIOR",
+    "MAT_MUG_PRINT"
+  ],
+  "extensionsUsed": [
+    "KHR_materials_clearcoat"
+  ],
+  "extensionsRequired": [],
+  "print_surface": {
+    "mesh": "MUG_PRINT_SURFACE",
+    "material": "MAT_MUG_PRINT",
+    "uv_bounds": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+    ],
+    "uv_area_sum": 1.0,
+    "uv_overlap_centroids": 0,
+    "uv_island_components": 1,
+    "uv0_image_orientation": {
+      "top_vertices_v": [
+        0.0
+      ],
+      "bottom_vertices_v": [
+        1.0
+      ]
+    },
+    "front_center_u": 0.5,
+    "world": {
+      "u_front": 0.5,
+      "u_back": 0.0,
+      "front_position": [
+        0.0,
+        0.0475,
+        0.041094
+      ],
+      "back_position": [
+        -0.0,
+        0.0475,
+        -0.041094
+      ],
+      "left_position": [
+        -0.041094,
+        0.0475,
+        0.0
+      ],
+      "right_position": [
+        0.041094,
+        0.0475,
+        0.0
+      ]
+    },
+    "glaze_uv_set": "TEXCOORD_1",
+    "glaze_uv_range": [
+      0.0,
+      -3.0,
+      13.0,
+      1.0
+    ]
+  },
+  "triangles_total": 24292,
+  "nodes_root": {
+    "children": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "extras": {
+      "elembo_version": "1.0",
+      "product_id": "mug-11oz",
+      "units": "meters",
+      "dimensions_mm": {
+        "height": 95.0,
+        "outer_diameter": 82.0,
+        "inner_diameter": 74.0,
+        "wall_thickness": 4.0,
+        "print_width": 257.6,
+        "print_height": 80.0
+      },
+      "colors": {
+        "white": "#F4F1EA",
+        "black": "#171719",
+        "cream": "#EADFC8",
+        "red": "#B3262D",
+        "blue": "#1E3A63",
+        "green": "#225C43",
+        "yellow": "#F0C33C",
+        "orange": "#FF5A12"
+      },
+      "color_names": {
+        "white": "Blanc",
+        "black": "Noir",
+        "cream": "Cr\u00e8me",
+        "red": "Rouge",
+        "blue": "Bleu",
+        "green": "Vert",
+        "yellow": "Jaune",
+        "orange": "Orange Elembo"
+      },
+      "default_color": "#F4F1EA",
+      "fabric_materials": [],
+      "ceramic_materials": [
+        "MAT_MUG_CERAMIC",
+        "MAT_MUG_INTERIOR",
+        "MAT_MUG_HANDLE",
+        "MAT_MUG_BOTTOM"
+      ],
+      "print_material": "MAT_MUG_PRINT",
+      "handle_center_u": 0.0,
+      "front_center_u": 0.5,
+      "print_mesh": "MUG_PRINT_SURFACE",
+      "uv_convention": "U=circumference, front U=0.5, handle/back seam U=0/1; glTF V=0 at rim, V=1 at foot",
+      "front_axis": "+Z",
+      "handle_axis": "-Z",
+      "up_axis": "+Y",
+      "origin": "centre of the base, on the floor"
+    },
+    "name": "ELEMBO_MUG"
+  },
+  "samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9987
+    }
+  ],
+  "textures": [
+    {
+      "sampler": 0,
+      "source": 0
+    },
+    {
+      "sampler": 0,
+      "source": 0
+    },
+    {
+      "sampler": 0,
+      "source": 0
+    },
+    {
+      "sampler": 0,
+      "source": 0
+    },
+    {
+      "sampler": 0,
+      "source": 0
+    },
+    {
+      "sampler": 0,
+      "source": 1
+    }
+  ],
+  "images": [
+    {
+      "name": "mug_glaze_normal",
+      "mimeType": "image/png"
+    },
+    {
+      "name": "print_placeholder",
+      "mimeType": "image/png"
+    }
+  ]
+}

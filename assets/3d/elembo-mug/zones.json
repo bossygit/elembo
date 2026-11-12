@@ -1,0 +1,310 @@
+{
+  "product": "elembo-mug",
+  "version": "1.0",
+  "units": "meters",
+  "uv": {
+    "u": "circumference; seam at back under the handle; U=0/1",
+    "v_gltf": "print height; glTF V=0 at the TOP/rim, V=1 at the BOTTOM/foot",
+    "image_orientation": "image top = rim side, image bottom = foot side",
+    "u_increases": "toward the viewer's right when looking at the front",
+    "front_u": 0.5,
+    "left_u": 0.25,
+    "right_u": 0.75,
+    "back_u": 0.0,
+    "texture_aspect": 3.220125786163522,
+    "recommended_texture_px": [
+      3072,
+      954
+    ],
+    "pixels_per_mm_at_recommended": 11.925,
+    "min_vertical_padding_mm": 4.0,
+    "horizontal_padding": "none: U=0/1 is a continuous wrap and must stay seamless"
+  },
+  "print_surface": {
+    "mesh": "MUG_PRINT_SURFACE",
+    "material": "MAT_MUG_PRINT",
+    "width_mm": 257.6,
+    "height_mm": 80.0,
+    "z0_mm": 7.5,
+    "z1_mm": 87.5,
+    "recommended_texture_px": [
+      3072,
+      954
+    ]
+  },
+  "zones": {
+    "full_wrap": {
+      "u": [
+        0.0,
+        1.0
+      ],
+      "v_gltf": [
+        0.0,
+        1.0
+      ],
+      "safe_v_gltf": [
+        0.05,
+        0.95
+      ],
+      "note": "Single continuous editing surface. No horizontal cut; U=0 and U=1 are the same seam."
+    },
+    "front": {
+      "u": [
+        0.375,
+        0.625
+      ],
+      "safe_u": [
+        0.3905,
+        0.6095
+      ],
+      "v_gltf": [
+        0.05,
+        0.95
+      ],
+      "center_u": 0.5,
+      "center_v_gltf": 0.5,
+      "center_deg": 0,
+      "center_world_mm": [
+        0.0,
+        47.5,
+        41.1
+      ],
+      "zone_band_mm": [
+        64.4,
+        80.0
+      ],
+      "safe_content_mm": [
+        56.4,
+        72.0
+      ]
+    },
+    "back": {
+      "u": [
+        [
+          0.0,
+          0.125
+        ],
+        [
+          0.875,
+          1.0
+        ]
+      ],
+      "safe_u": [
+        [
+          0.0,
+          0.1095
+        ],
+        [
+          0.8905,
+          1.0
+        ]
+      ],
+      "v_gltf": [
+        0.05,
+        0.95
+      ],
+      "center_u": 0.0,
+      "center_v_gltf": 0.5,
+      "center_deg": 180,
+      "center_world_mm": [
+        0.0,
+        47.5,
+        -41.1
+      ],
+      "split_at_seam": true,
+      "note": "Split by the handle: use both side lobes, or a design that intentionally crosses the seam."
+    },
+    "left": {
+      "u": [
+        0.125,
+        0.375
+      ],
+      "safe_u": [
+        0.1405,
+        0.3595
+      ],
+      "v_gltf": [
+        0.05,
+        0.95
+      ],
+      "center_u": 0.25,
+      "center_v_gltf": 0.5,
+      "center_deg": -90,
+      "center_world_mm": [
+        -41.1,
+        47.5,
+        0.0
+      ],
+      "zone_band_mm": [
+        64.4,
+        80.0
+      ],
+      "safe_content_mm": [
+        56.4,
+        72.0
+      ]
+    },
+    "right": {
+      "u": [
+        0.625,
+        0.875
+      ],
+      "safe_u": [
+        0.6405,
+        0.8595
+      ],
+      "v_gltf": [
+        0.05,
+        0.95
+      ],
+      "center_u": 0.75,
+      "center_v_gltf": 0.5,
+      "center_deg": 90,
+      "center_world_mm": [
+        41.1,
+        47.5,
+        0.0
+      ],
+      "zone_band_mm": [
+        64.4,
+        80.0
+      ],
+      "safe_content_mm": [
+        56.4,
+        72.0
+      ]
+    }
+  },
+  "handle": {
+    "center_u": 0.0,
+    "center_deg": 180,
+    "axis": "-Z",
+    "mesh": "MUG_HANDLE",
+    "material": "MAT_MUG_HANDLE",
+    "exclusion_u": [
+      [
+        0.0,
+        0.035
+      ],
+      [
+        0.965,
+        1.0
+      ]
+    ],
+    "exclusion_v_gltf": [
+      0.119,
+      0.87
+    ],
+    "exclusion_height_mm": [
+      18.0,
+      78.0
+    ],
+    "never_print_material": true
+  },
+  "colors": [
+    {
+      "name": "Blanc",
+      "id": "white",
+      "hex": "#F4F1EA"
+    },
+    {
+      "name": "Noir",
+      "id": "black",
+      "hex": "#171719"
+    },
+    {
+      "name": "Crème",
+      "id": "cream",
+      "hex": "#EADFC8"
+    },
+    {
+      "name": "Rouge",
+      "id": "red",
+      "hex": "#B3262D"
+    },
+    {
+      "name": "Bleu",
+      "id": "blue",
+      "hex": "#1E3A63"
+    },
+    {
+      "name": "Vert",
+      "id": "green",
+      "hex": "#225C43"
+    },
+    {
+      "name": "Jaune",
+      "id": "yellow",
+      "hex": "#F0C33C"
+    },
+    {
+      "name": "Orange Elembo",
+      "id": "orange",
+      "hex": "#FF5A12"
+    }
+  ],
+  "materials": {
+    "MAT_MUG_CERAMIC": "extérieur et bord",
+    "MAT_MUG_INTERIOR": "paroi intérieure et fond intérieur",
+    "MAT_MUG_HANDLE": "anse",
+    "MAT_MUG_BOTTOM": "dessous et pied",
+    "MAT_MUG_PRINT": "impression transparente plein tour"
+  },
+  "dimensions_mm": {
+    "width_x": 82.2,
+    "depth_y_with_handle": 119.67,
+    "height_z": 95.0,
+    "min": [
+      -41.1,
+      -41.1,
+      0.0
+    ],
+    "max": [
+      41.1,
+      78.57,
+      95.0
+    ],
+    "body_outer_diameter": 82.0,
+    "outer_diameter_including_print": 82.2,
+    "inner_diameter_lip": 73.7,
+    "inner_diameter_mid_wall": 74.0,
+    "wall_thickness": 4.0,
+    "foot_contact_diameter": 72.2,
+    "printable_width": 257.6,
+    "printable_height": 80.0,
+    "printable_z_above_base": [
+      7.5,
+      87.5
+    ],
+    "handle_reach_above_wall": 37.5
+  },
+  "capacity": {
+    "nominal_ml": 330,
+    "brimful_ml": 371.3,
+    "nominal_headspace_mm": 9.6
+  },
+  "coordinate_system": {
+    "up": "+Y",
+    "front": "+Z",
+    "handle": "-Z",
+    "origin": "centre of the base, on the floor",
+    "units": "meters"
+  },
+  "texture_usage": {
+    "print_material": "MAT_MUG_PRINT",
+    "basecolor_uv_set": "TEXCOORD_0 / UVMap",
+    "normal_uv_set": "TEXCOORD_1 / UV_GLAZE",
+    "flipY": false,
+    "wrapS": "REPEAT",
+    "wrapT": "CLAMP_TO_EDGE",
+    "colorSpace": "SRGBColorSpace"
+  },
+  "triangles": {
+    "MUG_BODY": 10752,
+    "MUG_INTERIOR": 3712,
+    "MUG_BOTTOM": 3968,
+    "MUG_PRINT_SURFACE": 3584,
+    "MUG_HANDLE": 2276
+  },
+  "total_triangles": 24292
+}

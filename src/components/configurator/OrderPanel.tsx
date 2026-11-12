@@ -29,6 +29,7 @@ import { downloadBlob, renderPrintPng } from '../../lib/canvas/export';
 import {
   DELIVERY,
   SIZE_ORDER,
+  TAILLE_UNIQUE,
   buildProductionSheet,
   deliveryDays,
   deliveryOption,
@@ -148,16 +149,21 @@ export default function OrderPanel() {
   );
 
   const product = getProductById(productId);
-  const profil = profilParId(profileId);
+  const profil = profilParId(profileId, product);
   const prixUnitaire = product?.priceFcfa ?? null;
   const paiementOuvert = paiementEnLigneOuvert(statutPrixProduit(productId));
   const images = useElementImages(elements);
 
+  // Un vêtement se commande par tailles ; un mug (ou un objet) en quantité seule.
+  const avecTailles = product?.tailles !== false;
+  const tailles: readonly GarmentSize[] = avecTailles ? SIZE_ORDER : TAILLE_UNIQUE;
+  const quantite = (taille: GarmentSize) => quantites[taille] ?? (taille === 'TU' ? 1 : 0);
+
   // Calculs purs et bon marché : pas de mémoïsation manuelle (le compilateur React préfère ça, et
   // la liste de tailles fait six entrées).
-  const lignes: SizeLine[] = SIZE_ORDER.filter((taille) => (quantites[taille] ?? 0) > 0).map((taille) => ({
+  const lignes: SizeLine[] = tailles.filter((taille) => quantite(taille) > 0).map((taille) => ({
     size: taille,
-    quantity: quantites[taille] ?? 0,
+    quantity: quantite(taille),
   }));
 
   const totals = orderTotals({ lines: lignes, unitPriceFcfa: prixUnitaire, city: ville });
@@ -355,16 +361,16 @@ export default function OrderPanel() {
       </div>
 
       <div>
-        <span className="text-sm font-medium text-encre">Tailles et quantités</span>
-        <div className="mt-1 grid grid-cols-3 gap-2 sm:grid-cols-6">
-          {SIZE_ORDER.map((taille) => (
+        <span className="text-sm font-medium text-encre">{avecTailles ? 'Tailles et quantités' : 'Quantité'}</span>
+        <div className={`mt-1 grid gap-2 ${avecTailles ? 'grid-cols-3 sm:grid-cols-6' : 'max-w-[8rem] grid-cols-1'}`}>
+          {tailles.map((taille) => (
             <label key={taille} className="flex flex-col gap-1 text-xs text-attenue">
-              {taille}
+              {avecTailles ? taille : 'Nombre de pièces'}
               <input
                 type="number"
                 min={0}
                 max={500}
-                value={quantites[taille] ?? 0}
+                value={quantite(taille)}
                 data-testid={`qte-${taille}`}
                 onChange={(e) =>
                   setQuantites((prev) => ({ ...prev, [taille as GarmentSize]: Math.max(0, Math.min(500, Number(e.target.value) || 0)) }))
@@ -518,6 +524,17 @@ export default function OrderPanel() {
           >
             Demander un devis →
           </Link>
+          <a
+            href={lienWhatsApp(
+              `Bonjour Elembo, j’ai personnalisé « ${product.name} » dans l’atelier 3D et je souhaite le commander. Je peux vous envoyer les fichiers exportés.`,
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid="commander-whatsapp"
+            className="mt-2 ml-4 inline-flex text-xs font-semibold underline underline-offset-4"
+          >
+            Commander sur WhatsApp →
+          </a>
         </div>
       )}
 

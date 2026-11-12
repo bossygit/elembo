@@ -6,13 +6,14 @@
 // compose dans l'ordre des calques ; Three.js ne reçoit qu'une texture finale.
 
 /**
- * Zone d'impression du vêtement. Le nom historique `Side` est conservé (il est utilisé
- * partout) ; un T-shirt Elembo en expose cinq, un produit plus simple seulement avant/dos.
+ * Zone d'impression du produit. Le nom historique `Side` est conservé (il est utilisé
+ * partout) ; un T-shirt Elembo en expose cinq, un produit plus simple seulement avant/dos,
+ * un mug une seule : son pourtour (`wrap`).
  */
-export type Side = 'front' | 'back' | 'left-sleeve' | 'right-sleeve' | 'collar';
+export type Side = 'front' | 'back' | 'left-sleeve' | 'right-sleeve' | 'collar' | 'wrap';
 
 /** Ordre d'affichage et de production des zones. */
-export const SIDES: Side[] = ['front', 'back', 'left-sleeve', 'right-sleeve', 'collar'];
+export const SIDES: Side[] = ['front', 'back', 'left-sleeve', 'right-sleeve', 'collar', 'wrap'];
 
 export const SIDE_LABELS: Record<Side, string> = {
   front: 'Face avant',
@@ -20,6 +21,7 @@ export const SIDE_LABELS: Record<Side, string> = {
   'left-sleeve': 'Manche gauche',
   'right-sleeve': 'Manche droite',
   collar: 'Intérieur du col',
+  wrap: 'Pourtour du mug',
 };
 
 /** Libellé court (navigation, pastilles). */
@@ -29,6 +31,7 @@ export const SIDE_SHORT: Record<Side, string> = {
   'left-sleeve': 'Manche G.',
   'right-sleeve': 'Manche D.',
   collar: 'Col',
+  wrap: 'Pourtour',
 };
 
 /** Nom du fichier de production d'une zone (sans la référence de commande). */
@@ -38,6 +41,7 @@ export const SIDE_FILE: Record<Side, string> = {
   'left-sleeve': 'left-sleeve.png',
   'right-sleeve': 'right-sleeve.png',
   collar: 'collar.png',
+  wrap: 'wrap.png',
 };
 
 export function isSide(value: unknown): value is Side {

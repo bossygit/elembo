@@ -8,9 +8,9 @@ import { paiementEnLigneOuvert } from '../../lib/commerce/catalogue';
 import { statutPrixProduit } from '../../lib/tarifs/grille';
 
 export const metadata: Metadata = {
-  title: 'Atelier de personnalisation textile',
+  title: 'Atelier de personnalisation',
   description:
-    'Composez votre T-shirt Elembo en 3D : cinq zones d’impression (avant, dos, manches, col), couleur, textes et images. Aperçu temps réel, procédé de production réel, fabrication à Brazzaville.',
+    'Composez votre T-shirt ou votre mug Elembo en 3D : zones d’impression, couleur, textes et images. Aperçu temps réel, procédé de production réel, fabrication à Brazzaville.',
 };
 
 export default function PersonnalisationPage() {
@@ -23,11 +23,11 @@ export default function PersonnalisationPage() {
           <div className="flex min-w-0 items-center gap-3">
             <span className="hidden sm:inline-flex"><Etiquette sombre>L’atelier de création</Etiquette></span>
             <h1 className="titre-editorial text-xl text-creme sm:text-3xl">
-              Composez <span className="accent-serif text-orange">votre textile.</span>
+              Composez <span className="accent-serif text-orange">votre création.</span>
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-creme/65">
-            <span><strong className="text-creme">5 zones</strong> · avant, dos, manches, col</span>
+            <span><strong className="text-creme">T-shirt</strong> · 5 zones · <strong className="text-creme">Mug</strong> · pourtour</span>
             <span aria-hidden className="hidden text-orange sm:inline">✦</span>
             <span><strong className="text-creme">Aperçu 3D</strong> temps réel</span>
             <span aria-hidden className="hidden text-orange sm:inline">✦</span>

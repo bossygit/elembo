@@ -55,7 +55,7 @@ function HexField({ value, onCommit }: { value: string; onCommit: (hex: string) 
           onKeyDown={(e) => {
             if (e.key === 'Enter') commit();
           }}
-          aria-label="Code hexadécimal de la couleur du vêtement"
+          aria-label="Code hexadécimal de la couleur du produit"
           data-testid="product-color-hex"
           className="w-[88px] rounded-lg border border-encre/25 px-2 py-1 font-mono text-xs uppercase text-encre focus:border-encre"
         />
@@ -74,7 +74,7 @@ export default function ProductColorSelector() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Couleur du vêtement">
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Couleur du produit">
         {product.colors.map((c) => {
           const selected = c.hex.toLowerCase() === color.toLowerCase();
           return (
@@ -108,7 +108,7 @@ export default function ProductColorSelector() {
       </div>
       <HexField value={color} onCommit={setColor} />
       <p className="text-[11px] leading-snug text-attenue">
-        La couleur du tissu ne modifie jamais les visuels imprimés : ils restent tels qu’ils
+        La couleur du produit ne modifie jamais les visuels imprimés : ils restent tels qu’ils
         ont été composés.
       </p>
     </div>

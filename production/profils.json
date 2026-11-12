@@ -3,6 +3,8 @@
   "maj": "2026-11-12",
   "note": "SOURCE UNIQUE DES CAPACITÉS DE PRODUCTION. L'atelier 3D laisse composer sur les cinq zones du vêtement ; ce fichier dit ce qui est RÉELLEMENT imprimable, avec quel procédé et à quelle taille. Statuts : « disponible » = commandable ; « a-valider » = prévu mais non confirmé par l'atelier (composition et aperçu possibles, commande bloquée) ; « indisponible » = non proposé. Ne passer une zone ou un procédé à « disponible » qu'après validation par l'atelier ou le prestataire. Repères : « col » = creux du col sur l'axe médian, « epaule » = tête de manche, « haut » = bord haut de la zone. hautCm = distance entre ce repère et le haut de la zone imprimable.",
   "parDefaut": "dtf",
+  "notesSupports": "Chaque procédé s'applique à un type de support (champ « supports », « textile » par défaut). Le procédé proposé d'emblée pour un support est donné par « parDefautParSupport ».",
+  "parDefautParSupport": { "textile": "dtf", "mug": "sublimation-mug" },
   "profils": [
     {
       "id": "dtf",
@@ -82,6 +84,44 @@
         "left-sleeve": { "statut": "a-valider", "pleine": true },
         "right-sleeve": { "statut": "a-valider", "pleine": true },
         "collar": { "statut": "a-valider", "pleine": true }
+      }
+    },
+    {
+      "id": "sublimation-mug",
+      "nom": "Sublimation — face visible",
+      "supports": ["mug"],
+      "description": "Encre de sublimation transférée à chaud sur un mug céramique à revêtement polyester : visuel centré à l'opposé de l'anse.",
+      "statut": "a-valider",
+      "note": "Presse à mug et mugs à revêtement sublimable à confirmer avec l'atelier.",
+      "dpi": 300,
+      "zones": {
+        "wrap": {
+          "statut": "a-valider",
+          "largeurCm": 20,
+          "hauteurCm": 7.2,
+          "repere": "haut",
+          "hautCm": 0.4,
+          "note": "Face visible du mug (20 × 7,2 cm, marges de 4 mm) : à valider avec l'atelier."
+        }
+      }
+    },
+    {
+      "id": "sublimation-mug-tour",
+      "nom": "Sublimation — tour complet",
+      "supports": ["mug"],
+      "description": "Visuel sur tout le pourtour du mug, en laissant libre la zone de l'anse.",
+      "statut": "a-valider",
+      "note": "Presse à mug et mugs à revêtement sublimable à confirmer avec l'atelier.",
+      "dpi": 300,
+      "zones": {
+        "wrap": {
+          "statut": "a-valider",
+          "largeurCm": 23.8,
+          "hauteurCm": 7.2,
+          "repere": "haut",
+          "hautCm": 0.4,
+          "note": "Tour complet hors zone de l'anse (23,8 × 7,2 cm) : à valider avec l'atelier."
+        }
       }
     }
   ]

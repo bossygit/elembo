@@ -283,7 +283,8 @@ describe('fiche de production', () => {
 
 describe('le catalogue permet de commander', () => {
   it('chaque produit vendable a un prix unitaire en FCFA', () => {
-    for (const p of CATALOG) {
+    // Les produits « sur devis » (mug) n'ont volontairement pas de prix : voir coherenceCatalogues.
+    for (const p of CATALOG.filter((produit) => produit.venteEnLigne !== false)) {
       expect(typeof p.priceFcfa, `prix manquant pour ${p.id}`).toBe('number');
       expect(p.priceFcfa).toBeGreaterThan(0);
     }

@@ -72,7 +72,7 @@ export function prepareZonesScene(scene: THREE.Object3D, product: Product): Zone
     if (!mesh || !(mesh as THREE.Mesh).isMesh) continue;
     const material = materialsOf(mesh as THREE.Mesh)[0];
     if (!material) continue;
-    preparerMateriauImpression(material);
+    preparerMateriauImpression(material, product.impressionBrillante === true);
     // Les surfaces d'impression sont des copies de la surface du tissu, décalées de 0,4 mm.
     // Les faire projeter une ombre produirait de l'acné d'ombre sur le tissu : elles
     // n'ombrent pas, elles ne reçoivent pas non plus (leur occlusion vient de l'UV 1).
@@ -91,19 +91,21 @@ export function prepareZonesScene(scene: THREE.Object3D, product: Product): Zone
 }
 
 /**
- * Réglages de la matière d'impression : encre mate, transparence, face avant seulement.
+ * Réglages de la matière d'impression : transparence, face avant seulement ; encre mate sur
+ * textile, finition d'origine (émail brillant, vernis) quand l'impression est brillante.
  *
  * Le GLB est déjà en `alphaMode: BLEND` ; on force malgré tout les propriétés utiles et on
  * N'ÉCRASE PAS les textures de relief (normalMap / aoMap sur TEXCOORD_1) : l'encre suit
  * ainsi les plis du tissu.
  */
-function preparerMateriauImpression(material: THREE.MeshStandardMaterial): void {
+function preparerMateriauImpression(material: THREE.MeshStandardMaterial, brillante = false): void {
   material.color.set('#FFFFFF'); // la couleur du vêtement ne doit jamais teinter l'encre
   material.transparent = true;
   material.alphaTest = 0;
   material.depthWrite = false;
   material.side = THREE.FrontSide;
-  material.roughness = Math.min(1, Math.max(0.7, material.roughness ?? 0.82));
+  // Textile : encre mate. Mug : la sublimation est sous l'émail, on garde le brillant du GLB.
+  if (!brillante) material.roughness = Math.min(1, Math.max(0.7, material.roughness ?? 0.82));
   material.metalness = 0;
   // Les surfaces d'impression sont à 0,4 mm du tissu : sans décalage de profondeur, elles
   // scintillent selon l'angle de vue.

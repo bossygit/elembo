@@ -100,7 +100,7 @@ export default function Configurator() {
   const projet = useProjet();
 
   const product = getProductById(productId);
-  const profil = profilParId(profileId);
+  const profil = profilParId(profileId, product);
   const zones = productSides(product);
   const faces = facesToProduce({ elements });
   const nbZonesPersonnalisees = faces.length;
@@ -130,7 +130,9 @@ export default function Configurator() {
   }, [product]);
 
   const revenirAuCadrage = useCallback(() => {
-    setSide('front');
+    // Première zone du produit courant (un mug n'a pas de « face avant »).
+    const courant = getProductById(useConfiguratorStore.getState().productId);
+    setSide(productSides(courant)[0] ?? 'front');
     setCameraNonce((n) => n + 1);
   }, [setSide]);
 
@@ -226,7 +228,7 @@ export default function Configurator() {
                 {zones.length > 2 ? ` · ${zones.length} zones disponibles` : ''}
               </span>
               <span className="hidden sm:inline">
-                Sélectionner une zone présente automatiquement la bonne face du vêtement.
+                Sélectionner une zone présente automatiquement la bonne face du produit.
               </span>
             </p>
           </section>
@@ -323,10 +325,10 @@ export default function Configurator() {
                 <div className="flex flex-col gap-5">
                   <section>
                     <h2 className="mb-2 text-sm font-semibold text-encre">Modèle</h2>
-                    <ProductSelector />
+                    <ProductSelector onChangerDeSupport={(id) => void projet.ouvrirProduit(id)} />
                   </section>
                   <section className="border-t border-encre/10 pt-4">
-                    <h2 className="mb-2 text-sm font-semibold text-encre">Couleur du vêtement</h2>
+                    <h2 className="mb-2 text-sm font-semibold text-encre">Couleur du produit</h2>
                     <ProductColorSelector />
                   </section>
                   <section className="border-t border-encre/10 pt-4">

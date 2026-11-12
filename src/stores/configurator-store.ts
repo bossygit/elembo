@@ -25,7 +25,7 @@ import type {
 import { ELEMENT_LIMITS, isSide } from '../types/configurator';
 import { CATALOG, DEFAULT_PRODUCT_ID, getPrintArea, getProductById, productSides } from '../lib/products/catalog';
 import type { Product } from '../lib/products/catalog';
-import { PROFIL_PAR_DEFAUT, profilParId } from '../lib/products/production';
+import { PROFIL_PAR_DEFAUT, profilParDefautDuProduit, profilParId } from '../lib/products/production';
 import {
   clampElement,
   compositionSize,
@@ -244,10 +244,14 @@ export const useConfiguratorStore = create<ConfiguratorState>()((set, get) => ({
     const elements = get().elements.map((el) =>
       disponibles.includes(el.side) ? el : { ...el, side: zoneDeRepli(product) },
     );
-    const base = { productId: product.id, profileId: get().profileId, measure: get().measure };
+    // Le procédé doit s'appliquer au produit (un mug ne se presse pas en DTF textile) :
+    // on garde celui en cours s'il convient, sinon le procédé par défaut du produit.
+    const profileId = profilParId(get().profileId, product).id;
+    const base = { productId: product.id, profileId, measure: get().measure };
     // Changer de produit = nouveau projet : l'historique du précédent n'a plus de sens.
     set({
       productId: product.id,
+      profileId,
       color: product.colors[0].hex,
       side,
       elements: clampAll(base, elements),
@@ -271,7 +275,8 @@ export const useConfiguratorStore = create<ConfiguratorState>()((set, get) => ({
   },
 
   setProfile: (id) => {
-    const profil = profilParId(id);
+    // Seuls les procédés du produit courant sont acceptés.
+    const profil = profilParId(id, getProductById(get().productId));
     if (profil.id === get().profileId) return;
     const state = get();
     const historique = pushHistory(state, 'profile');
@@ -505,7 +510,10 @@ export const useConfiguratorStore = create<ConfiguratorState>()((set, get) => ({
     if (!hex) errors.push('couleur invalide');
     if (errors.length) return { ok: false, errors, warnings };
 
-    const profil = profilParId(c.profileId ?? undefined);
+    const profil = c.profileId ? profilParId(c.profileId, product) : profilParDefautDuProduit(product);
+    if (c.profileId && profil.id !== c.profileId) {
+      warnings.push(`procédé « ${c.profileId} » non applicable à ce produit : repli sur « ${profil.nom} »`);
+    }
 
     const brut = Array.isArray(c.elements)
       ? c.elements

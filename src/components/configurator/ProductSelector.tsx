@@ -4,11 +4,23 @@
 // hoodie ou un tote bag se fait dans src/lib/products/catalog.ts, sans toucher ici.
 
 import { useConfiguratorStore } from '../../stores/configurator-store';
-import { CATALOG } from '../../lib/products/catalog';
+import { CATALOG, getProductById } from '../../lib/products/catalog';
 
-export default function ProductSelector() {
+/**
+ * `onChangerDeSupport` : passer d'un vêtement à un mug n'a pas de sens pour les éléments posés
+ * (cinq zones de tissu → un pourtour de céramique). Dans ce cas le studio ouvre un projet
+ * vierge et met le travail en cours de côté ; entre deux vêtements, les éléments suivent.
+ */
+export default function ProductSelector({ onChangerDeSupport }: { onChangerDeSupport?: (id: string) => void } = {}) {
   const productId = useConfiguratorStore((s) => s.productId);
   const setProduct = useConfiguratorStore((s) => s.setProduct);
+
+  function choisir(id: string) {
+    const actuel = getProductById(productId)?.support ?? 'textile';
+    const cible = getProductById(id)?.support ?? 'textile';
+    if (onChangerDeSupport && actuel !== cible) onChangerDeSupport(id);
+    else setProduct(id);
+  }
 
   if (CATALOG.length < 2) {
     return (
@@ -25,7 +37,8 @@ export default function ProductSelector() {
           key={p.id}
           type="button"
           aria-pressed={p.id === productId}
-          onClick={() => setProduct(p.id)}
+          data-testid={`produit-${p.id}`}
+          onClick={() => choisir(p.id)}
           className={`min-h-10 rounded-full px-4 py-2 text-sm font-semibold transition-colors duration-200 ${
             p.id === productId ? 'bg-orange text-encre' : 'border border-encre/20 bg-white text-encre hover:border-encre'
           }`}

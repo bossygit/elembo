@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T-shirt Elembo — banc d'essai Three.js</title>
+<!--
+  Banc d'essai du modèle public/models/elembo-tshirt/elembo-tshirt.glb.
+  Servir la RACINE du dépôt puis ouvrir cette page :
+      python3 -m http.server 8765
+      http://localhost:8765/scripts/blender/elembo-tshirt/viewer.html
+  Paramètres : ?view=front|back|tq|left|right|collar  &color=%23FF5A12  &test=1 (visuels de test)
+  Diagnostic : window.__elemboQC (noms, canaux UV, extensions, zones).
+-->
+<style>
+  html, body { margin: 0; height: 100%; background: #e6e4e0; font: 14px/1.4 system-ui, sans-serif; color: #110d15; }
+  canvas { display: block; }
+  #ui { position: fixed; left: 12px; top: 12px; display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100% - 24px); }
+  #ui button { border: 1px solid #110d1533; background: #fbf7ee; border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+  #ui input { height: 30px; width: 44px; border: 0; background: none; }
+  body.capture #ui { display: none; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "/node_modules/three/build/three.module.js",
+  "three/addons/": "/node_modules/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="ui"></div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const params = new URLSearchParams(location.search);
+if (params.has('view')) document.body.classList.add('capture');
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.NeutralToneMapping; // couleurs des visuels restituées sans dérive
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#e6e4e0');
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.9;
+const key = new THREE.DirectionalLight('#ffffff', 1.2);
+key.position.set(-1.5, 2, 2.5);
+scene.add(key);
+
+const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.01, 50);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+// ── Le modèle ────────────────────────────────────────────────────────────────
+const ZONES = {
+  front: 'TSHIRT_FRONT_PRINT',
+  back: 'TSHIRT_BACK_PRINT',
+  left_sleeve: 'TSHIRT_LEFT_SLEEVE_PRINT',
+  right_sleeve: 'TSHIRT_RIGHT_SLEEVE_PRINT',
+  collar: 'TSHIRT_COLLAR_PRINT',
+};
+const FABRIC_MATERIALS = ['FABRIC', 'FABRIC_RIB'];
+
+const gltf = await new GLTFLoader().loadAsync('/public/models/elembo-tshirt/elembo-tshirt.glb');
+const root = gltf.scene.getObjectByName('ELEMBO_TSHIRT');
+scene.add(gltf.scene);
+
+const fabricMaterials = [];
+root.traverse((o) => {
+  if (!o.isMesh) return;
+  for (const m of [o.material].flat()) if (FABRIC_MATERIALS.includes(m.name)) fabricMaterials.push(m);
+});
+
+/** Couleur du tissu : seul `color` des matériaux FABRIC* change ; les impressions sont des matériaux distincts. */
+function setFabricColor(hex) {
+  for (const m of fabricMaterials) m.color.set(hex);
+}
+
+/** Remplace la texture d'une zone. `source` : image, canvas ou ImageBitmap posé « à l'endroit ». */
+function setPrint(zone, source) {
+  const mesh = root.getObjectByName(ZONES[zone]);
+  const tex = new THREE.Texture(source);
+  tex.flipY = false; // convention glTF : origine des UV en haut à gauche
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+  tex.needsUpdate = true;
+  mesh.material.map?.dispose();
+  mesh.material.map = tex;
+  mesh.material.needsUpdate = true;
+}
+
+async function loadImage(url) {
+  const img = new Image();
+  img.src = url;
+  await img.decode();
+  return img;
+}
+
+// ── Cadrage ──────────────────────────────────────────────────────────────────
+const box = new THREE.Box3().setFromObject(root.getObjectByName('TSHIRT_BODY'));
+const size = box.getSize(new THREE.Vector3());
+const center = box.getCenter(new THREE.Vector3());
+const fit = (Math.max(size.y, size.x * camera.aspect ** -1) / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) * 1.15;
+const VIEWS = {
+  front: [0, 0.04, 1],
+  back: [0, 0.04, -1],
+  tq: [-0.6, 0.15, 1],
+  left: [1, 0.35, 0.3],
+  right: [-1, 0.35, 0.3],
+  collar: [0, 0.8, 1],
+};
+function view(name) {
+  const d = new THREE.Vector3(...VIEWS[name]).normalize();
+  let target = center.clone();
+  let dist = fit;
+  if (name === 'left' || name === 'right') {
+    target = new THREE.Box3().setFromObject(root.getObjectByName(name === 'left' ? ZONES.left_sleeve : ZONES.right_sleeve)).getCenter(new THREE.Vector3());
+    dist = fit * 0.6;
+  }
+  if (name === 'collar') {
+    target = new THREE.Vector3(0, box.max.y - 0.06, -0.05);
+    dist = fit * 0.32;
+  }
+  camera.position.copy(target).addScaledVector(d, dist);
+  controls.target.copy(target);
+  controls.update();
+}
+
+// ── Interface ────────────────────────────────────────────────────────────────
+const ui = document.getElementById('ui');
+const COLORS = Object.entries(root.userData.colors ?? {});
+for (const [name, hex] of COLORS) {
+  const b = document.createElement('button');
+  b.textContent = name;
+  b.style.borderLeft = `14px solid ${hex}`;
+  b.onclick = () => setFabricColor(hex);
+  ui.append(b);
+}
+const custom = Object.assign(document.createElement('input'), { type: 'color', value: '#ff5a12', title: 'Couleur personnalisée' });
+custom.oninput = () => setFabricColor(custom.value);
+ui.append(custom);
+for (const v of Object.keys(VIEWS)) {
+  const b = document.createElement('button');
+  b.textContent = v;
+  b.onclick = () => view(v);
+  ui.append(b);
+}
+const testBtn = document.createElement('button');
+testBtn.textContent = 'Visuels de test';
+testBtn.onclick = () => applyTests();
+ui.append(testBtn);
+
+async function applyTests() {
+  for (const zone of Object.keys(ZONES)) {
+    setPrint(zone, await loadImage(`/assets/3d/elembo-tshirt/qc/test-${zone.replace('_', '-')}.png`));
+  }
+}
+
+// ── Diagnostic ───────────────────────────────────────────────────────────────
+const meshes = [];
+root.traverse((o) => {
+  if (o.isMesh) {
+    const m = o.material;
+    meshes.push({
+      mesh: o.name,
+      parent: o.parent?.name,
+      material: m.name,
+      type: m.type,
+      transparent: m.transparent,
+      side: m.side,
+      uvSets: Object.keys(o.geometry.attributes).filter((a) => a.startsWith('uv')),
+      mapChannel: m.map?.channel ?? null,
+      normalMapChannel: m.normalMap?.channel ?? null,
+      normalRepeat: m.normalMap ? m.normalMap.repeat.toArray().map((v) => +v.toFixed(2)) : null,
+      aoMapChannel: m.aoMap?.channel ?? null,
+      triangles: o.geometry.index ? o.geometry.index.count / 3 : o.geometry.attributes.position.count / 3,
+      zone: o.userData.zone ?? null,
+      printCm: o.userData.print_width_cm ? [o.userData.print_width_cm, o.userData.print_height_cm] : null,
+    });
+  }
+});
+window.__elemboQC = { ready: false, meshes, colors: root.userData.colors, size: size.toArray().map((v) => +v.toFixed(3)) };
+
+if (params.get('color')) setFabricColor(params.get('color'));
+if (params.get('test') === '1') await applyTests();
+view(params.get('view') ?? 'front');
+window.__elemboQC.ready = true;
+
+renderer.setAnimationLoop(() => {
+  controls.update();
+  renderer.render(scene, camera);
+});
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>

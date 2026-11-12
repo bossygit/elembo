@@ -1,0 +1,214 @@
+{
+  "zones": {
+    "front": {
+      "zone": "front",
+      "mesh": "TSHIRT_FRONT_PRINT",
+      "material": "PRINT_FRONT",
+      "print_width_cm": 63.2,
+      "print_height_cm": 79.0,
+      "aspect": 0.8,
+      "recommended_texture_px": [
+        1580,
+        1975
+      ],
+      "uv_set": "TEXCOORD_0 (UV_PRINT)",
+      "inside": false
+    },
+    "back": {
+      "zone": "back",
+      "mesh": "TSHIRT_BACK_PRINT",
+      "material": "PRINT_BACK",
+      "print_width_cm": 62.4,
+      "print_height_cm": 78.0,
+      "aspect": 0.8,
+      "recommended_texture_px": [
+        1560,
+        1950
+      ],
+      "uv_set": "TEXCOORD_0 (UV_PRINT)",
+      "inside": false
+    },
+    "left_sleeve": {
+      "zone": "left_sleeve",
+      "mesh": "TSHIRT_LEFT_SLEEVE_PRINT",
+      "material": "PRINT_LEFT_SLEEVE",
+      "print_width_cm": 60.0,
+      "print_height_cm": 30.0,
+      "aspect": 2.0,
+      "recommended_texture_px": [
+        1200,
+        600
+      ],
+      "uv_set": "TEXCOORD_0 (UV_PRINT)",
+      "inside": false
+    },
+    "right_sleeve": {
+      "zone": "right_sleeve",
+      "mesh": "TSHIRT_RIGHT_SLEEVE_PRINT",
+      "material": "PRINT_RIGHT_SLEEVE",
+      "print_width_cm": 60.0,
+      "print_height_cm": 30.0,
+      "aspect": 2.0,
+      "recommended_texture_px": [
+        1200,
+        600
+      ],
+      "uv_set": "TEXCOORD_0 (UV_PRINT)",
+      "inside": false
+    },
+    "collar": {
+      "zone": "collar",
+      "mesh": "TSHIRT_COLLAR_PRINT",
+      "material": "PRINT_COLLAR",
+      "print_width_cm": 12.0,
+      "print_height_cm": 6.7,
+      "aspect": 1.79,
+      "recommended_texture_px": [
+        478,
+        267
+      ],
+      "uv_set": "TEXCOORD_0 (UV_PRINT)",
+      "inside": true
+    }
+  },
+  "colors": [
+    {
+      "name": "Blanc",
+      "id": "white",
+      "hex": "#F4F3EF"
+    },
+    {
+      "name": "Noir",
+      "id": "black",
+      "hex": "#1A1A1C"
+    },
+    {
+      "name": "Gris chiné",
+      "id": "grey",
+      "hex": "#9C9EA1"
+    },
+    {
+      "name": "Bleu marine",
+      "id": "navy",
+      "hex": "#1F2A44"
+    },
+    {
+      "name": "Rouge",
+      "id": "red",
+      "hex": "#B3202A"
+    },
+    {
+      "name": "Vert",
+      "id": "green",
+      "hex": "#1E5E3B"
+    },
+    {
+      "name": "Jaune",
+      "id": "yellow",
+      "hex": "#F2C230"
+    },
+    {
+      "name": "Orange Elembo",
+      "id": "orange",
+      "hex": "#FF5A12"
+    }
+  ],
+  "atlas": {
+    "meters_per_uv": 1.2969872617721558,
+    "texture": "fabric_atlas_basecolor.png"
+  },
+  "triangles": {
+    "TSHIRT_BODY": 27236,
+    "TSHIRT_FRONT_PRINT": 5453,
+    "TSHIRT_BACK_PRINT": 5643,
+    "TSHIRT_LEFT_SLEEVE_PRINT": 1080,
+    "TSHIRT_RIGHT_SLEEVE_PRINT": 1080,
+    "TSHIRT_COLLAR_PRINT": 108
+  },
+  "report": {
+    "unwrap": {
+      "front": {
+        "det": 1.0,
+        "area_m2": 0.397
+      },
+      "back": {
+        "det": 1.0,
+        "area_m2": 0.4098
+      },
+      "left_sleeve": {
+        "det": 1.0,
+        "area_m2": 0.092
+      },
+      "right_sleeve": {
+        "det": 1.0,
+        "area_m2": 0.092
+      }
+    },
+    "collar_length_m": 0.5410298490263451,
+    "stretch_pattern_vs_3d": {
+      "front": {
+        "median": 0.995,
+        "p05": 0.944,
+        "p95": 1.07
+      },
+      "back": {
+        "median": 0.99,
+        "p05": 0.93,
+        "p95": 1.077
+      },
+      "left_sleeve": {
+        "median": 0.998,
+        "p05": 0.873,
+        "p95": 1.043
+      },
+      "right_sleeve": {
+        "median": 0.998,
+        "p05": 0.877,
+        "p95": 1.044
+      },
+      "collar_rib": {
+        "median": 0.996,
+        "p05": 0.896,
+        "p95": 1.051
+      }
+    },
+    "atlas_meters_per_uv": 1.2969872617721558
+  },
+  "print_rects_pattern_m": {
+    "1": [
+      -0.315835416674614,
+      -0.016998617309145647,
+      0.6320000000000001,
+      0.79
+    ],
+    "2": [
+      -0.31222746622562414,
+      -0.015141408527269973,
+      0.6240000000000001,
+      0.78
+    ],
+    "3": [
+      -0.026650881581008423,
+      -0.022729214373975987,
+      0.6,
+      0.3
+    ],
+    "4": [
+      -0.026650918833911408,
+      -0.022729214839637274,
+      0.6,
+      0.3
+    ],
+    "collar": [
+      -0.060231540352106094,
+      0.6473413109779358,
+      0.11960594356060028,
+      0.0668191909790039
+    ]
+  },
+  "center_offset_m": [
+    -0.000293731689453125,
+    -0.020070701837539673,
+    0.3556824326515198
+  ]
+}

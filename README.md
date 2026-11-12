@@ -16,7 +16,8 @@ Par Smart Vision Congo (SARLU enregistrée en République du Congo).
 |---|---|
 | `/` | accueil commercial : promesse, familles, produits, processus, CTA |
 | `/boutique` | catalogue unifié (textile, tableaux, impression, services) |
-| `/personnalisation` | configurateur 3D et tunnel textile |
+| `/personnalisation` | configurateur 3D cinq zones, éditeur, panier local et tunnel textile |
+| `/panier` | panier et créations enregistrées sur l'appareil |
 | `/impression` | flyers, affiches, cartes, menus, brochures, documents |
 | `/entreprises` | offre B2B, identité visuelle, textiles en quantité, événements |
 | `/comment-ca-marche` | parcours, paiement, livraison, FAQ |
@@ -77,73 +78,102 @@ les routes serveur, avec `service_role` côté serveur uniquement.
 - **Ajustements** : échelle 0,5×–1,5×, contain/stretch, réinitialisation, mode debug zone (checkbox « calage »).
 - **Export** : téléchargement du mockup rendu en PNG.
 
-## Configurateur 3D — page d'accueil (`/`)
+## Configurateur 3D — studio de personnalisation (`/personnalisation`)
 
-Vue 3D temps réel du produit : on tourne, on zoome, on change la couleur, on compose son
-design (images **et textes**) et on le place dans la zone d'impression — le tout **dans le
-navigateur**, sans service externe.
+Le configurateur vit sur **`/personnalisation`** (l'ancienne URL `/configurator` redirige).
+Vue 3D temps réel du **T-shirt Elembo à cinq zones** : on tourne, on zoome, on change la couleur
+du tissu, on compose des images **et** des textes sur chacune des cinq zones (avant, dos, manche
+gauche, manche droite, intérieur du col) — le tout **dans le navigateur**, sans service externe.
+Les techniques historiques `uv` et `decal` restent supportées pour les autres produits du
+catalogue (voir plus bas), et le studio 2D reste disponible sur `/studio`.
+
+Le studio est décrit de bout en bout — architecture, zones, éditeur, profils, persistance,
+export, tests — dans [`docs/integration-configurateur-tshirt.md`](docs/integration-configurateur-tshirt.md).
+L'état d'avant intervention est figé dans [`docs/audit-configurateur-tshirt.md`](docs/audit-configurateur-tshirt.md).
 
 ```
-Images + Textes        ─┐
-                        ├─→ Zustand (état unique) ─→ Three.js (affichage)
-Canvas 2D (composition) ┘                    └─ texture du panneau / décalque
+Gestes + panneau (calques, couleur, procédé)   ─┐
+                                                ├─→ Zustand (état unique) ─→ CanvasTexture par zone ─→ Three.js
+Canvas 2D (composition, drawComposition) ───────┘        └──────────────→ PNG de production (dpi du procédé)
 ```
 
 Le texte est un **élément 2D du design**, pas un objet 3D : il est dessiné dans le canvas de
 composition (donc il suit le vêtement, tourne avec lui, respecte les UV, et peut être
 reconstruit en haute résolution pour l'impression). Aucun mesh supplémentaire n'est créé.
 
-- `src/types/configurator.ts` — types partagés (`DesignElement` = `ImageElement | TextElement`, `ConfiguratorConfig`)
-- `src/stores/configurator-store.ts` — état unique + actions (ajout, sélection, calques, faces…) + `serializeConfig()`
-- `src/lib/products/catalog.ts` — catalogue (modèle GLB, technique d'impression, couleurs, zones)
+- `src/types/configurator.ts` — types partagés (5 zones, `DesignElement`, `ConfiguratorConfig` v3)
+- `src/stores/configurator-store.ts` — état unique + actions + historique annuler/rétablir + `serializeConfig()` v3
+- `src/lib/products/catalog.ts` — catalogue (modèle GLB, technique, zones, couleurs, `vue` par zone) ;
+  `src/lib/products/production.ts` — procédés et dimensions imprimables (`production/profils.json`)
 - `src/lib/fonts.ts` + `src/lib/fonts.generated.ts` — 17 polices (licence vérifiée) et utilitaires typographiques
-- `src/lib/canvas/{design-canvas,export}.ts` — maths de placement/borne, composition des éléments, export 300 dpi
-- `src/lib/three/{models,materials,textures}.ts` — nœuds, matériaux PBR, textures (dont l'albédo neutralisé)
-- `src/lib/three/framing.ts` — cadrage automatique de la caméra sur le modèle réel
-- `src/components/configurator/*` — viewer 3D, éditeur 2D, panneau Design, contrôles d'élément,
-  sélecteur de police, sélecteur de couleur
-- `src/app/page.tsx` — configurateur 3D (page d'accueil) ; `src/app/studio/page.tsx` — studio 2D ;
+- `src/lib/canvas/{design-canvas,export}.ts` — maths de placement/borne, composition des éléments,
+  export PNG à la densité du procédé (garde-fou 4 096 px)
+- `src/lib/three/{models,materials,textures,zones,framing}.ts` — nœuds, matériaux PBR, textures par zone,
+  scène à surfaces d'impression, cadrage automatique de la caméra
+- `src/lib/order/order.ts` — positionnement en centimètres et fiche de production v2
+- `src/lib/projects/` + `src/lib/storage/` — brouillon, créations et panier (`localStorage`), images (`IndexedDB`)
+- `src/components/configurator/*` — viewer 3D, éditeur de zone, rail de zones, sélecteur de procédé,
+  contrôles d'élément, commande, export, historique
+- `src/components/cart/Panier.tsx` — panier et créations ; `src/app/panier/page.tsx` — page `/panier`
+- `src/app/personnalisation/page.tsx` — page du studio ; `src/app/studio/page.tsx` — studio 2D ;
   `src/app/configurator/page.tsx` — redirection depuis l'ancienne URL
 
 Le studio 2D reste disponible sur `/studio` (aucune fonctionnalité supprimée) ; les deux
 partagent `src/lib/validate.ts` et `src/lib/printQuality.ts`.
 
-### Éditeur de design (images + textes)
+### Éditeur de design (images + textes, cinq zones)
 
-- **Ajouter** : « Ajouter une image » (upload validé) ou « Ajouter du texte ».
-- **Éléments indépendants** : chacun a sa position, son échelle, sa rotation, sa face et son
+- **Cinq zones indépendantes** : chaque élément porte sa zone ; changer de zone ne recharge rien,
+  les visuels des autres zones sont conservés. Le rail de zones affiche une vignette réelle de
+  chaque zone, le nombre d'éléments et le statut de production.
+- **Ajouter** : « Ajouter une image » (upload validé : PNG/JPG, ≤ 10 Mo, ≥ 500 px, transparence
+  conservée) ou « Ajouter du texte ».
+- **Éléments indépendants** : chacun a sa position, son échelle, sa rotation, sa zone et son
   calque ; plusieurs textes et plusieurs images cohabitent (« LOGO » + « CONGO » + « 2026 »).
 - **Texte** : contenu multiligne, police, taille, couleur (palette + sélecteur libre + code
   hexadécimal), graisse, italique, alignement, interlettrage, hauteur de ligne.
-- **Sélection** : clic dans l'aperçu 2D, glisser pour déplacer, poignées orange pour
-  redimensionner et pivoter, flèches du clavier pour affiner, `Suppr` pour retirer.
-- **Calques** : liste des éléments de la face courante — sélection, visibilité, ordre
-  d'empilement (`z`), suppression. Le champ `z` est déjà en place pour un futur glisser-déposer.
-- **Faces** : chaque élément porte sa face ; l'aperçu 2D et la texture 3D ne composent que la
-  face affichée, donc avant et arrière ne se mélangent jamais.
-- **Zone d'impression** : un élément trop grand est signalé et peut être ramené à la taille
-  utile en un clic (« Ajuster à la zone »), avec une marge de sécurité.
-- **Impression** : le fichier 300 dpi est **recomposé** à partir des paramètres du design
-  (le texte est redessiné à la résolution cible, les images repartent de l'original).
+- **Gestes souris et tactiles** : clic dans l'éditeur 2D pour sélectionner, glisser pour déplacer,
+  poignées orange pour redimensionner et pivoter, flèches du clavier pour affiner, `Suppr` pour
+  retirer, `Ctrl+D` pour dupliquer.
+- **Annuler / rétablir** : `Ctrl+Z` / `Ctrl+Shift+Z` (ou boutons), avec fusion des gestes continus —
+  un glisser ou un curseur = un seul « annuler ».
+- **Calques** : liste des éléments de la zone active — sélection, visibilité, ordre d'empilement
+  (`z`), duplication, suppression.
+- **Zone d'impression** : un élément trop grand est signalé et peut être ramené à la taille utile
+  en un clic (« Ajuster à la zone »), avec une marge de sécurité ; rien ne peut sortir de la zone
+  réellement imprimable du procédé choisi.
+- **Impression** : le fichier est **recomposé** à partir des paramètres du design (le texte est
+  redessiné à la résolution cible, les images repartent de l'original), jamais une capture d'écran.
 
 ### Commande et production
 
 Le tunnel de commande transforme un design validé en **dossier de production** :
 
-- **Validation** : aperçu de chaque face personnalisée (ce que le client voit est ce qui sera
+- **Validation** : aperçu de chaque zone personnalisée (ce que le client voit est ce qui sera
   imprimé), tailles et quantités, ville de livraison, récapitulatif FCFA.
+- **Procédé de production** : le procédé est choisi dans le studio (DTF, flex, DTG, sublimation)
+  et pilote les dimensions réellement imprimables et la densité des fichiers, lues dans
+  **`production/profils.json`**. Un procédé ou une zone encore **non validés par l'atelier**
+  (`a-valider`) restent composables mais **bloquent la commande**, avec le motif affiché ; un
+  procédé `indisponible` ne peut pas être commandé. Aucune zone non fabricable n'est encaissée.
 - **Livraison** : **100 FCFA** par commande pour Brazzaville comme pour Pointe-Noire — prix de
   test décidé le 06/10/2026 pour les essais de paiement réel (tarifs arbitrés à rétablir :
   Brazzaville 1 000, Pointe-Noire 2 000) ; le délai varie avec la quantité mais **ne dépasse
   jamais 3 jours**. Une ville dont le tarif n'est pas fixé bloque la validation de la commande
   plutôt que d'afficher un montant inventé — les deux sources de prix (application et service
   MoMo) sont comparées par `tests/coherenceCatalogues.test.ts`.
-- **Fichiers générés** : un **PNG 300 dpi par face réellement personnalisée** (avant, arrière)
-  et une **fiche de production** (`.txt` pour WhatsApp/e-mail + `.json` pour la traçabilité)
-  contenant, pour chaque élément : type, contenu, police et corps en cm, couleur, alignement,
-  **position du centre en centimètres depuis le coin haut-gauche de la zone**, dimensions en cm,
-  rotation, et l'avertissement si l'élément déborde (donc rogné). Un imprimeur peut travailler
-  directement avec ça.
+- **Fichiers générés** : un **PNG transparent par zone réellement personnalisée**, à la densité
+  du procédé (300 dpi en DTF, 150 dpi en sublimation) et à la taille physique de la zone, nommé
+  exactement `front.png`, `back.png`, `left-sleeve.png`, `right-sleeve.png`, `collar.png` ; plus
+  une **fiche de production** (`.txt` pour WhatsApp/e-mail + `.json` pour la traçabilité)
+  contenant le procédé et son `dpi`, et pour chaque élément : type, contenu, police et corps en
+  cm, couleur, alignement, **position du centre en centimètres depuis le coin haut-gauche de la
+  zone**, dimensions en cm, rotation, et l'avertissement si l'élément déborde (donc rogné). Un
+  imprimeur peut travailler directement avec ça.
+- **Panier et reprise** : le brouillon est sauvegardé sur l'appareil, les créations peuvent être
+  enregistrées et mises au panier (page `/panier`), puis rouvertes dans le studio avec leurs
+  cinq zones et leurs images. Le paiement MTN reste **mono-création** : une création à la fois,
+  le tunnel de paiement existant n'ayant pas été modifié.
 - **Paiement** : après validation de l'aperçu, le client paie le montant par **MTN Mobile Money**
   (bouton « Payer … par MTN MoMo »). Le navigateur appelle `POST /api/momo/payer` — une route de
   **la même application** — puis **sonde le statut** ; les fichiers d'impression et la fiche de
@@ -207,8 +237,17 @@ Le CSS est référencé en chemin relatif, donc valable sous n'importe quel `bas
 
 ### Modèle 3D et impression
 
-Le catalogue contient **deux T-shirts 3D**, interchangeables depuis le sélecteur de
-produit (le visuel et le réglage sont conservés d'un modèle à l'autre) :
+Le **modèle par défaut** est le T-shirt Elembo à cinq zones
+`public/models/elembo-tshirt/elembo-tshirt.glb` (2,4 Mo, 40 600 triangles, unités en mètres,
+`+Z` devant) : cinq surfaces d'impression indépendantes — avant, dos, manche gauche, manche
+droite, intérieur du col — chacune avec son maillage, son matériau `PRINT_*` et ses UV propres.
+La couleur est portée par les seuls matériaux du tissu (`FABRIC`, `FABRIC_RIB`) ; les visuels
+sont composés dans une texture transparente par zone, jamais teintée. Les dimensions
+**imprimables** viennent de `production/profils.json` (DTF : 21 × 30 cm devant, 25 × 32,4 cm au
+dos, 9 × 9 cm sur les manches, 8 × 4,5 cm au col), pas des textures 3D.
+
+Deux anciens T-shirts fournisseur restent disponibles pour les techniques historiques
+(`uv` et `decal`), interchangeables depuis le sélecteur de produit :
 
 - `public/models/tshirt/tshirt.glb` — T-shirt raglan fournisseur (29 678 triangles,
   textures PBR 4k, 1 unité = 1 pouce), rendu en **surface vierge** : son auteur y a
@@ -230,9 +269,9 @@ node scripts/glb-meshes.mjs  "modele.glb"        # un maillage par ligne (parent
 node scripts/decal-frame.mjs "modele.glb" 100 21 30 7  # cadre d'impression (unité cm, 21×30 cm, 7 cm sous le col)
 ```
 
-Les deux ont un maillage sans zone d'impression réservée : le visuel est **projeté sur la
-surface** (technique `decal`) dans un cadre exprimé en unités du modèle et déduit du
-maillage avec :
+Ces deux modèles ont un maillage sans zone d'impression réservée : le visuel est **projeté sur la
+surface** (technique `decal`) dans un cadre exprimé en unités du modèle et déduit du maillage
+avec :
 
 ```bash
 node scripts/inspect-glb.mjs "chemin/vers/modele.glb"        # dimensions, UV, profondeur de surface
@@ -243,7 +282,11 @@ node scripts/decal-frame.mjs "chemin/vers/modele.glb" 100 21 30 7  # cadre d'imp
 La technique `uv` (nœuds `FrontPanel` / `BackPanel` / `Body`) reste supportée pour des
 modèles qui réserveraient une zone d'impression ; le placeholder
 `tshirt-placeholder.glb` (`node scripts/gen-tshirt-glb.mjs`) l'exerce et sert aux tests.
-Détails et procédure d'ajout d'un modèle : `public/models/README.md`.
+Les trois techniques sont décrites dans `public/models/README.md` ; l'intégration complète du
+modèle Elembo (architecture, zones, export, tests) dans
+[`docs/integration-configurateur-tshirt.md`](docs/integration-configurateur-tshirt.md).
+Scripts utiles : `node scripts/glb-zones.mjs` (noms et dimensions réelles du GLB Elembo),
+`node scripts/prepare-zone-templates.mjs` (gabarits d'éditeur publiés dans `public/zones/`).
 
 ## Tableaux (impression canvas) — phase 1 du catalogue
 

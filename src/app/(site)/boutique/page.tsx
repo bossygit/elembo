@@ -1,0 +1,243 @@
+import type { Metadata } from 'next';
+import Link from 'next/link';
+
+import { ArrowRight, Check } from '../../../components/site/Icons';
+import ProductCard from '../../../components/site/ProductCard';
+import { SectionGammes } from '../../../components/site/Univers';
+import { BoutonLien, Etiquette } from '../../../components/site/ui';
+import { BoutonWhatsApp } from '../../../components/site/WhatsApp';
+import { PRODUITS_VITRINE, SUPPORTS_IMPRESSION } from '../../../lib/commerce/catalogue';
+
+export const metadata: Metadata = {
+  title: 'Boutique',
+  description:
+    'Mugs, t-shirts, tableaux photo, coffrets cadeaux et textiles d’événement à personnaliser. Prix en FCFA, paiement MTN MoMo, commande assistée sur WhatsApp.',
+};
+
+export default function BoutiquePage() {
+  const objets = PRODUITS_VITRINE.filter((p) => p.famille === 'objets');
+  const textiles = PRODUITS_VITRINE.filter((p) => p.famille === 'textile');
+  const tableaux = PRODUITS_VITRINE.filter((p) => p.famille === 'tableaux');
+
+  return (
+    <>
+      <section className="trame-sombre bg-sable">
+        <div className="mx-auto w-full max-w-[90rem] px-4 py-14 sm:px-8 sm:py-20">
+          <Etiquette>Boutique</Etiquette>
+          <h1 className="titre-geant mt-6 max-w-5xl text-[clamp(2.8rem,8.4vw,7.5rem)] text-encre">
+            Des objets qui <span className="accent-serif text-orange">vous ressemblent.</span>
+          </h1>
+          <p className="mt-5 max-w-2xl text-lg leading-relaxed text-attenue">
+            Un mug pour offrir, un t-shirt pour s’exprimer, un tableau pour se souvenir. Les
+            T-shirts se composent en ligne ; pour le reste, nous vous accompagnons sur WhatsApp
+            ou par devis.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <BoutonLien href="#cadeaux" variante="primaire">
+              Voir les cadeaux
+              <ArrowRight className="h-4 w-4" />
+            </BoutonLien>
+            <BoutonWhatsApp variante="secondaire">Être conseillé·e sur WhatsApp</BoutonWhatsApp>
+          </div>
+          <nav className="mt-8 flex flex-wrap gap-2" aria-label="Rayons de la boutique">
+            {[
+              { href: '#cadeaux', label: 'Cadeaux & objets' },
+              { href: '#textile', label: 'Textile' },
+              { href: '#tableaux', label: 'Tableaux' },
+              { href: '#impression', label: 'Impression' },
+              { href: '#gammes', label: 'Gammes de prix' },
+              { href: '#services', label: 'Entreprises' },
+            ].map((lien) => (
+              <Link
+                key={lien.href}
+                href={lien.href}
+                className="rounded-full border border-encre/20 bg-creme px-4 py-2.5 text-xs font-semibold text-encre transition-colors duration-300 hover:border-encre hover:bg-encre hover:text-creme"
+              >
+                {lien.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+      </section>
+
+      <section id="cadeaux" className="mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-20">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="surtitre text-orange-action">01 · Cadeaux & objets</p>
+            <h2 data-anim="titre" className="titre-editorial mt-4 text-5xl text-encre sm:text-6xl">Pour offrir, à partir d’une pièce.</h2>
+          </div>
+          <p className="max-w-md text-sm leading-relaxed text-attenue">
+            Photo, prénom, message en français ou en lingala : nous préparons la maquette avec
+            vous sur WhatsApp avant de fabriquer.
+          </p>
+        </div>
+        <div className="mt-10 grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          {objets.map((produit) => (
+            <ProductCard key={produit.id} produit={produit} />
+          ))}
+          <article className="flex flex-col justify-between border border-filet bg-sable p-6">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-orange-action">Une occasion ?</p>
+              <h3 className="mt-3 font-display text-3xl leading-tight text-encre">Anniversaire, fête des mères, remerciement.</h3>
+              <p className="mt-3 text-sm leading-relaxed text-attenue">
+                L’univers Cadeaux & émotions rassemble les idées par occasion.
+              </p>
+            </div>
+            <Link
+              href="/univers/cadeaux"
+              className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-encre underline decoration-orange decoration-2 underline-offset-4 hover:text-orange-action"
+            >
+              Trouver une idée cadeau
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </article>
+        </div>
+      </section>
+
+      <section id="textile" className="border-t border-filet mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-20">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="surtitre text-orange-action">02 · Textile</p>
+            <h2 data-anim="titre" className="titre-editorial mt-4 text-5xl text-encre sm:text-6xl">À porter, à offrir, à porter ensemble.</h2>
+          </div>
+          <p className="max-w-md text-sm leading-relaxed text-attenue">
+            T-shirts, polos, tote bags, textiles événementiels et uniformes. Les T-shirts disposent
+            d’un aperçu 3D ; les autres produits sont cadrés sur fiche technique et BAT.
+          </p>
+        </div>
+
+        <div className="mt-10 grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          {textiles.map((produit) => (
+            <ProductCard key={produit.id} produit={produit} />
+          ))}
+          <article className="flex flex-col justify-between border border-filet bg-encre p-6 text-creme">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-orange">Quantité</p>
+              <h3 className="mt-3 font-display text-3xl leading-tight">Équipes, écoles, événements.</h3>
+              <p className="mt-3 text-sm leading-relaxed text-creme/70">
+                À partir de quelques pièces ou pour un lot complet, nous adaptons le délai et la
+                préparation. Un devis fixe le prix et la date.
+              </p>
+            </div>
+            <Link
+              href="/devis?famille=TEXTILE"
+              className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-creme underline decoration-orange decoration-2 underline-offset-4 hover:text-orange"
+            >
+              Demander un devis quantité
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </article>
+        </div>
+      </section>
+
+      <section id="tableaux" className="border-y border-filet bg-white">
+        <div className="mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-20">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="surtitre text-orange-action">03 · Tableaux photo</p>
+              <h2 data-anim="titre" className="titre-editorial mt-4 text-5xl text-encre sm:text-6xl">Vos photos, en grand.</h2>
+            </div>
+            <p className="max-w-md text-sm leading-relaxed text-attenue">
+              Cinq formats, toile seule ou montée sur châssis. L’aperçu indique la résolution
+              réelle de votre photo avant impression.
+            </p>
+          </div>
+          <div className="mt-10 grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+            {tableaux.map((produit) => (
+              <ProductCard key={produit.id} produit={produit} />
+            ))}
+            <article className="border border-filet bg-sable p-6">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-orange-action">Formats</p>
+              <ul className="mt-4 space-y-2 text-sm text-encre">
+                {['20 × 30 cm', '30 × 40 cm', '40 × 60 cm', '50 × 70 cm', '60 × 90 cm'].map((format) => (
+                  <li key={format} className="flex items-center justify-between border-b border-encre/10 pb-2 last:border-b-0">
+                    <span>{format}</span>
+                    <span className="text-xs text-attenue">portrait ou paysage</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-4 text-xs leading-relaxed text-attenue">
+                Le prix dépend du format, du montage et de la quantité. Il est confirmé dans le
+                configurateur avant paiement.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="impression" className="mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-20">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="surtitre text-orange-action">04 · Supports imprimés</p>
+            <h2 data-anim="titre" className="titre-editorial mt-4 text-5xl text-encre sm:text-6xl">Le support juste, au bon format.</h2>
+          </div>
+          <Link
+            href="/impression"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-encre underline decoration-orange decoration-2 underline-offset-4 hover:text-orange-action"
+          >
+            Tous les supports
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {SUPPORTS_IMPRESSION.map((support) => (
+            <article key={support.id} className="border border-filet bg-white p-5">
+              <h3 className="font-display text-2xl text-encre">{support.nom}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-attenue">{support.description}</p>
+              <ul className="mt-4 space-y-1.5">
+                {support.options.slice(0, 3).map((option) => (
+                  <li key={option} className="flex items-start gap-2 text-xs text-attenue">
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-action" />
+                    <span>{option}</span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+
+        <div className="mt-8 border border-encre bg-sable p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
+          <div>
+            <h3 className="font-display text-2xl text-encre">Un besoin précis ?</h3>
+            <p className="mt-1 text-sm text-attenue">
+              Décrivez le support, le format, la quantité et votre échéance. Nous chiffrons avant
+              toute production.
+            </p>
+          </div>
+          <BoutonLien href="/devis?famille=IMPRESSION" variante="primaire" className="mt-4 shrink-0 sm:mt-0">
+            Demander un devis
+            <ArrowRight className="h-4 w-4" />
+          </BoutonLien>
+        </div>
+      </section>
+
+      <section id="gammes" className="border-t border-filet bg-white">
+        <div className="mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-8 sm:py-20">
+          <p className="surtitre text-orange-action">Pour tous les budgets</p>
+          <h2 data-anim="titre" className="titre-editorial mt-4 text-5xl text-encre sm:text-6xl">Trois gammes, un même soin.</h2>
+          <div className="mt-10">
+            <SectionGammes />
+          </div>
+        </div>
+      </section>
+
+      <section id="services" className="border-t border-filet bg-encre text-creme">
+        <div className="mx-auto flex w-full max-w-[90rem] flex-col gap-6 px-4 py-12 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="surtitre text-orange">Entreprises & organisations</p>
+            <h2 className="mt-3 font-display text-3xl text-creme">Identité visuelle, événements, commandes récurrentes.</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-creme/70">
+              Pour les entreprises, associations, restaurants et organisateurs : un interlocuteur
+              unique, de la conception à la livraison.
+            </p>
+          </div>
+          <BoutonLien href="/devis?famille=SERVICES" variante="clair" className="shrink-0">
+            Offre entreprise
+            <ArrowRight className="h-4 w-4" />
+          </BoutonLien>
+        </div>
+      </section>
+    </>
+  );
+}

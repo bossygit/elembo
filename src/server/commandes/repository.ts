@@ -45,6 +45,9 @@ export type CommandeLigneRow = {
   sous_total_fcfa: number;
   livraison_fcfa: number;
   total_fcfa: number;
+  /** Coût de revient et marge, recalculés en base (migration 0010). */
+  cout_fcfa: number;
+  marge_fcfa: number;
   ville: string | null;
   adresse: string | null;
   notes: string | null;

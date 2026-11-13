@@ -1,92 +1,131 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-import { listerDevis } from '@/server/devis/repository';
+import { Badge, EnTete, Vide, bouton, champ, libelle, tableau } from '@/components/admin/ui';
+import { dateHeure, fcfa } from '@/lib/admin/format';
+import { STATUTS_DEVIS, estStatutDevis, libelleCommande, libelleDevis, libelleFamille, libellePaiement } from '@/lib/admin/statuts';
+import { exigerAcces } from '@/server/admin/acces';
+import { compterDevisParStatut, rechercherDevis, type DevisListe } from '@/server/admin/devis';
 
-export const metadata: Metadata = { title: 'Devis — Elembo' };
+export const metadata: Metadata = { title: 'Devis' };
 export const dynamic = 'force-dynamic';
 
-function dateCourte(valeur: string): string {
-  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(
-    new Date(valeur),
-  );
-}
+export default async function PageDevis({ searchParams }: { searchParams: Promise<{ statut?: string; q?: string }> }) {
+  await exigerAcces('devis.voir');
+  const params = await searchParams;
+  const statut = estStatutDevis(params.statut) ? params.statut : null;
+  const texte = (params.q ?? '').trim().slice(0, 120);
 
-export default async function PageDevisAdmin() {
-  let devis: Awaited<ReturnType<typeof listerDevis>> = [];
+  let devis: DevisListe[] = [];
+  let comptes: Record<string, number> = {};
   let erreur = '';
   try {
-    devis = await listerDevis({ limite: 100 });
+    [devis, comptes] = await Promise.all([rechercherDevis({ statut, texte }), compterDevisParStatut()]);
   } catch {
-    erreur = 'La liste des devis est indisponible. Vérifiez la configuration Supabase.';
+    erreur = 'La liste des devis est indisponible.';
   }
 
   return (
     <div>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
-            Demandes
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold">Devis</h1>
-          <p className="mt-1 text-sm text-neutral-600">
-            {devis.length} demande(s) affichée(s). Les transitions sont tracées en base.
-          </p>
-        </div>
-      </div>
+      <EnTete
+        surtitre="Ventes"
+        titre="Devis"
+        description="Réception → analyse → proposition → prix validé → acceptation → commande → paiement."
+      />
 
-      {erreur ? (
-        <p className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {erreur}
-        </p>
-      ) : null}
+      <nav className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7" aria-label="Étapes du pipeline">
+        <Link
+          href="/admin/devis"
+          aria-current={!statut ? 'true' : undefined}
+          className={`rounded-xl border px-3 py-2.5 ${!statut ? 'border-encre bg-encre text-white' : 'border-neutral-200 bg-white hover:border-neutral-400'}`}
+        >
+          <span className="block text-xs opacity-70">Tous</span>
+          <span className="text-lg font-semibold tabular-nums">{Object.values(comptes).reduce((a, b) => a + b, 0)}</span>
+        </Link>
+        {STATUTS_DEVIS.map((s) => (
+          <Link
+            key={s.id}
+            href={`/admin/devis?statut=${s.id}`}
+            aria-current={statut === s.id ? 'true' : undefined}
+            className={`rounded-xl border px-3 py-2.5 ${statut === s.id ? 'border-encre bg-encre text-white' : 'border-neutral-200 bg-white hover:border-neutral-400'}`}
+          >
+            <span className="block text-xs opacity-70">{s.label}</span>
+            <span className="text-lg font-semibold tabular-nums">{comptes[s.id] ?? 0}</span>
+          </Link>
+        ))}
+      </nav>
 
-      <div className="mt-8 overflow-x-auto rounded-2xl border border-neutral-200 bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-neutral-200 bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500">
+      <form className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-neutral-200 bg-white p-4" role="search">
+        {statut ? <input type="hidden" name="statut" value={statut} /> : null}
+        <label className={`${libelle} min-w-64 flex-1`}>
+          Recherche
+          <input type="search" name="q" defaultValue={texte} placeholder="Référence, nom, société, téléphone, email" className={champ} />
+        </label>
+        <button type="submit" className={bouton('primaire')}>
+          Rechercher
+        </button>
+      </form>
+
+      {erreur ? <p role="alert" className="mb-4 text-sm text-red-700">{erreur}</p> : null}
+
+      <div className={tableau.conteneur}>
+        <table className={tableau.table}>
+          <thead className={tableau.thead}>
             <tr>
-              <th className="px-4 py-3">Référence</th>
-              <th className="px-4 py-3">Client</th>
-              <th className="px-4 py-3">Famille</th>
-              <th className="px-4 py-3">Statut</th>
-              <th className="px-4 py-3">Montant</th>
-              <th className="px-4 py-3">Créé</th>
+              <th className={tableau.th}>Référence</th>
+              <th className={tableau.th}>Client</th>
+              <th className={tableau.th}>Famille</th>
+              <th className={tableau.th}>Étape</th>
+              <th className={`${tableau.th} text-right`}>Montant</th>
+              <th className={tableau.th}>Commande / paiement</th>
+              <th className={tableau.th}>Reçu</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-100">
-            {devis.map((d) => (
-              <tr key={d.id} className="hover:bg-neutral-50">
-                <td className="px-4 py-3 font-mono text-xs">
-                  <Link href={`/admin/devis/${d.id}`} className="underline">
-                    {d.reference}
-                  </Link>
-                </td>
-                <td className="px-4 py-3">
-                  {String((d.contact_snapshot as { nom?: unknown }).nom ?? '—')}
-                </td>
-                <td className="px-4 py-3">{d.famille}</td>
-                <td className="px-4 py-3">
-                  <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium">
-                    {d.statut}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  {d.montant_propose_fcfa === null
-                    ? '—'
-                    : `${d.montant_propose_fcfa.toLocaleString('fr-FR')} FCFA`}
-                </td>
-                <td className="px-4 py-3 text-neutral-500">{dateCourte(d.cree_le)}</td>
-              </tr>
-            ))}
-            {devis.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-neutral-500">
-                  Aucune demande pour le moment.
-                </td>
-              </tr>
-            ) : null}
+          <tbody className={tableau.tbody}>
+            {devis.map((d) => {
+              const contact = d.contact_snapshot as { nom?: unknown; societe?: unknown };
+              const s = libelleDevis(d.statut);
+              return (
+                <tr key={d.id} className={tableau.tr}>
+                  <td className={tableau.td}>
+                    <Link href={`/admin/devis/${d.id}`} className="font-mono text-xs font-medium hover:underline">
+                      {d.reference}
+                    </Link>
+                  </td>
+                  <td className={tableau.td}>
+                    {String(contact.nom ?? '—')}
+                    {contact.societe ? <span className="block text-xs text-neutral-500">{String(contact.societe)}</span> : null}
+                  </td>
+                  <td className={tableau.td}>
+                    {libelleFamille(d.famille)}
+                    {d.quantite ? <span className="block text-xs text-neutral-500">{d.quantite} u.</span> : null}
+                  </td>
+                  <td className={tableau.td}>
+                    <Badge ton={s.ton}>{s.label}</Badge>
+                    {d.montant_propose_fcfa !== null && d.statut !== 'ACCEPTE' ? (
+                      <span className="mt-1 block text-[11px] text-neutral-500">{d.prix_valide ? 'Prix validé' : 'Prix à valider'}</span>
+                    ) : null}
+                  </td>
+                  <td className={tableau.nombre}>{fcfa(d.montant_propose_fcfa)}</td>
+                  <td className={tableau.td}>
+                    {d.commande ? (
+                      <Link href={`/admin/commandes/${d.commande.id}`} className="flex flex-wrap gap-1 hover:opacity-80">
+                        <Badge ton={libelleCommande(d.commande.statut).ton}>{libelleCommande(d.commande.statut).label}</Badge>
+                        <Badge ton={libellePaiement(d.commande.statut_paiement).ton}>{libellePaiement(d.commande.statut_paiement).label}</Badge>
+                      </Link>
+                    ) : d.statut === 'ACCEPTE' ? (
+                      <span className="text-xs font-medium text-amber-700">À transformer en commande</span>
+                    ) : (
+                      <span className="text-neutral-400">—</span>
+                    )}
+                  </td>
+                  <td className={`${tableau.td} whitespace-nowrap text-neutral-600`}>{dateHeure(d.cree_le)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+        {!erreur && devis.length === 0 ? <Vide>Aucune demande pour ce filtre.</Vide> : null}
       </div>
     </div>
   );

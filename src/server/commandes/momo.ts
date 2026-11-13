@@ -43,10 +43,27 @@ type PayloadDirect = {
   telephone?: unknown;
   nom?: unknown;
   email?: unknown;
+  couleur?: unknown;
+  zones?: unknown;
 };
 
 function texte(valeur: unknown): string {
   return typeof valeur === 'string' ? valeur.trim() : '';
+}
+
+/** Couleur du support : texte court ou code hexadécimal, sinon ignorée. Informatif. */
+export function couleurSure(valeur: unknown): string | null {
+  const t = texte(valeur).slice(0, 40);
+  return t && /^[\p{L}\p{N} #'’-]+$/u.test(t) ? t : null;
+}
+
+/** Zones imprimées annoncées (libellés courts), au plus 10. Informatif. */
+export function zonesSures(valeur: unknown): string[] {
+  if (!Array.isArray(valeur)) return [];
+  return valeur
+    .map((z) => texte(z).slice(0, 40))
+    .filter((z) => z && /^[\p{L}\p{N} '’-]+$/u.test(z))
+    .slice(0, 10);
 }
 
 function telephoneNormalise(brut: string): string | null {
@@ -104,6 +121,8 @@ export async function preparerCommandeDirecte(payload: unknown): Promise<void> {
     throw new ErreurCommandeDirecte('Produit, ville ou téléphone manquant.');
   }
   verifierPrixFacturable(produitId);
+  const couleur = couleurSure(corps.couleur);
+  const zones = zonesSures(corps.zones);
 
   let montant;
   try {
@@ -148,7 +167,7 @@ export async function preparerCommandeDirecte(payload: unknown): Promise<void> {
       quantite: ligne.quantite,
       prix_unitaire_fcfa: prixUnitaire,
       total_ligne_fcfa: prixUnitaire * ligne.quantite,
-      options: { taille: ligne.taille, produitId },
+      options: { taille: ligne.taille, produitId, ...(couleur ? { couleur } : {}) },
     }));
   }
 
@@ -172,6 +191,8 @@ export async function preparerCommandeDirecte(payload: unknown): Promise<void> {
       villeNom: montant.villeNom,
       lignes: Array.isArray(corps.lignes) ? corps.lignes : [],
       tableaux: Array.isArray(corps.tableaux) ? corps.tableaux : [],
+      ...(couleur ? { couleur } : {}),
+      ...(zones.length ? { zones } : {}),
     },
     p_mode_paiement: 'MTN_MOMO' satisfies ModePaiement,
   });

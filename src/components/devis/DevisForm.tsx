@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { PRODUITS_VITRINE, SERVICES_ENTREPRISE, SUPPORTS_IMPRESSION } from '@/lib/commerce/catalogue';
+import { envoyerFichiersDevis } from '@/lib/devis/envoiFichiers';
 
 type Upload = { fichierId: string; nom: string; signedUrl: string };
 
@@ -138,28 +139,12 @@ export default function DevisForm({
         return;
       }
 
-      for (const upload of donnees.uploads) {
-        const fichier = fichiers.find((f) => f.name === upload.nom);
-        if (!fichier) continue;
-        const envoiFichier = await fetch(upload.signedUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': fichier.type || 'application/octet-stream', 'x-upsert': 'false' },
-          body: fichier,
-        });
-        if (!envoiFichier.ok) throw new Error(`Envoi impossible pour ${upload.nom}.`);
-      }
-
-      if (donnees.uploads.length > 0) {
-        const finalisation = await fetch(`/api/devis/${donnees.reference}/fichiers`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-csrf-token': donnees.csrfToken },
-          body: JSON.stringify({ fichierIds: donnees.uploads.map((u) => u.fichierId) }),
-        });
-        if (!finalisation.ok) {
-          const corpsErreur = (await finalisation.json()) as { erreur?: string };
-          throw new Error(corpsErreur.erreur ?? 'Vérification des fichiers impossible.');
-        }
-      }
+      await envoyerFichiersDevis({
+        reference: donnees.reference,
+        csrfToken: donnees.csrfToken,
+        uploads: donnees.uploads,
+        fichiers,
+      });
 
       router.push(`/devis/${donnees.reference}`);
     } catch (e) {

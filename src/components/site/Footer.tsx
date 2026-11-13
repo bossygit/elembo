@@ -12,6 +12,7 @@ const univers = UNIVERS.map((u) => ({ href: `/univers/${u.id}`, label: u.titre }
 const creer = [
   { href: '/personnalisation', label: 'Créer mon t-shirt' },
   { href: '/tableau', label: 'Créer mon tableau photo' },
+  { href: '/banderoles', label: 'Banderoles & grand format' },
   { href: '/boutique', label: 'Toute la boutique' },
   { href: '/univers#collections', label: 'Les collections' },
   { href: '/createurs', label: 'Créateurs congolais' },

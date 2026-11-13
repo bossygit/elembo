@@ -12,6 +12,7 @@ const LIENS = [
   { href: '/', label: 'Accueil' },
   { href: '/univers', label: 'Univers' },
   { href: '/boutique', label: 'Boutique' },
+  { href: '/banderoles', label: 'Banderoles' },
   { href: '/univers/evenements', label: 'Événements' },
   { href: '/createurs', label: 'Créateurs' },
   { href: '/entreprises', label: 'Entreprises' },

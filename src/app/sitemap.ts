@@ -12,6 +12,8 @@ const ROUTES = [
   { path: '/boutique', priority: 0.9 },
   { path: '/personnalisation', priority: 0.9 },
   { path: '/impression', priority: 0.8 },
+  { path: '/banderoles', priority: 0.8 },
+  { path: '/banderoles/commander', priority: 0.7 },
   { path: '/entreprises', priority: 0.8 },
   { path: '/devis', priority: 0.8 },
   { path: '/tableau', priority: 0.7 },

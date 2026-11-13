@@ -11,6 +11,7 @@ import { notesInternes } from '@/server/admin/commandes';
 import { etapesPipeline, historiqueDevis, voletCommercial } from '@/server/admin/devis';
 import { commandeDuDevis } from '@/server/commandes/repository';
 import { clientDuDevis, devisParId, fichiersDuDevis } from '@/server/devis/repository';
+import { estDemandeGrandFormat } from '@/server/grand-format/repository';
 import {
   ajouterNoteDevis,
   changerStatut,
@@ -56,13 +57,14 @@ export default async function PageDevis({
   const messages = await searchParams;
   const devis = await devisParId(id);
   if (!devis) notFound();
-  const [client, fichiers, commande, commercial, historique, notes] = await Promise.all([
+  const [client, fichiers, commande, commercial, historique, notes, grandFormat] = await Promise.all([
     clientDuDevis(devis.client_id),
     fichiersDuDevis(id),
     commandeDuDevis(id),
     voletCommercial(id),
     historiqueDevis(id),
     notesInternes('devis', id),
+    estDemandeGrandFormat(id),
   ]);
   if (!commercial) notFound();
 
@@ -104,6 +106,14 @@ export default async function PageDevis({
         }
       />
       <Flash ok={messages.ok} erreur={messages.erreur} messages={MESSAGES} />
+      {grandFormat && peut(staff.role, 'grand_format.voir') ? (
+        <p className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-orange/40 bg-orange/10 px-4 py-2.5 text-sm">
+          <span>Demande « Banderoles & grand format » : chiffrage, imprimeur, proposition et rentabilité se gèrent sur sa fiche dédiée.</span>
+          <Link href={`/admin/banderoles/${id}`} className={bouton('primaire', 'sm')}>
+            Ouvrir la fiche banderole
+          </Link>
+        </p>
+      ) : null}
 
       <ol className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7" aria-label="Avancement du devis">
         {etapes.map((e, i) => (

@@ -3,7 +3,9 @@
 import { revalidatePath } from 'next/cache';
 
 import { entierChamp, estDateIso, estUuid, texteChamp, texteOuNull } from '@/lib/admin/format';
+import { peut } from '@/lib/admin/permissions';
 import { estStatutProduction } from '@/lib/admin/statuts';
+import { SUPPORTS } from '@/lib/grand-format/catalogue';
 import { exigerAcces } from '@/server/admin/acces';
 import { journaliser } from '@/server/admin/audit';
 import { echec, succes } from '@/server/admin/retour';
@@ -94,29 +96,57 @@ export async function modifierTacheAction(formData: FormData): Promise<void> {
 
 const PRESTATAIRES = '/admin/production/prestataires';
 
-function lirePartenaire(formData: FormData) {
+/** Mètres facultatifs (« 3,2 ») : `null` si vide, `NaN` si invalide. */
+function metresChamp(valeur: FormDataEntryValue | null): number | null {
+  const brut = texteChamp(valeur, 10).replace(',', '.');
+  if (!brut) return null;
+  const n = Number(brut);
+  return /^\d{1,3}(\.\d{1,2})?$/.test(brut) && n > 0 ? n : Number.NaN;
+}
+
+/**
+ * Champs d'un prestataire. Les tarifs négociés ne sont lus (donc écrits) que si l'auteur a le
+ * droit de les voir : un compte atelier qui modifie la fiche ne peut pas les effacer.
+ */
+function lirePartenaire(formData: FormData, avecTarifs: boolean) {
   const nom = texteChamp(formData.get('nom'), 120);
   const specialite = texteChamp(formData.get('specialite'), 120);
   const delai = entierChamp(formData.get('delai_jours'));
   const email = texteOuNull(formData.get('email'), 254);
+  const largeur = metresChamp(formData.get('largeur_max_m'));
+  const longueur = metresChamp(formData.get('longueur_max_m'));
   if (nom.length < 2 || specialite.length < 2) return { erreur: 'Nom et spécialité obligatoires.' } as const;
   if (delai !== null && (Number.isNaN(delai) || delai > 365)) return { erreur: 'Délai invalide.' } as const;
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { erreur: 'Email invalide.' } as const;
-  return {
-    champs: {
-      nom,
-      specialite,
-      telephone: texteOuNull(formData.get('telephone'), 32),
-      email,
-      delai_jours: delai,
-      notes: texteOuNull(formData.get('notes'), 2000),
-    },
-  } as const;
+  if (Number.isNaN(largeur) || Number.isNaN(longueur)) return { erreur: 'Dimensions maximales invalides (en mètres).' } as const;
+  const types = formData
+    .getAll('types_impression')
+    .map((t) => String(t))
+    .filter((t) => SUPPORTS.some((s) => s.id === t));
+  const champs: Record<string, unknown> = {
+    nom,
+    specialite,
+    telephone: texteOuNull(formData.get('telephone'), 32),
+    email,
+    delai_jours: delai,
+    notes: texteOuNull(formData.get('notes'), 2000),
+    contact_nom: texteOuNull(formData.get('contact_nom'), 120),
+    adresse: texteOuNull(formData.get('adresse'), 300),
+    types_impression: [...new Set(types)],
+    largeur_max_m: largeur,
+    longueur_max_m: longueur,
+  };
+  if (avecTarifs) {
+    const prixM2 = entierChamp(formData.get('tarif_prix_m2_fcfa'));
+    if (prixM2 !== null && (Number.isNaN(prixM2) || prixM2 > 10_000_000)) return { erreur: 'Tarif au m² invalide.' } as const;
+    champs.tarifs = { prix_m2_fcfa: prixM2, conditions: texteOuNull(formData.get('tarif_conditions'), 2000) };
+  }
+  return { champs: champs as Parameters<typeof creerPartenaire>[0] } as const;
 }
 
 export async function creerPartenaireAction(formData: FormData): Promise<void> {
   const staff = await exigerAcces('partenaires.gerer');
-  const lu = lirePartenaire(formData);
+  const lu = lirePartenaire(formData, peut(staff.role, 'grand_format.couts'));
   if ('erreur' in lu) echec(PRESTATAIRES, lu.erreur);
   try {
     const p = await creerPartenaire(lu.champs);
@@ -138,7 +168,7 @@ export async function modifierPartenaireAction(formData: FormData): Promise<void
       const { avant, apres } = await modifierPartenaire(id, { actif: bascule === 'true' });
       await journaliser({ staff, action: 'PARTENAIRE_MODIFIE', entite: 'partenaire', entiteId: id, avant: { actif: avant.actif }, apres: { actif: apres.actif } });
     } else {
-      const lu = lirePartenaire(formData);
+      const lu = lirePartenaire(formData, peut(staff.role, 'grand_format.couts'));
       if ('erreur' in lu) echec(PRESTATAIRES, lu.erreur);
       const { avant, apres } = await modifierPartenaire(id, lu.champs);
       await journaliser({ staff, action: 'PARTENAIRE_MODIFIE', entite: 'partenaire', entiteId: id, avant, apres });

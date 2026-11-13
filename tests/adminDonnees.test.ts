@@ -144,3 +144,27 @@ describe('commande directe — informations atelier', () => {
     expect(zonesSures('Devant')).toEqual([]);
   });
 });
+
+describe('historique de commande — résumé lisible', () => {
+  it('traduit les champs et masque les identifiants techniques', async () => {
+    const { resumeAudit } = await import('../src/server/admin/commandes');
+    const texte = resumeAudit(null, {
+      etape: 'Impression DTF',
+      statut: 'A_FAIRE',
+      interne: false,
+      cout_fcfa: 1500,
+      date_prevue: '2026-11-20',
+      partenaire_id: 'aef4cd32-d3db-4e3b-926b-319ba6fb8903',
+      id: 'x',
+    });
+    expect(texte).toBe('Étape : Impression DTF · État : À faire · Coût : 1 500 FCFA · Date prévue : 20 nov. 2026');
+    expect(texte).not.toMatch(/partenaire_id|interne|aef4cd32/);
+  });
+
+  it('montre l’ancienne et la nouvelle valeur d’un champ modifié', async () => {
+    const { resumeAudit } = await import('../src/server/admin/commandes');
+    expect(resumeAudit({ ville: 'Brazzaville', adresse: 'A' }, { ville: 'Pointe-Noire', adresse: 'A' })).toBe(
+      'Ville : Brazzaville → Pointe-Noire',
+    );
+  });
+});

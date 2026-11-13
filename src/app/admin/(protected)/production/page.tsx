@@ -177,7 +177,8 @@ export default async function PageAtelier({
                   <ul className="mt-1.5 flex flex-wrap gap-1.5">
                     {quantites.map((q) => (
                       <li key={`${q.taille}-${q.couleur}`} className="rounded-md bg-neutral-100 px-2 py-0.5 text-xs">
-                        <span className="font-semibold tabular-nums">{q.quantite}</span> × {q.taille}
+                        <span className="font-semibold tabular-nums">{q.quantite}</span>
+                        {q.taille !== '—' ? <> × {q.taille}</> : ' pièce(s)'}
                         {q.couleur !== '—' ? <span className="text-neutral-600"> · {q.couleur}</span> : null}
                       </li>
                     ))}

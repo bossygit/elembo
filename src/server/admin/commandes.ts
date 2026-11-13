@@ -4,7 +4,8 @@
  */
 
 import { supabaseAdmin } from '@/server/supabase/client';
-import type { StatutCommande, StatutPaiement } from '@/lib/admin/statuts';
+import { dateCourte } from '@/lib/admin/format';
+import { libelleMode, libelleProduction, type StatutCommande, type StatutPaiement } from '@/lib/admin/statuts';
 
 function admin() {
   return supabaseAdmin();
@@ -217,18 +218,52 @@ const LIBELLES_ACTIONS: Record<string, string> = {
   PRODUCTION_TACHE_CREEE: 'Tâche de production créée',
 };
 
-function resumeAudit(
+/** Libellés lisibles des champs journalisés ; les champs absents ne sont pas affichés. */
+const CHAMPS_AUDIT: Record<string, string> = {
+  etape: 'Étape',
+  statut: 'État',
+  date_prevue: 'Date prévue',
+  instructions: 'Instructions',
+  cout_fcfa: 'Coût',
+  ville: 'Ville',
+  adresse: 'Adresse',
+  livraison_prevue_le: 'Livraison prévue',
+  ligne: 'Ligne',
+  cout_unitaire_fcfa: 'Coût unitaire',
+  fichier: 'Fichier',
+  mode_paiement: 'Mode',
+  reference: 'Référence',
+  note: 'Note',
+};
+
+function valeurAudit(cle: string, valeur: unknown): string {
+  if (valeur === null || valeur === undefined || valeur === '') return '—';
+  if ((cle === 'cout_fcfa' || cle === 'cout_unitaire_fcfa') && Number.isFinite(Number(valeur))) {
+    return `${Number(valeur).toLocaleString('fr-FR')} FCFA`;
+  }
+  if (cle === 'statut') return libelleProduction(String(valeur)).label;
+  if (cle === 'mode_paiement') return libelleMode(String(valeur));
+  if ((cle === 'date_prevue' || cle === 'livraison_prevue_le') && typeof valeur === 'string') return dateCourte(valeur);
+  return String(valeur);
+}
+
+/** Résumé lisible d'un événement d'audit : champs métier seulement, jamais d'identifiant. */
+export function resumeAudit(
   avant: Record<string, unknown> | null,
   apres: Record<string, unknown> | null,
 ): string | null {
   if (!apres) return null;
   const morceaux: string[] = [];
   for (const [cle, valeur] of Object.entries(apres)) {
-    if (cle === 'id' || cle === 'commande_id') continue;
+    const libelle = CHAMPS_AUDIT[cle];
+    if (!libelle) continue;
     const ancien = avant?.[cle];
     if (avant && JSON.stringify(ancien ?? null) === JSON.stringify(valeur ?? null)) continue;
-    const texte = valeur === null || valeur === undefined || valeur === '' ? '—' : String(valeur);
-    morceaux.push(avant && cle in avant ? `${cle} : ${ancien ?? '—'} → ${texte}` : `${cle} : ${texte}`);
+    morceaux.push(
+      avant && cle in avant
+        ? `${libelle} : ${valeurAudit(cle, ancien)} → ${valeurAudit(cle, valeur)}`
+        : `${libelle} : ${valeurAudit(cle, valeur)}`,
+    );
   }
   return morceaux.length ? morceaux.join(' · ').slice(0, 400) : null;
 }

@@ -122,7 +122,17 @@ export function Indicateur({
   const contenu = (
     <>
       <p className="text-xs font-medium text-neutral-500">{label}</p>
-      <p className={`mt-1.5 text-2xl font-semibold tabular-nums tracking-tight ${alerte ? 'text-orange-action' : 'text-encre'}`}>{valeur}</p>
+      <p className={`mt-1.5 text-2xl font-semibold tabular-nums tracking-tight ${alerte ? 'text-orange-action' : 'text-encre'}`}>
+        {typeof valeur === 'string' && valeur.endsWith(' FCFA') ? (
+          // L'unité en retrait : un montant à 6 chiffres tient sur une ligne dans une tuile étroite.
+          <>
+            {valeur.slice(0, -5)}
+            <span className="ml-1 text-sm font-medium tracking-normal text-neutral-500">FCFA</span>
+          </>
+        ) : (
+          valeur
+        )}
+      </p>
       {detail ? <p className="mt-1 text-xs text-neutral-500">{detail}</p> : null}
     </>
   );

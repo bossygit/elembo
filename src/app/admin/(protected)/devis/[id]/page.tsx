@@ -2,337 +2,467 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { Badge, Carte, Confirmation, Definitions, EnTete, Flash, Vide, bouton, champ, libelle } from '@/components/admin/ui';
+import { dateHeure, estUuid, fcfa, pourcentage, tauxMarge } from '@/lib/admin/format';
+import { peut } from '@/lib/admin/permissions';
+import { MODES_PAIEMENT, libelleCommande, libelleDevis, libelleFamille, libellePaiement, libelleTypeClient } from '@/lib/admin/statuts';
+import { exigerAcces } from '@/server/admin/acces';
+import { notesInternes } from '@/server/admin/commandes';
+import { etapesPipeline, historiqueDevis, voletCommercial } from '@/server/admin/devis';
+import { commandeDuDevis } from '@/server/commandes/repository';
 import { clientDuDevis, devisParId, fichiersDuDevis } from '@/server/devis/repository';
-import { MODES_PAIEMENT, commandeDuDevis } from '@/server/commandes/repository';
 import {
+  ajouterNoteDevis,
   changerStatut,
   creerCommande,
   deciderPourClient,
+  enregistrerAnalyseAction,
   proposerDevis,
   revoquerSessions,
   telechargerFichier,
+  validerPrixAction,
 } from './actions';
 
-export const metadata: Metadata = { title: 'Détail du devis — Elembo' };
+export const metadata: Metadata = { title: 'Devis' };
 export const dynamic = 'force-dynamic';
 
-function euros(valeur: number | null): string {
-  return valeur === null ? '—' : `${valeur.toLocaleString('fr-FR')} FCFA`;
-}
+const MESSAGES: Record<string, string> = {
+  analyse: 'Analyse enregistrée.',
+  propose: 'Proposition envoyée : le client la voit dans son suivi.',
+  prix: 'Prix validé.',
+  statut: 'Statut mis à jour.',
+  decision: 'Décision enregistrée.',
+  note: 'Note ajoutée.',
+  sessions: 'Sessions client révoquées.',
+};
 
-function valeurLisible(valeur: unknown): string {
+function lisible(valeur: unknown): string {
   if (Array.isArray(valeur)) return valeur.length ? valeur.join(', ') : '—';
   if (typeof valeur === 'boolean') return valeur ? 'Oui' : 'Non';
   if (valeur === null || valeur === undefined || valeur === '') return '—';
-  return String(valeur);
+  return typeof valeur === 'object' ? JSON.stringify(valeur) : String(valeur);
 }
 
-function dateCourte(valeur: string | null): string {
-  if (!valeur) return '—';
-  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(
-    new Date(valeur),
-  );
-}
-
-export default async function PageDetailDevis({
+export default async function PageDevis({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ erreur?: string; ok?: string }>;
+  searchParams: Promise<{ ok?: string; erreur?: string }>;
 }) {
+  const staff = await exigerAcces('devis.voir');
   const { id } = await params;
+  if (!estUuid(id)) notFound();
   const messages = await searchParams;
   const devis = await devisParId(id);
   if (!devis) notFound();
-  const client = await clientDuDevis(devis.client_id);
-  const fichiers = await fichiersDuDevis(id);
-  const commande = await commandeDuDevis(id);
-  const peutDecider = devis.statut === 'PROPOSE';
+  const [client, fichiers, commande, commercial, historique, notes] = await Promise.all([
+    clientDuDevis(devis.client_id),
+    fichiersDuDevis(id),
+    commandeDuDevis(id),
+    voletCommercial(id),
+    historiqueDevis(id),
+    notesInternes('devis', id),
+  ]);
+  if (!commercial) notFound();
+
+  const traiter = peut(staff.role, 'devis.traiter');
+  const marges = peut(staff.role, 'marges.voir');
+  const clos = ['ACCEPTE', 'REFUSE', 'EXPIRE'].includes(devis.statut);
+  const etapes = etapesPipeline({
+    statut: devis.statut,
+    cree_le: devis.cree_le,
+    analyse_besoins: commercial.analyse_besoins,
+    montant_propose_fcfa: devis.montant_propose_fcfa,
+    proposition_commerciale: commercial.proposition_commerciale,
+    prix_valide: commercial.prix_valide,
+    prix_valide_le: commercial.prix_valide_le,
+    commande: commande ? { reference: commande.reference, statut_paiement: commande.statut_paiement, paye_le: commande.paye_le, cree_le: commande.cree_le } : null,
+    historique,
+  });
+  const contact = devis.contact_snapshot as Record<string, unknown>;
+  const s = libelleDevis(devis.statut);
+  const margeEstimee =
+    devis.montant_propose_fcfa !== null && commercial.cout_estime_fcfa !== null
+      ? devis.montant_propose_fcfa - commercial.cout_estime_fcfa
+      : null;
 
   return (
     <div>
-      <Link href="/admin/devis" className="text-sm text-neutral-500 underline">
-        ← Tous les devis
-      </Link>
-      <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="font-mono text-xs text-neutral-500">{devis.reference}</p>
-          <h1 className="mt-1 text-3xl font-semibold">{String((devis.contact_snapshot as { nom?: unknown }).nom ?? client?.nom ?? 'Client')}</h1>
-          <p className="mt-1 text-sm text-neutral-600">
-            {devis.famille} · {devis.statut} · créé le {dateCourte(devis.cree_le)}
-          </p>
-        </div>
-        <span className="rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-medium">
-          {devis.statut}
-        </span>
-      </div>
+      <EnTete
+        retour={{ href: '/admin/devis', label: 'Devis' }}
+        surtitre={devis.reference}
+        titre={String(contact.nom ?? client?.nom ?? 'Client')}
+        description={
+          <span className="flex flex-wrap items-center gap-1.5">
+            <Badge ton={s.ton}>{s.label}</Badge>
+            <span>
+              {libelleFamille(devis.famille)} · reçu le {dateHeure(devis.cree_le)}
+              {devis.expire_le ? ` · expire le ${dateHeure(devis.expire_le)}` : ''}
+            </span>
+          </span>
+        }
+      />
+      <Flash ok={messages.ok} erreur={messages.erreur} messages={MESSAGES} />
 
-      {messages.erreur ? (
-        <p className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {messages.erreur}
+      <ol className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7" aria-label="Avancement du devis">
+        {etapes.map((e, i) => (
+          <li
+            key={e.cle}
+            aria-current={!e.faite && (i === 0 || etapes[i - 1].faite) ? 'step' : undefined}
+            className={`rounded-xl border px-3 py-2.5 text-sm ${e.faite ? 'border-emerald-200 bg-emerald-50' : 'border-neutral-200 bg-white'}`}
+          >
+            <span className={`text-[11px] font-semibold ${e.faite ? 'text-emerald-800' : 'text-neutral-400'}`}>
+              {e.faite ? '✓' : i + 1} · {e.faite ? 'fait' : 'à faire'}
+            </span>
+            <span className="mt-0.5 block font-medium leading-tight">{e.label}</span>
+            {e.detail || e.le ? (
+              <span className="mt-0.5 block truncate text-[11px] text-neutral-500">{e.detail ?? dateHeure(e.le)}</span>
+            ) : null}
+          </li>
+        ))}
+      </ol>
+
+      {devis.statut === 'REFUSE' || devis.statut === 'EXPIRE' ? (
+        <p className="mb-6 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm text-neutral-700">
+          Devis {s.label.toLowerCase()} : il est clos.
         </p>
       ) : null}
-      {messages.ok ? (
-        <p className="mt-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-          Mise à jour enregistrée.
-        </p>
-      ) : null}
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-        <section className="rounded-2xl border border-neutral-200 bg-white p-6">
-          <h2 className="text-lg font-semibold">Demande</h2>
-          <dl className="mt-4 space-y-3 text-sm">
-            {devis.notes_internes ? (
-              <div>
-                <dt className="text-neutral-500">Notes internes</dt>
-                <dd className="mt-1 whitespace-pre-wrap">{devis.notes_internes}</dd>
-              </div>
-            ) : null}
-            <div>
-              <dt className="text-neutral-500">Besoin</dt>
-              <dd className="mt-1 whitespace-pre-wrap">{devis.besoin}</dd>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+        <div className="min-w-0 space-y-6">
+          <Carte titre="1 · Demande reçue">
+            <p className="whitespace-pre-wrap text-sm">{devis.besoin}</p>
+            <div className="mt-4">
+              <Definitions
+                elements={[
+                  ['Format', devis.format],
+                  ['Quantité', devis.quantite],
+                  ...Object.entries(devis.specifications ?? {}).map(([cle, v]) => [cle, lisible(v)] as [string, string]),
+                ]}
+              />
             </div>
-            {Object.keys(devis.specifications ?? {}).length > 0 ? (
-              <div>
-                <dt className="text-neutral-500">Précisions de la demande</dt>
-                <dd className="mt-2">
-                  <ul className="space-y-1.5">
-                    {Object.entries(devis.specifications as Record<string, unknown>).map(([cle, valeur]) => (
-                      <li key={cle} className="flex flex-wrap gap-x-2 text-sm">
-                        <span className="text-neutral-500">{cle} :</span>
-                        <span>{valeurLisible(valeur)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </dd>
-              </div>
-            ) : null}
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <dt className="text-neutral-500">Format</dt>
-                <dd>{devis.format ?? '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-neutral-500">Quantité</dt>
-                <dd>{devis.quantite ?? '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-neutral-500">Montant proposé</dt>
-                <dd className="font-semibold">{euros(devis.montant_propose_fcfa)}</dd>
-              </div>
-              <div>
-                <dt className="text-neutral-500">Expire le</dt>
-                <dd>{dateCourte(devis.expire_le)}</dd>
-              </div>
-            </div>
-          </dl>
-        </section>
-
-        <section className="rounded-2xl border border-neutral-200 bg-white p-6">
-          <h2 className="text-lg font-semibold">Client</h2>
-          <dl className="mt-4 space-y-3 text-sm">
-            <div>
-              <dt className="text-neutral-500">Nom</dt>
-              <dd>{client?.nom ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-neutral-500">Société</dt>
-              <dd>{client?.societe ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-neutral-500">Email</dt>
-              <dd>{client?.email ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-neutral-500">Téléphone</dt>
-              <dd>{client?.telephone ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-neutral-500">Ville</dt>
-              <dd>{client?.ville ?? '—'}</dd>
-            </div>
-          </dl>
-        </section>
-      </div>
-
-      <section className="mt-6 rounded-2xl border border-neutral-200 bg-white p-6">
-        <h2 className="text-lg font-semibold">Pièces jointes</h2>
-        {fichiers.length === 0 ? (
-          <p className="mt-3 text-sm text-neutral-500">Aucune pièce jointe.</p>
-        ) : (
-          <ul className="mt-4 divide-y divide-neutral-100">
-            {fichiers.map((f) => (
-              <li key={f.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
-                <div>
-                  <p className="font-medium">{f.nom}</p>
-                  <p className="text-xs text-neutral-500">
-                    {f.type_mime} · {(f.taille_octets / 1024 / 1024).toFixed(2)} Mo · {f.verifie ? 'vérifié' : 'non vérifié'} · analyse : {f.statut_analyse}
-                  </p>
-                </div>
-                {f.verifie && f.statut_analyse === 'PROPRE' ? (
-                  <form action={telechargerFichier}>
-                    <input type="hidden" name="devis_id" value={id} />
-                    <input type="hidden" name="fichier_id" value={f.id} />
-                    <button type="submit" className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium">
-                      Télécharger (60 s)
-                    </button>
-                  </form>
-                ) : (
-                  <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs text-amber-800">
-                    Téléchargement bloqué
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {devis.statut === 'ACCEPTE' ? (
-        <section className="mt-6 rounded-2xl border border-green-200 bg-green-50 p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold">Transmission à l’atelier</h2>
-              <p className="mt-1 max-w-2xl text-sm text-green-900/80">
-                Une commande distincte est créée avec sa propre référence, ses fichiers et son cycle
-                de production. Le paiement confirmé ne déclenche pas automatiquement la fabrication.
-              </p>
-            </div>
-            {commande ? (
-              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-green-900">
-                {commande.statut}
-              </span>
-            ) : null}
-          </div>
-
-          {commande ? (
-            <div className="mt-4 flex flex-wrap items-center gap-4 rounded-xl border border-green-200 bg-white p-4 text-sm">
-              <p className="font-mono font-semibold">{commande.reference}</p>
-              <p className="text-neutral-600">
-                Total : {commande.total_fcfa.toLocaleString('fr-FR')} FCFA
-              </p>
-              <Link href={`/admin/commandes/${commande.id}`} className="font-semibold underline">
-                Ouvrir la commande
-              </Link>
-            </div>
-          ) : (
-            <form action={creerCommande} className="mt-4 grid gap-4 rounded-xl border border-green-200 bg-white p-4 sm:grid-cols-2">
-              <input type="hidden" name="devis_id" value={id} />
-              <label className="block text-sm">
-                Mode de paiement prévu
-                <select name="mode_paiement" defaultValue="MTN_MOMO" className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2" required>
-                  {MODES_PAIEMENT.map((mode) => (
-                    <option key={mode.id} value={mode.id}>{mode.label}</option>
+            <div className="mt-4 border-t border-neutral-100 pt-3">
+              <h3 className="text-xs font-medium text-neutral-500">Pièces jointes</h3>
+              {fichiers.length === 0 ? (
+                <p className="mt-1 text-sm text-neutral-500">Aucune.</p>
+              ) : (
+                <ul className="mt-1 divide-y divide-neutral-100 text-sm">
+                  {fichiers.map((f) => (
+                    <li key={f.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{f.nom}</span>
+                        <span className="text-xs text-neutral-500">
+                          {f.type_mime} · {(f.taille_octets / 1024 / 1024).toFixed(2)} Mo · analyse : {f.statut_analyse}
+                        </span>
+                      </span>
+                      {traiter && f.verifie && f.statut_analyse === 'PROPRE' ? (
+                        <form action={telechargerFichier}>
+                          <input type="hidden" name="devis_id" value={id} />
+                          <input type="hidden" name="fichier_id" value={f.id} />
+                          <button type="submit" className={bouton('secondaire', 'sm')}>
+                            Télécharger
+                          </button>
+                        </form>
+                      ) : (
+                        <Badge ton="attente">Téléchargement bloqué</Badge>
+                      )}
+                    </li>
                   ))}
-                </select>
-              </label>
-              <label className="block text-sm">
-                Frais de livraison (FCFA)
-                <input type="number" name="livraison" min="0" step="1" defaultValue="0" className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2" required />
-              </label>
-              <label className="block text-sm">
-                Ville de livraison
-                <input type="text" name="ville" maxLength={120} defaultValue={client?.ville ?? 'Brazzaville'} className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2" />
-              </label>
-              <label className="block text-sm">
-                Date de livraison souhaitée
-                <input type="date" name="livraison_prevue" className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2" />
-              </label>
-              <label className="block text-sm sm:col-span-2">
-                Adresse de livraison
-                <input type="text" name="adresse" maxLength={300} className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2" />
-              </label>
-              <div className="sm:col-span-2">
-                <button type="submit" className="rounded-xl bg-green-700 px-4 py-2.5 text-sm font-semibold text-white">
-                  Créer la commande
-                </button>
-                <p className="mt-2 text-xs text-neutral-500">
-                  La commande sera créée en brouillon. Aucun paiement n’est encaissé par cette action.
-                </p>
-              </div>
-            </form>
-          )}
-        </section>
-      ) : null}
+                </ul>
+              )}
+            </div>
+          </Carte>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <section className="rounded-2xl border border-neutral-200 bg-white p-6">
-          <h2 className="text-lg font-semibold">Proposer un prix</h2>
-          <p className="mt-1 text-sm text-neutral-500">
-            Le prix devient visible par le client et la transition est journalisée.
-          </p>
-          <form action={proposerDevis} className="mt-4 space-y-3">
-            <input type="hidden" name="devis_id" value={id} />
-            <label className="block text-sm">
-              Montant en FCFA
-              <input
-                className="mt-1 w-full rounded-xl border border-neutral-300 px-3 py-2"
-                type="number"
-                name="montant"
-                min="1"
-                step="1"
-                defaultValue={devis.montant_propose_fcfa ?? undefined}
-                required
-              />
-            </label>
-            <label className="block text-sm">
-              Note interne (facultative)
-              <textarea
-                className="mt-1 min-h-20 w-full rounded-xl border border-neutral-300 px-3 py-2"
-                name="note"
-                maxLength={2000}
-              />
-            </label>
-            <button type="submit" className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white">
-              Enregistrer la proposition
-            </button>
-          </form>
-        </section>
-
-        <section className="rounded-2xl border border-neutral-200 bg-white p-6">
-          <h2 className="text-lg font-semibold">Actions</h2>
-          <div className="mt-4 space-y-4">
-            {devis.statut === 'NOUVEAU' ? (
-              <form action={changerStatut}>
+          <Carte titre="2 · Analyse des besoins" id="analyse" description="Faisabilité, technique, fournitures, sous-traitance — interne">
+            {traiter && !clos ? (
+              <form action={enregistrerAnalyseAction} className="grid gap-3 sm:grid-cols-2">
                 <input type="hidden" name="devis_id" value={id} />
-                <input type="hidden" name="statut" value="EN_ANALYSE" />
-                <button type="submit" className="rounded-xl border border-neutral-300 px-4 py-2.5 text-sm">
-                  Passer en analyse
+                <label className={`${libelle} sm:col-span-2`}>
+                  Analyse
+                  <textarea name="analyse_besoins" rows={5} maxLength={8000} defaultValue={commercial.analyse_besoins ?? ''} className={champ} />
+                </label>
+                <label className={libelle}>
+                  Coût de revient estimé (FCFA)
+                  <input name="cout_estime_fcfa" type="number" min={0} defaultValue={commercial.cout_estime_fcfa ?? ''} className={champ} />
+                </label>
+                <label className={libelle}>
+                  Délai de réalisation (jours)
+                  <input name="delai_propose_jours" type="number" min={0} max={365} defaultValue={commercial.delai_propose_jours ?? ''} className={champ} />
+                </label>
+                <div className="sm:col-span-2">
+                  <button type="submit" className={bouton('primaire', 'sm')}>
+                    {devis.statut === 'NOUVEAU' ? 'Enregistrer et passer en analyse' : 'Enregistrer l’analyse'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <Definitions
+                elements={[
+                  ['Analyse', commercial.analyse_besoins ? <span className="whitespace-pre-wrap">{commercial.analyse_besoins}</span> : null],
+                  ['Coût estimé', marges ? fcfa(commercial.cout_estime_fcfa) : 'réservé'],
+                  ['Délai', commercial.delai_propose_jours !== null ? `${commercial.delai_propose_jours} jours` : null],
+                ]}
+              />
+            )}
+          </Carte>
+
+          <Carte titre="3 · Proposition commerciale et 4 · prix validé" id="proposition">
+            <Definitions
+              elements={[
+                ['Montant proposé', <span key="m" className="font-semibold">{fcfa(devis.montant_propose_fcfa)}</span>],
+                [
+                  'Prix',
+                  commercial.prix_valide ? (
+                    <Badge key="v" ton="succes">
+                      Validé{commercial.prix_valide_par_email ? ` par ${commercial.prix_valide_par_email}` : ''} · {dateHeure(commercial.prix_valide_le)}
+                    </Badge>
+                  ) : devis.montant_propose_fcfa !== null ? (
+                    <Badge key="v" ton="attente">À valider</Badge>
+                  ) : null,
+                ],
+                ...(marges
+                  ? ([
+                      [
+                        'Marge estimée',
+                        margeEstimee !== null ? `${fcfa(margeEstimee)} (${pourcentage(tauxMarge(margeEstimee, devis.montant_propose_fcfa ?? 0))})` : 'coût estimé manquant',
+                      ],
+                    ] as [string, React.ReactNode][])
+                  : []),
+              ]}
+            />
+            {commercial.proposition_commerciale ? (
+              <p className="mt-3 whitespace-pre-wrap rounded-lg bg-neutral-50 p-3 text-sm">{commercial.proposition_commerciale}</p>
+            ) : null}
+
+            {peut(staff.role, 'devis.valider_prix') && devis.montant_propose_fcfa !== null && !commercial.prix_valide && !clos ? (
+              <form action={validerPrixAction} className="mt-4">
+                <input type="hidden" name="devis_id" value={id} />
+                <button type="submit" className={bouton('succes', 'sm')}>
+                  Valider le prix de {fcfa(devis.montant_propose_fcfa)}
                 </button>
               </form>
             ) : null}
 
-            {peutDecider ? (
-              <div className="grid gap-3 sm:grid-cols-2">
+            {traiter && (devis.statut === 'EN_ANALYSE' || devis.statut === 'PROPOSE') ? (
+              <form action={proposerDevis} className="mt-4 grid gap-3 border-t border-neutral-100 pt-4 sm:grid-cols-[1fr_2fr]">
+                <input type="hidden" name="devis_id" value={id} />
+                <label className={libelle}>
+                  Montant (FCFA)
+                  <input name="montant" type="number" min={1} step={1} required defaultValue={devis.montant_propose_fcfa ?? undefined} className={champ} />
+                </label>
+                <label className={libelle}>
+                  Détail de la proposition
+                  <textarea
+                    name="proposition_commerciale"
+                    rows={3}
+                    maxLength={8000}
+                    defaultValue={commercial.proposition_commerciale ?? ''}
+                    placeholder="Contenu, options, conditions, délai…"
+                    className={champ}
+                  />
+                </label>
+                <div className="sm:col-span-2">
+                  <button type="submit" className={bouton('primaire', 'sm')}>
+                    {devis.statut === 'PROPOSE' ? 'Réviser la proposition' : 'Envoyer la proposition'}
+                  </button>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    Le montant devient visible par le client. Un nouveau montant annule la validation du prix.
+                  </p>
+                </div>
+              </form>
+            ) : devis.statut === 'NOUVEAU' ? (
+              <p className="mt-3 text-xs text-neutral-500">Passez d’abord le devis en analyse.</p>
+            ) : null}
+          </Carte>
+
+          <Carte titre="5 · Acceptation · 6 · commande · 7 · paiement" id="commande">
+            {devis.statut === 'PROPOSE' && traiter ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="mr-auto text-sm text-neutral-600">Le client accepte en ligne, ou enregistrez sa réponse reçue par téléphone / WhatsApp :</p>
                 <form action={deciderPourClient}>
                   <input type="hidden" name="devis_id" value={id} />
                   <input type="hidden" name="decision" value="ACCEPTE" />
-                  <button type="submit" className="w-full rounded-xl bg-green-700 px-4 py-2.5 text-sm font-semibold text-white">
-                    Marquer accepté
+                  <button type="submit" className={bouton('succes', 'sm')}>
+                    Accepté par le client
                   </button>
                 </form>
                 <form action={deciderPourClient}>
                   <input type="hidden" name="devis_id" value={id} />
                   <input type="hidden" name="decision" value="REFUSE" />
-                  <button type="submit" className="w-full rounded-xl border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-800">
-                    Marquer refusé
+                  <button type="submit" className={bouton('danger', 'sm')}>
+                    Refusé
                   </button>
                 </form>
               </div>
             ) : null}
 
-            <form action={revoquerSessions}>
-              <input type="hidden" name="devis_id" value={id} />
-              <button type="submit" className="text-sm text-neutral-600 underline">
-                Révoquer toutes les sessions client
-              </button>
-            </form>
-            <p className="text-xs text-neutral-500">
-              La révocation est enregistrée dans l’audit. Aucun paiement n’est déclenché.
-            </p>
-          </div>
-        </section>
+            {devis.statut === 'ACCEPTE' && commande ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 p-3 text-sm">
+                <div>
+                  <p className="font-mono font-semibold">{commande.reference}</p>
+                  <p className="text-neutral-600">Total {fcfa(commande.total_fcfa)}</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <Badge ton={libelleCommande(commande.statut).ton}>{libelleCommande(commande.statut).label}</Badge>
+                  <Badge ton={libellePaiement(commande.statut_paiement).ton}>Paiement : {libellePaiement(commande.statut_paiement).label}</Badge>
+                </div>
+                <Link href={`/admin/commandes/${commande.id}`} className={bouton('secondaire', 'sm')}>
+                  Suivre la commande et le paiement
+                </Link>
+              </div>
+            ) : null}
+
+            {devis.statut === 'ACCEPTE' && !commande && traiter ? (
+              <form action={creerCommande} className="grid gap-3 sm:grid-cols-2">
+                <input type="hidden" name="devis_id" value={id} />
+                <label className={libelle}>
+                  Mode de paiement prévu
+                  <select name="mode_paiement" defaultValue="MTN_MOMO" className={champ}>
+                    {MODES_PAIEMENT.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className={libelle}>
+                  Frais de livraison (FCFA)
+                  <input type="number" name="livraison" min={0} step={1} defaultValue={0} required className={champ} />
+                </label>
+                <label className={libelle}>
+                  Ville de livraison
+                  <input name="ville" maxLength={120} defaultValue={client?.ville ?? 'Brazzaville'} className={champ} />
+                </label>
+                <label className={libelle}>
+                  Livraison souhaitée
+                  <input type="date" name="livraison_prevue" className={champ} />
+                </label>
+                <label className={`${libelle} sm:col-span-2`}>
+                  Adresse de livraison
+                  <input name="adresse" maxLength={300} className={champ} />
+                </label>
+                <div className="sm:col-span-2">
+                  <button type="submit" className={bouton('primaire')}>
+                    Transformer en commande
+                  </button>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    Commande créée en brouillon avec le prix verrouillé du devis et ses fichiers. Aucun encaissement.
+                  </p>
+                </div>
+              </form>
+            ) : null}
+
+            {devis.statut !== 'PROPOSE' && devis.statut !== 'ACCEPTE' ? (
+              <p className="text-sm text-neutral-500">Disponible une fois la proposition envoyée.</p>
+            ) : null}
+          </Carte>
+        </div>
+
+        <aside className="min-w-0 space-y-6">
+          <Carte
+            titre="Client"
+            action={
+              peut(staff.role, 'clients.voir') ? (
+                <Link href={`/admin/clients/${devis.client_id}`} className={bouton('discret')}>
+                  Fiche client
+                </Link>
+              ) : null
+            }
+          >
+            <Definitions
+              elements={[
+                ['Nom', client?.nom],
+                ['Société', client?.societe],
+                ['Type', typeof contact.typeClient === 'string' ? libelleTypeClient(contact.typeClient) : null],
+                ['Téléphone', client?.telephone],
+                ['Email', client?.email],
+                ['Ville', client?.ville],
+              ]}
+            />
+          </Carte>
+
+          <Carte titre="Notes internes" id="notes">
+            {traiter ? (
+              <form action={ajouterNoteDevis} className="space-y-2">
+                <input type="hidden" name="devis_id" value={id} />
+                <textarea name="contenu" rows={2} maxLength={4000} required placeholder="Relance, échange, point d’attention…" aria-label="Nouvelle note" className={champ} />
+                <button type="submit" className={bouton('secondaire', 'sm')}>
+                  Ajouter
+                </button>
+              </form>
+            ) : null}
+            {devis.notes_internes ? (
+              <p className="mt-3 whitespace-pre-wrap rounded-lg bg-neutral-50 px-3 py-2 text-sm">{devis.notes_internes}</p>
+            ) : null}
+            <ul className="mt-3 space-y-2 text-sm">
+              {notes.map((n) => (
+                <li key={n.id} className="rounded-lg bg-neutral-50 px-3 py-2">
+                  <p className="whitespace-pre-wrap break-words">{n.contenu}</p>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    {n.auteur_email ?? 'personnel'} · {dateHeure(n.cree_le)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </Carte>
+
+          <Carte titre="Historique">
+            {historique.length === 0 ? (
+              <Vide>Aucun événement.</Vide>
+            ) : (
+              <ol className="space-y-2 text-sm">
+                {historique.map((h, i) => (
+                  <li key={i}>
+                    <p className="font-medium">
+                      {h.type_evenement === 'PRIX'
+                        ? `Prix : ${fcfa(h.ancien_montant_fcfa)} → ${fcfa(h.nouveau_montant_fcfa)}`
+                        : `${libelleDevis(h.ancien_statut).label} → ${libelleDevis(h.nouveau_statut).label}`}
+                    </p>
+                    <p className="text-xs text-neutral-500">
+                      {dateHeure(h.cree_le)} · {h.source === 'CLIENT' ? 'client' : h.source === 'SYSTEME' ? 'système' : 'personnel'}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </Carte>
+
+          {traiter && !clos ? (
+            <Carte titre="Clore le devis">
+              <div className="flex flex-wrap gap-2">
+                <form action={changerStatut}>
+                  <input type="hidden" name="devis_id" value={id} />
+                  <input type="hidden" name="statut" value="EXPIRE" />
+                  <button type="submit" className={bouton('secondaire', 'sm')}>
+                    Marquer expiré
+                  </button>
+                </form>
+                {devis.statut !== 'PROPOSE' ? (
+                  <form action={changerStatut}>
+                    <input type="hidden" name="devis_id" value={id} />
+                    <input type="hidden" name="statut" value="REFUSE" />
+                    <button type="submit" className={bouton('danger', 'sm')}>
+                      Sans suite
+                    </button>
+                  </form>
+                ) : null}
+              </div>
+            </Carte>
+          ) : null}
+
+          {peut(staff.role, 'devis.sessions') ? (
+            <Confirmation resume={<span className="text-xs text-neutral-500 underline">Révoquer les sessions de suivi du client…</span>}>
+              <form action={revoquerSessions}>
+                <input type="hidden" name="devis_id" value={id} />
+                <button type="submit" className={bouton('danger', 'sm')}>
+                  Révoquer toutes les sessions
+                </button>
+                <p className="mt-1 text-xs text-neutral-500">Le client devra se réauthentifier pour consulter son devis.</p>
+              </form>
+            </Confirmation>
+          ) : null}
+        </aside>
       </div>
     </div>
   );

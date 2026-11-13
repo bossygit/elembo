@@ -260,6 +260,9 @@ export default function OrderPanel() {
         telephone,
         nom: nom.trim() || undefined,
         email: email.trim() || undefined,
+        // Informatif pour l'atelier (dossier de production) : n'entre pas dans le prix.
+        couleur: product.colors.find((c) => c.hex.toLowerCase() === color.toLowerCase())?.name ?? color,
+        zones: faces.map((side) => SIDE_LABELS[side]),
       });
       setPaiement(demande);
       setSuivi('attente');

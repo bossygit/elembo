@@ -2,11 +2,6 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Bricolage_Grotesque, Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
-import Footer from "../components/site/Footer";
-import BarreMobile from "../components/site/BarreMobile";
-import Header from "../components/site/Header";
-import Mouvement from "../components/motion/Mouvement";
-import WhatsAppFlottant from "../components/site/WhatsAppFlottant";
 import { MARQUE } from "../lib/site/marque";
 
 const geistSans = Geist({
@@ -66,6 +61,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   // relatif au basePath du déploiement — le navigateur ne télécharge une police que
   // lorsqu'elle est réellement utilisée (aucun préchargement des 17 familles).
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+  // L'habillage public (en-tête, pied de page, WhatsApp, barre mobile, animations) vit dans
+  // `(site)/layout.tsx`. Le back-office (/admin) a sa propre coque : il ne charge rien du site.
   return (
     <html
       lang="fr"
@@ -82,19 +79,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         */}
         <Script src={`${basePath}/api-config.js`} strategy="afterInteractive" />
       </head>
-      <body className="flex min-h-full flex-col bg-creme text-encre">
-        <a href="#contenu" className="lien-evitement">
-          Aller au contenu
-        </a>
-        <Header />
-        <main id="contenu" className="flex-1">
-          {children}
-        </main>
-        <Footer />
-        <WhatsAppFlottant />
-        <BarreMobile />
-        <Mouvement />
-      </body>
+      <body className="flex min-h-full flex-col bg-creme text-encre">{children}</body>
     </html>
   );
 }

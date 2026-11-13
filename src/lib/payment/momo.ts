@@ -31,6 +31,9 @@ export type DemandePaiement = {
   telephone: string;
   nom?: string;
   email?: string;
+  /** Couleur du support choisie (nom lisible) et zones imprimées : informatif, pour l'atelier. */
+  couleur?: string;
+  zones?: string[];
 };
 
 export class ErreurPaiement extends Error {

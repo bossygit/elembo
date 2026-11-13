@@ -1,0 +1,1562 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elembo — Guide d’utilisation</title>
+<meta name="description" content="Guide d’utilisation Elembo : personnalisation de T-shirt et de mug, commande MTN MoMo et tableau de bord.">
+<meta name="author" content="Smart Vision Congo">
+<meta name="keywords" content="Elembo, guide, T-shirt, mug, personnalisation, tableau de bord, MTN MoMo">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Instrument+Serif:ital@0;1&family=Inter:wght@300..700&display=swap');
+
+  :root{
+    --ink:#18181a;
+    --ink-soft:#2a2a2d;
+    --orange:#ff5a12;
+    --orange-dark:#d9480f;
+    --cream:#f5f1e8;
+    --paper:#fffdf8;
+    --sand:#eadfc8;
+    --muted:#6f6a62;
+    --line:#ded6c7;
+    --green:#1e5e3b;
+    --green-bg:#eef7f1;
+    --amber:#a16207;
+    --amber-bg:#fff7e6;
+    --red:#b91c1c;
+    --red-bg:#fef2f2;
+  }
+
+  @page{
+    size:A4;
+    margin:17mm 16mm 18mm;
+    background:var(--cream);
+  }
+
+  *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  html,body{margin:0;padding:0;background:var(--cream);}
+  body{
+    font-family:Inter, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size:9pt;
+    line-height:1.48;
+    color:var(--ink);
+  }
+  p{margin:0 0 2.7mm;}
+  strong{font-weight:600;}
+  a{color:inherit;text-decoration:none;}
+  code{font-family:"SFMono-Regular", Consolas, monospace;font-size:.88em;background:rgba(24,24,26,.06);padding:.2mm 1mm;border-radius:1mm;}
+
+  h1,h2,h3,h4{font-family:"Bricolage Grotesque", "Helvetica Neue", sans-serif;font-weight:650;letter-spacing:-.015em;}
+  h1{font-size:26pt;line-height:1.02;margin:0 0 2.8mm;}
+  h2{font-size:13.5pt;line-height:1.12;margin:6mm 0 2.5mm;padding-top:2.4mm;border-top:1.1pt solid var(--ink);}
+  h3{font-size:11pt;line-height:1.2;margin:5mm 0 1.5mm;}
+  h2,h3{break-after:avoid;}
+  h4{font-size:9.5pt;line-height:1.25;margin:4mm 0 1mm;letter-spacing:0;}
+  ul,ol{margin:0 0 3mm;padding-left:5mm;}
+  li{margin:0 0 1mm;}
+  li::marker{color:var(--orange);}
+  em{font-family:"Instrument Serif", Georgia, serif;font-style:italic;font-weight:400;}
+
+  .part,.backcover{break-before:page;}
+  .part{break-after:page;}
+  .chapter{break-before:auto;}
+  .chapter.newpage{break-before:page;}
+  .chapter + .chapter{margin-top:9mm;}
+  .chapter-head{break-inside:avoid;}
+  .cover{break-after:page;}
+  .keep{break-inside:avoid;}
+  .fig,.callout,.card,.step,.toc-part,.mobile-grid{break-inside:avoid;}
+  tr{break-inside:avoid;}
+  img{max-width:100%;}
+
+  /* ---------- couverture ---------- */
+  .cover{
+    height:261mm;
+    background:var(--ink);
+    color:var(--cream);
+    border-radius:2mm;
+    padding:15mm 14mm 12mm;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    overflow:hidden;
+  }
+  .cover::before{
+    content:"✦";
+    position:absolute;
+    right:-4mm;
+    top:-16mm;
+    font-size:120pt;
+    color:var(--orange);
+    opacity:.16;
+    line-height:1;
+  }
+  .brand{font-family:"Bricolage Grotesque",sans-serif;font-size:17pt;font-weight:750;letter-spacing:-.04em;}
+  .brand span{color:var(--orange);}
+  .cover-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8mm;position:relative;z-index:1;}
+  .cover-kicker{font-size:7.5pt;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--orange);text-align:right;line-height:1.5;}
+  .cover h1{font-size:41pt;line-height:.98;margin:22mm 0 0;color:var(--cream);position:relative;z-index:1;}
+  .cover h1 em{color:var(--orange);}
+  .cover-sub{font-size:11pt;line-height:1.45;color:rgba(245,241,232,.78);max-width:120mm;margin:6mm 0 0;position:relative;z-index:1;}
+  .cover-chips{display:flex;flex-wrap:wrap;gap:2mm;margin-top:7mm;position:relative;z-index:1;}
+  .cover-chips span{font-size:7.5pt;font-weight:600;border:.3mm solid rgba(245,241,232,.28);border-radius:10mm;padding:1.3mm 2.6mm;color:rgba(245,241,232,.86);}
+  .cover-shots{margin-top:auto;display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:3mm;align-items:end;position:relative;z-index:1;}
+  .cover-shots img{display:block;width:100%;border-radius:1.8mm;border:.35mm solid rgba(245,241,232,.22);}
+  .cover-shots .lift{transform:translateY(-5mm);}
+  .cover-meta{margin-top:6mm;display:flex;justify-content:space-between;gap:6mm;font-size:7.5pt;color:rgba(245,241,232,.55);position:relative;z-index:1;}
+
+  /* ---------- ouverture de partie ---------- */
+  .part{
+    height:261mm;
+    background:var(--ink);
+    color:var(--cream);
+    border-radius:2mm;
+    padding:16mm 14mm;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    overflow:hidden;
+  }
+  .part::after{
+    content:"✦";
+    position:absolute;
+    right:10mm;
+    bottom:-12mm;
+    font-size:120pt;
+    color:var(--orange);
+    opacity:.18;
+    line-height:1;
+  }
+  .part .num{font-family:"Bricolage Grotesque",sans-serif;font-size:82pt;font-weight:750;line-height:.8;color:var(--orange);letter-spacing:-.06em;}
+  .part .part-kicker{font-size:8pt;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:rgba(245,241,232,.6);margin-top:10mm;}
+  .part h1{font-size:32pt;line-height:1.02;margin:4mm 0 0;color:var(--cream);max-width:150mm;}
+  .part h1 em{color:var(--orange);}
+  .part .part-lead{font-size:11pt;line-height:1.5;color:rgba(245,241,232,.76);max-width:120mm;margin:6mm 0 0;}
+  .part-list{list-style:none;padding:0;margin:12mm 0 0;max-width:140mm;position:relative;z-index:1;}
+  .part-list li{display:flex;gap:4mm;padding:2.4mm 0;border-bottom:.25mm solid rgba(245,241,232,.16);font-size:9pt;color:rgba(245,241,232,.82);}
+  .part-list li b{color:var(--orange);font-family:"Bricolage Grotesque",sans-serif;font-size:9pt;min-width:7mm;}
+  .part-shot{margin-top:auto;position:relative;z-index:1;}
+  .part-shot img{display:block;width:100%;border-radius:2mm;border:.35mm solid rgba(245,241,232,.2);opacity:.92;}
+  .part-shot figcaption{font-size:7.5pt;color:rgba(245,241,232,.48);margin-top:2mm;}
+
+  /* ---------- titres de chapitre ---------- */
+  .kicker{font-size:7.5pt;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--orange-dark);margin:0 0 2mm;}
+  .lead{font-size:10.5pt;line-height:1.42;color:#39362f;margin:0 0 4mm;max-width:160mm;}
+  .chapter-head{border-bottom:.3mm solid var(--line);padding-bottom:3.2mm;margin-bottom:4.2mm;}
+  .chapter-head h1{margin-bottom:2.5mm;}
+  .chapter-head .meta{font-size:7.5pt;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;}
+  .intro-box{background:rgba(234,223,200,.35);border-radius:2mm;padding:4mm 4.5mm;margin:0 0 5mm;font-size:9.5pt;}
+  .intro-box b{font-family:"Bricolage Grotesque",sans-serif;}
+
+  /* ---------- figures ---------- */
+  .fig{margin:4mm 0 4.5mm;}
+  .shot{background:var(--paper);padding:1.4mm;border:.3mm solid var(--line);border-radius:2.4mm;max-width:86%;margin-left:auto;margin-right:auto;}
+  .shot img{display:block;width:100%;height:auto;border-radius:1.4mm;}
+  .fig figcaption{font-size:7.8pt;line-height:1.4;color:var(--muted);margin-top:2mm;}
+  .fig .fnum{color:var(--orange-dark);font-weight:700;letter-spacing:.04em;}
+  .fig .src{color:#989183;}
+  .fig.small .shot{max-width:76%;}
+
+  /* ---------- cartes, colonnes ---------- */
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:5mm;}
+  .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4mm;}
+  .card{background:var(--paper);border:.3mm solid var(--line);border-radius:2.4mm;padding:3.6mm 4.1mm;}
+  .card h3{margin:0 0 1.5mm;font-size:10.5pt;}
+  .card p:last-child{margin-bottom:0;}
+  .card .tag{display:inline-block;font-size:7pt;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--orange-dark);margin-bottom:1.5mm;}
+  .card.dark{background:var(--ink);color:var(--cream);border-color:var(--ink);}
+  .card.dark h3{color:var(--cream);}
+  .card.dark p{color:rgba(245,241,232,.74);}
+  .card.dark .tag{color:var(--orange);}
+
+  /* ---------- encadrés ---------- */
+  .callout{border-left:1.2mm solid var(--orange);background:#fff2ea;border-radius:0 2mm 2mm 0;padding:3mm 3.8mm;margin:3.4mm 0 4.2mm;font-size:8.8pt;}
+  .callout .ct{display:block;font-family:"Bricolage Grotesque",sans-serif;font-size:8.5pt;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--orange-dark);margin-bottom:1mm;}
+  .callout p:last-child{margin-bottom:0;}
+  .callout.tip{border-color:var(--green);background:var(--green-bg);}
+  .callout.tip .ct{color:var(--green);}
+  .callout.warn{border-color:#d97706;background:var(--amber-bg);}
+  .callout.warn .ct{color:var(--amber);}
+  .callout.danger{border-color:var(--red);background:var(--red-bg);}
+  .callout.danger .ct{color:var(--red);}
+
+  /* ---------- étapes ---------- */
+  .steps{counter-reset:step;margin:3mm 0 4mm;}
+  .step{position:relative;padding-left:11mm;margin:0 0 3mm;min-height:7mm;}
+  .step::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:.2mm;width:6.8mm;height:6.8mm;border-radius:50%;background:var(--orange);color:var(--ink);font-family:"Bricolage Grotesque",sans-serif;font-size:9pt;font-weight:750;text-align:center;line-height:6.8mm;}
+  .step b{display:block;font-family:"Bricolage Grotesque",sans-serif;font-size:9.5pt;margin-bottom:.5mm;}
+  .step p{margin:0;}
+
+  /* ---------- tableaux ---------- */
+  table{width:100%;border-collapse:collapse;font-size:8.2pt;line-height:1.32;margin:2.6mm 0 4.2mm;}
+  th{background:var(--ink);color:var(--cream);text-align:left;padding:2mm 2.2mm;font-family:"Bricolage Grotesque",sans-serif;font-size:7.6pt;font-weight:600;letter-spacing:.04em;vertical-align:bottom;}
+  td{padding:1.6mm 2.1mm;border-bottom:.25mm solid var(--line);vertical-align:top;}
+  tbody tr:nth-child(even) td{background:rgba(234,223,200,.22);}
+  td.tight,th.tight{padding-left:1.6mm;padding-right:1.6mm;}
+  .num-col{text-align:right;white-space:nowrap;}
+
+  .badge{display:inline-block;font-size:6.8pt;font-weight:700;line-height:1.3;padding:.5mm 1.8mm;border-radius:8mm;white-space:nowrap;}
+  .b-green{background:#dcf2e4;color:#14532d;}
+  .b-amber{background:#fef0c7;color:#92400e;}
+  .b-red{background:#fee2e2;color:#991b1b;}
+  .b-blue{background:#e0edff;color:#1e3a8a;}
+  .b-grey{background:#ece9e3;color:#4b4740;}
+  .b-orange{background:#ffe2d3;color:#9a3412;}
+
+  /* ---------- sommaire ---------- */
+  .toc{columns:2;column-gap:11mm;margin-top:4mm;}
+  .toc-part{break-inside:avoid;margin:0 0 6mm;}
+  .toc-part h3{margin:0 0 2mm;border-bottom:.4mm solid var(--ink);padding-bottom:1.5mm;font-size:10pt;}
+  .toc-part h3 span{color:var(--orange-dark);}
+  .toc-item{display:flex;gap:2mm;align-items:baseline;padding:1.4mm 0;border-bottom:.2mm dotted var(--line);font-size:8.7pt;line-height:1.3;}
+  .toc-item .n{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;color:var(--orange-dark);width:6mm;flex:none;}
+  .toc-item .t{flex:1;}
+  .toc-item .p{color:var(--muted);font-size:7.8pt;min-width:5mm;text-align:right;}
+  .toc-item .d{display:block;color:var(--muted);font-size:7.6pt;line-height:1.3;margin-top:.3mm;}
+
+  /* ---------- divers ---------- */
+  .flow{display:flex;align-items:center;flex-wrap:wrap;gap:1.5mm;margin:4mm 0 6mm;}
+  .flow .node{background:var(--paper);border:.3mm solid var(--line);border-radius:1.6mm;padding:1.8mm 2.4mm;font-size:7.6pt;font-weight:600;line-height:1.25;}
+  .flow .arrow{color:var(--orange);font-weight:700;font-size:9pt;}
+  .flow .node.hot{background:var(--ink);color:var(--cream);border-color:var(--ink);}
+  .flow .node.valid{background:#dcf2e4;border-color:#b7e3c5;color:#14532d;}
+
+  .checklist{list-style:none;padding:0;margin:2mm 0 4mm;}
+  .checklist li{position:relative;padding-left:6mm;margin-bottom:1.8mm;}
+  .checklist li::before{content:"☐";position:absolute;left:0;top:-.2mm;color:var(--orange-dark);font-size:11pt;line-height:1;}
+
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:2.5mm;margin:3mm 0 4mm;}
+  .kpi{background:var(--paper);border:.3mm solid var(--line);border-radius:2mm;padding:3mm;}
+  .kpi .v{font-family:"Bricolage Grotesque",sans-serif;font-size:16pt;font-weight:700;line-height:1;margin-bottom:1.2mm;}
+  .kpi .l{font-size:7.4pt;line-height:1.3;color:var(--muted);}
+
+  .mobile-grid{display:grid;grid-template-columns:1fr 1fr;gap:7mm;align-items:start;}
+  .mobile-grid .shot{padding:1mm;}
+  .mobile-grid img{width:72mm;margin:0 auto;}
+  .mobile-grid figcaption{font-size:7.8pt;color:var(--muted);line-height:1.4;margin-top:2mm;text-align:center;}
+
+  .qa{display:grid;grid-template-columns:1fr 1fr;gap:4mm 6mm;margin-top:3mm;}
+  .qa .q{font-family:"Bricolage Grotesque",sans-serif;font-size:9pt;font-weight:650;margin-bottom:.6mm;}
+  .qa .a{font-size:8.5pt;line-height:1.4;color:#3b3832;margin:0 0 1mm;}
+  .qa > div{break-inside:avoid;padding-bottom:2mm;border-bottom:.2mm solid var(--line);}
+
+  .contact-strip{display:flex;justify-content:space-between;gap:5mm;align-items:center;background:var(--ink);color:var(--cream);border-radius:2mm;padding:4mm 5mm;margin-top:6mm;font-size:8.6pt;}
+  .contact-strip b{color:var(--orange);}
+
+  .backcover{height:261mm;background:var(--ink);color:var(--cream);border-radius:2mm;padding:18mm 16mm;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+  .backcover::before{content:"✦";position:absolute;right:-8mm;bottom:-20mm;font-size:160pt;color:var(--orange);opacity:.12;line-height:1;}
+  .backcover h1{font-size:34pt;color:var(--cream);margin:14mm 0 0;max-width:140mm;}
+  .backcover h1 em{color:var(--orange);}
+  .backcover p{color:rgba(245,241,232,.75);max-width:120mm;font-size:10pt;line-height:1.5;}
+  .backcover .contact{margin-top:auto;font-size:9pt;line-height:1.8;color:rgba(245,241,232,.8);position:relative;z-index:1;}
+  .backcover .contact b{color:var(--orange);}
+  .backcover .fine{font-size:7.5pt;color:rgba(245,241,232,.45);margin-top:6mm;}
+
+  /* aperçu écran */
+  @media screen{
+    body{max-width:210mm;margin:0 auto;padding:8mm;background:#e9e3d6;}
+    .cover,.part,.backcover{box-shadow:0 4mm 12mm rgba(0,0,0,.14);}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================ COUVERTURE ============================ -->
+<section class="cover">
+  <div class="cover-top">
+    <div class="brand">elembo<span>.</span></div>
+    <div class="cover-kicker">Guide d’utilisation<br>Édition 2026</div>
+  </div>
+  <h1>Personnalisez.<br>Produisez.<br><em>Pilotez.</em></h1>
+  <p class="cover-sub">Le mode d’emploi du studio T-shirt &amp; mug, de la commande MTN MoMo et du tableau de bord Elembo.</p>
+  <div class="cover-chips">
+    <span>Studio 3D</span><span>5 zones textile</span><span>Mug 330 ml</span><span>Paiement MTN MoMo</span><span>Back-office</span>
+  </div>
+  <div class="cover-shots">
+    <img src="captures/studio-desktop-initial.png" alt="Studio de personnalisation d’un T-shirt Elembo">
+    <img class="lift" src="captures/guide-mug-logo.png" alt="Mug Elembo personnalisé avec un logo">
+    <img src="captures/01-dashboard.png" alt="Tableau de bord du back-office Elembo">
+  </div>
+  <div class="cover-meta">
+    <span>12 novembre 2026 · Smart Vision Congo</span>
+    <span>Captures réalisées sur l’environnement de démonstration</span>
+  </div>
+</section>
+
+<!-- ============================ BIENVENUE ============================ -->
+<section class="chapter">
+  <div class="chapter-head">
+    <p class="kicker">Mode d’emploi</p>
+    <h1>Deux espaces,<br>une même intention.</h1>
+    <p class="lead">Elembo transforme une idée en objet personnalisé, puis suit cet objet jusqu’à l’atelier. Ce guide couvre les deux côtés du parcours : le studio où l’on compose, et le tableau de bord où l’équipe pilote les commandes, la production et les devis.</p>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <span class="tag">Côté client</span>
+      <h3>Le studio de personnalisation</h3>
+      <p><strong>Adresse :</strong> <code>/personnalisation</code></p>
+      <p>Un aperçu 3D en temps réel, cinq zones sur le T-shirt, un pourtour sur le mug, des images et des textes, un aperçu fidèle et le paiement MTN MoMo.</p>
+      <p style="color:var(--muted);font-size:8.5pt;">Aucun compte n’est nécessaire pour composer. Le brouillon reste sur l’appareil.</p>
+    </div>
+    <div class="card dark">
+      <span class="tag">Côté équipe</span>
+      <h3>Le tableau de bord</h3>
+      <p><strong>Adresse :</strong> <code>/admin</code></p>
+      <p>Les ventes, les commandes, les devis, l’atelier, les produits et les clients. Chaque rôle voit ce qui le concerne, et chaque action est tracée.</p>
+      <p style="color:rgba(245,241,232,.55);font-size:8.5pt;">Accès réservé aux comptes disposant d’un rôle attribué.</p>
+    </div>
+  </div>
+
+  <h2>Comment lire ce guide</h2>
+  <div class="three">
+    <div class="card">
+      <h3>Partie A — Le studio</h3>
+      <p>Chapitres 1 à 6. Composer un T-shirt ou un mug, vérifier la zone imprimable, enregistrer, commander et payer.</p>
+    </div>
+    <div class="card">
+      <h3>Partie B — Le tableau de bord</h3>
+      <p>Chapitres 7 à 11. Lire les indicateurs, suivre une commande, piloter l’atelier et traiter les devis.</p>
+    </div>
+    <div class="card">
+      <h3>Partie C — Les annexes</h3>
+      <p>Chapitres 12 à 14. Le cycle des statuts, le dépannage, les checklists et les fichiers de production.</p>
+    </div>
+  </div>
+
+  <div class="keep">
+  <h2>Ce qu’il faut pour commencer</h2>
+  <div class="two">
+    <div>
+      <h3>Côté client</h3>
+      <ul>
+        <li>Un navigateur récent (Chrome, Safari ou Firefox) et une connexion correcte pour la 3D.</li>
+        <li>Un logo ou une photo en <strong>PNG</strong> ou <strong>JPG</strong>, au moins 500&nbsp;px de côté, 10&nbsp;Mo maximum.</li>
+        <li>Un numéro MTN Mobile Money à 9 chiffres (06 ou 05) pour payer.</li>
+        <li>Le nom de la ville de livraison : Brazzaville ou Pointe-Noire.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Côté équipe</h3>
+      <ul>
+        <li>Une adresse professionnelle et un mot de passe fournis par l’administrateur.</li>
+        <li>Un rôle : administrateur, commercial, atelier ou finance.</li>
+        <li>Un accès à <code>/admin</code> et, pour l’atelier, aux dossiers de production.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <span class="ct">À propos des captures et des montants</span>
+    <p>Les captures de ce guide ont été réalisées sur l’environnement de démonstration, avec des données de test. Les montants visibles (100&nbsp;FCFA, livraison à 100&nbsp;FCFA) sont les <strong>tarifs de test</strong> validés pour la période de présentation : ils ne constituent pas une offre commerciale définitive. Le prix réellement appliqué est celui de la grille tarifaire au moment de la commande.</p>
+  </div>
+  </div>
+
+  <div class="keep">
+  <h2>Les conventions</h2>
+  <div class="two">
+    <div class="callout tip" style="margin-top:0;">
+      <span class="ct">Astuce</span>
+      <p>Un raccourci, un réglage ou une bonne pratique qui fait gagner du temps.</p>
+    </div>
+    <div class="callout warn" style="margin-top:0;">
+      <span class="ct">Important</span>
+      <p>Une règle à connaître avant de commander ou de faire avancer une commande.</p>
+    </div>
+    <div class="callout danger" style="margin-top:0;">
+      <span class="ct">À valider</span>
+      <p>Une capacité encore en validation par l’atelier : on peut composer, mais pas encaisser.</p>
+    </div>
+    <div class="callout" style="margin-top:0;">
+      <span class="ct">Capture</span>
+      <p>Une copie d’écran de l’environnement de démonstration, avec des données de test.</p>
+    </div>
+  </div>
+  </div>
+
+
+  <div class="intro-box">
+    <b>La règle d’or.</b> Ce que vous voyez dans l’aperçu — position, taille, couleur, texte — est exactement ce qui sera imprimé. Prenez le temps de vérifier chaque zone avant de payer.
+  </div>
+</section>
+
+<!-- ============================ SOMMAIRE ============================ -->
+<section class="chapter newpage">
+  <div class="chapter-head">
+    <p class="kicker">Sommaire</p>
+    <h1>Ce que vous allez trouver.</h1>
+    <p class="lead">Un parcours en trois parties, du premier clic dans le studio jusqu’au contrôle qualité à l’atelier.</p>
+  </div>
+
+  <div class="toc">
+    <div class="toc-part">
+      <h3><span>A</span> — Le studio de personnalisation</h3>
+      <div class="toc-item"><span class="n">1</span><span class="t">Démarrer sans se perdre<span class="d">Accès, interface, prérequis</span></span><span class="p">6</span></div>
+      <div class="toc-item"><span class="n">2</span><span class="t">Prendre en main le studio<span class="d">3D, zones, onglets, sauvegarde</span></span><span class="p">8</span></div>
+      <div class="toc-item"><span class="n">3</span><span class="t">Personnaliser un T-shirt<span class="d">Cinq zones, images, textes, procédé</span></span><span class="p">10</span></div>
+      <div class="toc-item"><span class="n">4</span><span class="t">Personnaliser un mug<span class="d">Pourtour, couleur, commande sur devis</span></span><span class="p">16</span></div>
+      <div class="toc-item"><span class="n">5</span><span class="t">Créer depuis un téléphone<span class="d">Gestes tactiles et barre mobile</span></span><span class="p">19</span></div>
+      <div class="toc-item"><span class="n">6</span><span class="t">Vérifier, commander, payer<span class="d">Aperçu, MTN MoMo, fichiers</span></span><span class="p">20</span></div>
+    </div>
+
+    <div class="toc-part">
+      <h3><span>B</span> — Le tableau de bord</h3>
+      <div class="toc-item"><span class="n">7</span><span class="t">Entrer dans le back-office<span class="d">Connexion, rôles, permissions</span></span><span class="p">24</span></div>
+      <div class="toc-item"><span class="n">8</span><span class="t">Lire le tableau de bord<span class="d">Période, indicateurs, marges, alertes</span></span><span class="p">25</span></div>
+      <div class="toc-item"><span class="n">9</span><span class="t">Suivre les commandes<span class="d">Liste, détail, statuts, export</span></span><span class="p">28</span></div>
+      <div class="toc-item"><span class="n">10</span><span class="t">Piloter l’atelier<span class="d">Vue atelier, dossier de production</span></span><span class="p">31</span></div>
+      <div class="toc-item"><span class="n">11</span><span class="t">Traiter les devis<span class="d">Pipeline, prix, conversion en commande</span></span><span class="p">33</span></div>
+    </div>
+
+    <div class="toc-part">
+      <h3><span>C</span> — Annexes &amp; aide-mémoire</h3>
+      <div class="toc-item"><span class="n">12</span><span class="t">Le cycle et les statuts<span class="d">Qui fait quoi, dans quel ordre</span></span><span class="p">36</span></div>
+      <div class="toc-item"><span class="n">13</span><span class="t">Dépannage &amp; questions fréquentes<span class="d">Les blocages les plus courants</span></span><span class="p">37</span></div>
+      <div class="toc-item"><span class="n">14</span><span class="t">Checklists &amp; fichiers<span class="d">Avant, pendant, après</span></span><span class="p">38</span></div>
+    </div>
+  </div>
+
+  <h2>Le parcours express</h2>
+  <div class="flow">
+    <span class="node hot">1 · Choisir</span><span class="arrow">→</span>
+    <span class="node">2 · Composer</span><span class="arrow">→</span>
+    <span class="node">3 · Vérifier</span><span class="arrow">→</span>
+    <span class="node">4 · Payer</span><span class="arrow">→</span>
+    <span class="node valid">5 · Produire</span>
+  </div>
+  <p style="font-size:8.6pt;color:var(--muted);">Côté client, les étapes 1 à 4 se déroulent dans le studio. Côté équipe, l’étape 5 commence dans le tableau de bord, à la rubrique <strong>Atelier</strong>.</p>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="v">5</div><div class="l">zones imprimables sur le T-shirt Elembo</div></div>
+    <div class="kpi"><div class="v">8</div><div class="l">couleurs de produit, plus une teinte HEX libre</div></div>
+    <div class="kpi"><div class="v">300</div><div class="l">dpi des fichiers DTF et mug</div></div>
+    <div class="kpi"><div class="v">17</div><div class="l">polices intégrées, sous licence commerciale</div></div>
+  </div>
+
+  <div class="callout">
+    <span class="ct">Une version, une date</span>
+    <p>Ce guide décrit l’état de la plateforme au <strong>12 novembre 2026</strong>. Les statuts de production et les prix évoluent : la source de vérité reste l’écran, et pour l’équipe, la fiche de la commande.</p>
+  </div>
+</section>
+
+<!-- ============================ PARTIE A ============================ -->
+<section class="part">
+  <div class="num">A</div>
+  <div class="part-kicker">Partie A</div>
+  <h1>Le studio de<br><em>personnalisation.</em></h1>
+  <p class="part-lead">Choisir un support, composer sur les bonnes zones, vérifier ce qui sera réellement imprimé, puis commander.</p>
+  <ul class="part-list">
+    <li><b>01</b> Démarrer sans se perdre</li>
+    <li><b>02</b> Prendre en main le studio</li>
+    <li><b>03</b> Personnaliser un T-shirt</li>
+    <li><b>04</b> Personnaliser un mug</li>
+    <li><b>05</b> Créer depuis un téléphone</li>
+    <li><b>06</b> Vérifier, commander, payer</li>
+  </ul>
+  <figure class="part-shot">
+    <img src="captures/studio-desktop-image.png" alt="T-shirt personnalisé dans le studio Elembo">
+    <figcaption>Le studio Elembo : aperçu 3D à gauche, éditeur de zone à droite.</figcaption>
+  </figure>
+</section>
+
+<!-- ============================ CHAPITRE 1 ============================ -->
+<section class="chapter newpage">
+  <div class="chapter-head">
+    <p class="kicker">Chapitre 01 · Côté client</p>
+    <h1>Démarrer<br>sans se perdre.</h1>
+    <p class="lead">Le studio s’ouvre en un clic depuis la boutique. Aucun compte, aucun logiciel à installer : tout se passe dans le navigateur.</p>
+    <p class="meta">Accès · interface · prérequis</p>
+  </div>
+
+  <h2>1.1 Ouvrir le studio</h2>
+  <div class="steps">
+    <div class="step"><b>Depuis la page d’accueil</b><p>Cliquez sur <strong>« Créer mon design »</strong>, dans l’en-tête ou dans le hero.</p></div>
+    <div class="step"><b>Depuis la boutique</b><p>Sur la fiche d’un T-shirt ou d’un mug, le bouton de personnalisation ouvre le studio directement sur le bon produit.</p></div>
+    <div class="step"><b>Par l’adresse directe</b><p><code>https://elembo.vercel.app/personnalisation</code> pour le T-shirt, <code>?produit=mug-personnalise</code> pour le mug, <code>?produit=tshirt-alt</code> pour le T-shirt col rond.</p></div>
+  </div>
+
+  <table>
+    <thead><tr><th style="width:38%">Point d’entrée</th><th>Ce qu’il ouvre</th><th style="width:24%">Quand l’utiliser</th></tr></thead>
+    <tbody>
+      <tr><td><code>/personnalisation</code></td><td>Le studio, avec le produit par défaut (T-shirt Elembo oversize).</td><td>Démarrage standard.</td></tr>
+      <tr><td><code>/personnalisation?produit=mug-personnalise</code></td><td>Le studio configuré sur le mug 330&nbsp;ml.</td><td>Lien d’une fiche mug ou d’une campagne.</td></tr>
+      <tr><td><code>/personnalisation?produit=tshirt-alt</code></td><td>Le studio configuré sur le T-shirt col rond.</td><td>Produit textile historique.</td></tr>
+      <tr><td><code>/panier</code></td><td>Les créations enregistrées et le panier local.</td><td>Reprendre une création ou payer.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout tip">
+    <span class="ct">Pas de compte pour composer</span>
+    <p>Le studio ne demande pas de créer un compte. Le brouillon, les créations et le panier sont conservés <strong>dans le navigateur de l’appareil</strong>. Si vous changez d’appareil ou de navigateur, vous ne retrouverez pas la composition.</p>
+  </div>
+
+  <h2>1.2 Ce que vous avez sous les yeux</h2>
+  <figure class="fig">
+    <div class="shot"><img src="captures/studio-desktop-initial.png" alt="Interface du studio Elembo avec ses panneaux"></div>
+    <figcaption><span class="fnum">Figure 1</span> — L’écran d’arrivée du studio. <span class="src">Capture du 12/11/2026, T-shirt Elembo oversize.</span></figcaption>
+  </figure>
+
+  <table>
+    <thead><tr><th style="width:8%">Repère</th><th style="width:26%">Zone</th><th>À quoi elle sert</th></tr></thead>
+    <tbody>
+      <tr><td><strong>1</strong></td><td>Barre du studio</td><td>Retour, nom du produit, annuler/rétablir, <strong>Enregistrer</strong>, <strong>Panier</strong>.</td></tr>
+      <tr><td><strong>2</strong></td><td>Aperçu 3D temps réel</td><td>Faire tourner le produit, zoomer, vérifier le rendu. <strong>Vue d’ensemble</strong> recadre le produit.</td></tr>
+      <tr><td><strong>3</strong></td><td>Rail des zones</td><td>Cinq vignettes (avant, dos, manches, col) avec le nombre d’éléments et un point de statut.</td></tr>
+      <tr><td><strong>4</strong></td><td>Onglets</td><td><strong>Créer</strong> (éditeur), <strong>Produit</strong> (modèle, couleur, procédé), <strong>Commande</strong> (fichiers et paiement).</td></tr>
+      <tr><td><strong>5</strong></td><td>Éditeur de zone</td><td>Le gabarit de la zone active, la zone imprimable en pointillés orange, les gestes.</td></tr>
+      <tr><td><strong>6</strong></td><td>Prix et actions</td><td>Prix unitaire, nombre de zones personnalisées, <strong>Ajouter au panier</strong> et <strong>Commander</strong>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>1.3 Avant de commencer</h2>
+  <div class="two">
+    <div class="card">
+      <h3>Vos fichiers</h3>
+      <ul>
+        <li><strong>PNG</strong> ou <strong>JPG</strong> uniquement.</li>
+        <li><strong>10&nbsp;Mo maximum</strong> par fichier.</li>
+        <li><strong>500&nbsp;px minimum</strong> sur chaque côté.</li>
+        <li>Un logo sur fond transparent reste transparent ; un JPG à fond blanc imprimera un rectangle blanc.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Votre brief</h3>
+      <ul>
+        <li>Le texte exact, avec la bonne orthographe.</li>
+        <li>Les couleurs souhaitées (codes HEX si possible).</li>
+        <li>Les tailles et les quantités.</li>
+        <li>La ville de livraison et la date souhaitée.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <span class="ct">Le studio n’est pas un logiciel de retouche</span>
+    <p>Préparez votre visuel avant de l’importer : détourage, fond transparent, contraste et lisibilité. Une image sombre sur un T-shirt noir restera peu lisible, même avec un bon aperçu 3D.</p>
+  </div>
+
+  <div class="callout danger">
+    <span class="ct">WebGL requis</span>
+    <p>L’aperçu 3D a besoin de WebGL. Si le vêtement ne s’affiche pas, essayez Chrome ou Safari à jour, désactivez les bloqueurs agressifs, puis rechargez la page. Le reste de la boutique continue de fonctionner.</p>
+  </div>
+</section>
+
+<!-- ============================ CHAPITRE 2 ============================ -->
+<section class="chapter">
+  <div class="chapter-head">
+    <p class="kicker">Chapitre 02 · Côté client</p>
+    <h1>Prendre en main<br>le studio.</h1>
+    <p class="lead">Trois gestes suffisent pour se repérer : tourner le produit, choisir une zone, basculer entre les onglets. Le reste est une question de calme et de précision.</p>
+    <p class="meta">Vue 3D · zones · onglets · sauvegarde</p>
+  </div>
+
+  <h2>2.1 La vue 3D</h2>
+  <div class="three">
+    <div class="card"><h3>Tourner</h3><p>Cliquez-glissez (ou glissez au doigt) sur le vêtement pour le faire tourner.</p></div>
+    <div class="card"><h3>Zoomer</h3><p>Utilisez la molette de la souris ou pincez avec deux doigts sur mobile.</p></div>
+    <div class="card"><h3>Recadrer</h3><p><strong>Vue d’ensemble</strong> replace la caméra sur une vue propre du produit.</p></div>
+  </div>
+  <p>Chaque zone possède son propre cadrage : sélectionner « Manche gauche » dans le rail place automatiquement la caméra sur la manche, sans que vous ayez à tourner le vêtement à la main. C’est le moyen le plus sûr de vérifier un détail.</p>
+
+  <h2>2.2 Les cinq zones et le rail</h2>
+  <p>Le rail, sous l’aperçu 3D, affiche une vignette réelle de chaque zone, le nombre d’éléments posés et un point de statut. Sa couleur n’est pas décorative : elle indique si la zone est fabricable avec le procédé choisi.</p>
+
+  <table>
+    <thead><tr><th style="width:16%">Point</th><th style="width:25%">Statut</th><th>Ce que cela signifie</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge b-green">● vert</span></td><td>Imprimable</td><td>La zone est validée par l’atelier : elle peut être commandée et payée.</td></tr>
+      <tr><td><span class="badge b-amber">● jaune</span></td><td>À valider par l’atelier</td><td>La composition et l’aperçu restent possibles, mais la commande est bloquée tant que la zone contient un visuel.</td></tr>
+      <tr><td><span class="badge b-grey">● gris</span></td><td>Non proposé</td><td>La zone ou le procédé n’est pas disponible pour ce produit.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout tip">
+    <span class="ct">Lire le rail d’un coup d’œil</span>
+    <p>Un chiffre en haut à droite de la vignette indique le nombre d’éléments. Le point en bas à gauche donne le statut. Si une zone jaune contient un visuel, le bouton de paiement restera fermé : c’est volontaire, pour ne jamais encaisser un visuel que l’atelier ne sait pas produire.</p>
+  </div>
+
+  <h2>2.3 Les trois onglets</h2>
+  <table>
+    <thead><tr><th style="width:18%">Onglet</th><th>Contenu</th><th style="width:30%">Quand y aller</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Créer</strong></td><td>Éditeur de la zone active, ajout d’image et de texte, calques, réglages de l’élément.</td><td>Pendant toute la composition.</td></tr>
+      <tr><td><strong>Produit</strong></td><td>Modèle, couleur, procédé de production et zones imprimables.</td><td>Au début, puis pour vérifier les statuts.</td></tr>
+      <tr><td><strong>Commande</strong></td><td>Fichiers de production, aperçu, tailles, quantités, ville, total et paiement.</td><td>À la fin, quand le design est prêt.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>2.4 Sauvegarder, annuler, retrouver</h2>
+  <p>Le studio enregistre automatiquement le brouillon sur l’appareil. Deux actions distinctes méritent d’être connues :</p>
+  <div class="two">
+    <div class="card">
+      <h3><strong>Enregistrer</strong></h3>
+      <p>Range la création dans <strong>« Mes créations »</strong>, sur cet appareil. Elle pourra être rouverte plus tard, avec ses cinq zones et ses images.</p>
+    </div>
+    <div class="card">
+      <h3><strong>Panier</strong></h3>
+      <p>Ajoute une copie figée de la création au panier. Vous pouvez continuer à modifier le brouillon : le panier garde la version ajoutée.</p>
+    </div>
+  </div>
+  <p style="margin-top:3mm;"><strong>Annuler / rétablir :</strong> boutons dans la barre du studio, ou <code>Ctrl+Z</code> / <code>Ctrl+Shift+Z</code>. Un glisser ou un curseur continu compte pour une seule action.</p>
+
+  <figure class="fig">
+    <div class="shot"><img src="captures/studio-desktop-rechargement.png" alt="Brouillon restauré après rechargement de la page"></div>
+    <figcaption><span class="fnum">Figure 2</span> — Après un rechargement, le studio restaure le travail et prévient : « Travail précédent restauré sur cet appareil ». <span class="src">Capture du 12/11/2026.</span></figcaption>
+  </figure>
+
+  <h2>2.5 Recommencer ou changer de support</h2>
+  <p>Le bouton <strong>« Nouvelle création »</strong> (dans le bandeau de reprise) ouvre un projet vierge sans toucher au panier. Si vous changez de support — par exemple d’un T-shirt vers un mug — le travail en cours est d’abord rangé dans <strong>« Mes créations »</strong>, puis un projet vierge démarre sur le nouveau support.</p>
+
+  <div class="callout warn">
+    <span class="ct">Un appareil, un navigateur</span>
+    <p>Le brouillon et le panier sont locaux. Vider les données du site, naviguer en fenêtre privée ou changer d’appareil peut faire perdre la composition. En navigation privée, le studio prévient : les images ne pourront pas être conservées après un rechargement.</p>
+  </div>
+</section>
+
+<!-- ============================ CHAPITRE 3 ============================ -->
+<section class="chapter">
+  <div class="chapter-head">
+    <p class="kicker">Chapitre 03 · Côté client</p>
+    <h1>Personnaliser<br>un T-shirt.</h1>
+    <p class="lead">Le T-shirt Elembo oversize offre cinq surfaces indépendantes. On peut y poser plusieurs images et plusieurs textes, chacun avec sa position, son échelle, sa rotation et son calque.</p>
+    <p class="meta">Cinq zones · images · textes · procédé · zone imprimable</p>
+  </div>
+
+  <h2>3.1 Choisir le modèle et la couleur</h2>
+  <p>Dans l’onglet <strong>Produit</strong>, sélectionnez le modèle : <strong>T-shirt Elembo oversize</strong> (cinq zones, procédé DTF) ou <strong>T-shirt col rond</strong> (modèle historique, avant et dos). Choisissez ensuite la couleur du tissu parmi les huit teintes, ou saisissez un code HEX pour une teinte exacte.</p>
+  <p>La couleur du tissu ne modifie jamais les visuels : ils restent tels qu’ils ont été composés. C’est ce qui permet de tester un même logo sur un fond clair puis sur un fond sombre sans le retoucher.</p>
+
+  <figure class="fig">
+    <div class="shot"><img src="captures/studio-desktop-couleur.png" alt="Choix de la couleur du T-shirt et code HEX"></div>
+    <figcaption><span class="fnum">Figure 3</span> — L’onglet Produit : modèle, huit couleurs, code HEX. Ici, le T-shirt est passé en noir sans toucher au visuel. <span class="src">Capture du 12/11/2026.</span></figcaption>
+  </figure>
+
+  <h2>3.2 Composer sur cinq zones</h2>
+  <p>Chaque zone est indépendante. Changer de zone ne recharge rien : les visuels des autres zones sont conservés. Le tableau ci-dessous rappelle les dimensions réellement imprimables en DTF et le statut actuel de chaque zone.</p>
+
+  <table>
+    <thead><tr><th style="width:18%">Zone</th><th style="width:17%">Zone imprimable</th><th style="width:16%">Statut DTF</th><th>Conseil de composition</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Avant</strong></td><td>21 × 30 cm</td><td><span class="badge b-green">Imprimable</span></td><td>Le grand classique : logo ou texte centré, à 7&nbsp;cm sous le col.</td></tr>
+      <tr><td><strong>Dos</strong></td><td>25 × 32,4 cm</td><td><span class="badge b-green">Imprimable</span></td><td>Une composition plus large, lisible à distance.</td></tr>
+      <tr><td><strong>Manche gauche</strong></td><td>9 × 9 cm</td><td><span class="badge b-amber">À valider</span></td><td>Petit motif, initiales, badge. La presse de manche reste à confirmer.</td></tr>
+      <tr><td><strong>Manche droite</strong></td><td>9 × 9 cm</td><td><span class="badge b-amber">À valider</span></td><td>Comme la manche gauche, en miroir.</td></tr>
+      <tr><td><strong>Intérieur du col</strong></td><td>8 × 4,5 cm</td><td><span class="badge b-amber">À valider</span></td><td>Étiquette intérieure : texte court, très contrasté.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn">
+    <span class="ct">Cinq zones, deux commandables aujourd’hui</span>
+    <p>Le studio laisse composer sur les cinq zones, mais l’atelier n’a validé que l’<strong>avant</strong> et le <strong>dos</strong> en DTF. Un visuel sur une manche ou dans le col reste visible et exportable, mais il <strong>bloque la commande</strong> : le récapitulatif affiche le motif exact. Retirez le visuel de la zone concernée pour débloquer le paiement.</p>
+  </div>
+
+  <figure class="fig">
+    <div class="shot"><img src="captures/studio-desktop-cinq-zones.png" alt="Les cinq zones du T-shirt portent chacune un visuel"></div>
+    <figcaption><span class="fnum">Figure 4</span> — Les cinq zones portent un visuel distinct. Le rail indique un élément sur chaque zone ; le col est la zone active. <span class="src">Capture du 12/11/2026.</span></figcaption>
+  </figure>
+
+  <h2>3.3 Ajouter une image</h2>
+  <div class="steps">
+    <div class="step"><b>Sélectionnez la zone</b><p>Cliquez sur la vignette de la zone dans le rail (avant, dos, manche gauche, manche droite ou col).</p></div>
+    <div class="step"><b>Cliquez sur « Ajouter une image »</b><p>Choisissez un fichier PNG ou JPG, ou glissez-déposez-le dans la zone.</p></div>
+    <div class="step"><b>Le fichier est validé</b><p>Format, poids et dimensions sont contrôlés. Un refus affiche le motif exact.</p></div>
+    <div class="step"><b>Ajustez l’élément</b><p>Faites-le glisser, redimensionnez-le avec les poignées orange, tournez-le avec la poignée de rotation.</p></div>
+    <div class="step"><b>Vérifiez le débord</b><p>Ce qui dépasse de la zone orange ne sera pas imprimé. Utilisez <strong>« Ajuster à la zone »</strong> si l’élément est trop grand.</p></div>
+  </div>
+
+  <figure class="fig">
+    <div class="shot"><img src="captures/studio-desktop-image.png" alt="Logo transparent posé sur la face avant du T-shirt"></div>
+    <figcaption><span class="fnum">Figure 5</span> — Un logo transparent posé sur la face avant. Le cadre en pointillés orange matérialise la zone réellement imprimable. <span class="src">Capture du 12/11/2026.</span></figcaption>
+  </figure>
+
+  <table>
+    <thead><tr><th style="width:24%">Règle</th><th>Détail</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Formats</strong></td><td>PNG ou JPG uniquement.</td></tr>
+      <tr><td><strong>Poids</strong></td><td>10&nbsp;Mo maximum par fichier.</td></tr>
+      <tr><td><strong>Dimensions</strong></td><td>500&nbsp;px minimum sur chaque côté.</td></tr>
+      <tr><td><strong>Transparence</strong></td><td>Conservée en PNG. Un fond blanc JPG sera imprimé.</td></tr>
+      <tr><td><strong>Résolution</strong></td><td>Plus l’image est grande, plus le tirage sera net. Évitez les captures d’écran agrandies.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>3.4 Ajouter du texte</h2>
+  <p>Le bouton <strong>« Ajouter du texte »</strong> crée un élément typographique indépendant. Vous pouvez en poser plusieurs sur la même zone — « LOGO », « CONGO », « 2026 » — et les traiter séparément.</p>
+  <div class="two">
+    <div class="card">
+      <h3>Réglages disponibles</h3>
+      <ul>
+        <li>Contenu multiligne.</li>
+        <li>Police parmi les 17 familles intégrées.</li>
+        <li>Corps, graisse, italique.</li>
+        <li>Couleur : palette, sélecteur libre ou code HEX.</li>
+        <li>Alignement, interlettrage, hauteur de ligne.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Bonnes pratiques</h3>
+      <ul>
+        <li>Évitez les corps trop petits : la lisibilité prime sur la finesse.</li>
+        <li>Sur un fond sombre, choisissez une couleur claire (et inversement).</li>
+        <li>Vérifiez l’orthographe avant de payer : le texte est recomposé tel quel.</li>
+        <li>Le texte reste un élément 2D : il suit le vêtement et peut être recomposé en haute résolution.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>3.5 Déplacer, redimensionner, tourner</h2>
+  <table>
+    <thead><tr><th style="width:30%">Action</th><th>Comment</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Sélectionner</strong></td><td>Cliquez sur l’élément dans l’éditeur.</td></tr>
+      <tr><td><strong>Déplacer</strong></td><td>Glissez l’élément à la souris ou au doigt.</td></tr>
+      <tr><td><strong>Redimensionner</strong></td><td>Tirez une poignée orange.</td></tr>
+      <tr><td><strong>Tourner</strong></td><td>Utilisez la poignée de rotation.</td></tr>
+      <tr><td><strong>Affiner</strong></td><td>Flèches du clavier pour un déplacement au pixel.</td></tr>
+      <tr><td><strong>Dupliquer</strong></td><td><code>Ctrl+D</code> ou le bouton <strong>Dupliquer</strong>.</td></tr>
+      <tr><td><strong>Supprimer</strong></td><td><code>Suppr</code> ou le bouton <strong>Supprimer</strong>.</td></tr>
+      <tr><td><strong>Annuler</strong></td><td><code>Ctrl+Z</code> / <code>Ctrl+Shift+Z</code>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>3.6 Respecter la zone d’impression</h2>
+  <p>Le cadre en pointillés orange n’est pas une décoration : c’est la surface que la presse peut réellement imprimer. Tout ce qui sort de ce cadre est <strong>rogné</strong>, jamais imprimé. Le studio borne automatiquement les déplacements et signale un élément trop grand ; le bouton <strong>« Ajuster à la zone »</strong> le ramène à la taille utile avec une marge de sécurité.</p>
+  <div class="callout tip">
+    <span class="ct">Le réflexe avant de payer</span>
+    <p>Passez sur chaque zone personnalisée et regardez l’aperçu de commande. C’est cet aperçu — et non la vue 3D — qui fait foi pour l’atelier.</p>
+  </div>
+
+  <h2>3.7 Choisir le procédé de production</h2>
+  <p>Toujours dans l’onglet <strong>Produit</strong>, la section <strong>Procédé de production</strong> indique ce que l’atelier sait réellement faire. Le procédé pilote les dimensions imprimables, la densité des fichiers et les zones commandables.</p>
+
+  <table>
+    <thead><tr><th style="width:22%">Procédé</th><th style="width:16%">Statut</th><th>Ce qu’il change</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Transfert DTF</strong></td><td><span class="badge b-green">Disponible</span></td><td>Procédé de l’atelier : 300&nbsp;dpi, avant 21 × 30&nbsp;cm, dos 25 × 32,4&nbsp;cm. Manches et col à valider.</td></tr>
+      <tr><td><strong>Flex / vinyle</strong></td><td><span class="badge b-amber">À valider</span></td><td>Aplats de couleur et textes simples ; équipement et découpe à confirmer.</td></tr>
+      <tr><td><strong>Impression directe (DTG)</strong></td><td><span class="badge b-grey">Non proposé</span></td><td>Pas d’imprimante DTG chez l’atelier ou ses partenaires à ce jour.</td></tr>
+      <tr><td><strong>Sublimation intégrale</strong></td><td><span class="badge b-grey">Non proposé</span></td><td>Nécessite un textile polyester clair et un prestataire équipé.</td></tr>
+    </tbody>
+  </table>
+
+  <figure class="fig">
+    <div class="shot"><img src="captures/guide-tshirt-procedes.png" alt="Panneau des procédés et statuts des zones du T-shirt"></div>
+    <figcaption><span class="fnum">Figure 6</span> — Le panneau « Procédé de production » : la liste des zones imprimables et leur statut. Ici, l’avant et le dos sont imprimables, les manches et le col restent à valider. <span class="src">Capture du 12/11/2026.</span></figcaption>
+  </figure>
+
+  <h2>3.8 Enregistrer et retrouver son travail</h2>
+  <p><strong>Enregistrer</strong> range la création dans « Mes créations ». <strong>Ajouter au panier</strong> en garde une copie figée pour la commande. Le brouillon continue d’évoluer indépendamment. Après un rechargement, le studio restaure le dernier travail et propose <strong>« Nouvelle création »</strong> pour repartir de zéro.</p>
+  <p>Les images d’origine sont conservées sur l’appareil (IndexedDB) : la création peut être rouverte avec ses visuels. En navigation privée, les images peuvent manquer après un rechargement ; le studio le signale.</p>
+
+  <h2>3.9 Les erreurs fréquentes</h2>
+  <div class="two">
+    <div class="card">
+      <h3>À éviter</h3>
+      <ul>
+        <li>Poser un logo blanc sur un T-shirt blanc.</li>
+        <li>Utiliser une capture d’écran agrandie comme visuel.</li>
+        <li>Oublier de vérifier le dos ou une manche.</li>
+        <li>Payer avec un numéro qui n’est pas celui du client.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Les bons réflexes</h3>
+      <ul>
+        <li>Un PNG transparent pour un logo.</li>
+        <li>Un aperçu de commande relu zone par zone.</li>
+        <li>Une zone « à valider » retirée avant de payer.</li>
+        <li>Une référence de commande notée après le paiement.</li>
+      </ul>
+    </div>
+  </div>
+
+</section>
+
+<!-- ============================ CHAPITRE 4 ============================ -->
+<section class="chapter newpage">
+  <div class="chapter-head">
+    <p class="kicker">Chapitre 04 · Côté client</p>
+    <h1>Personnaliser<br>un mug.</h1>
+    <p class="lead">Le mug Elembo 330&nbsp;ml se personnalise sur un seul pourtour. Un support simple, mais quelques repères à respecter pour que le visuel tombe juste, face à l’anse.</p>
+    <p class="meta">Pourtour · couleur · sublimation · devis</p>
+  </div>
+
+  <h2>4.1 Choisir le mug</h2>
+  <p>Dans l’onglet <strong>Produit</strong>, sélectionnez <strong>Mug Elembo 330&nbsp;ml</strong>. Comme le changement de support repart d’un projet vierge, le travail en cours sur un T-shirt est d’abord rangé dans « Mes créations ».</p>
+  <p>Le mug est en céramique, proposé en huit couleurs (blanc, noir, crème, rouge, bleu, vert, jaune, orange Elembo) et en finition brillante. La couleur s’applique à toute la céramique ; l’impression n’est jamais teintée.</p>
+
+  <figure class="fig">
+    <div class="shot"><img src="captures/guide-mug-logo.png" alt="Mug Elembo personnalisé avec un logo orange"></div>
+    <figcaption><span class="fnum">Figure 7</span> — Un logo posé sur le pourtour du mug. L’aperçu 3D montre le rendu à 360° ; le rail ne contient qu’une zone. <span class="src">Capture du 12/11/2026.</span></figcaption>
+  </figure>
+
+  <h2>4.2 Un seul pourtour, deux procédés</h2>
+  <table>
+    <thead><tr><th style="width:24%">Caractéristique</th><th>Valeur</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Capacité</strong></td><td>330&nbsp;ml, céramique, finition brillante.</td></tr>
+      <tr><td><strong>Zone</strong></td><td>Un seul pourtour : <strong>« Pourtour du mug »</strong>.</td></tr>
+      <tr><td><strong>Face visible</strong></td><td>20 × 7,2&nbsp;cm, avec des marges de sécurité de 4&nbsp;mm.</td></tr>
+      <tr><td><strong>Tour complet</strong></td><td>23,8 × 7,2&nbsp;cm hors zone de l’anse.</td></tr>
+      <tr><td><strong>Procédés</strong></td><td><strong>Sublimation — face visible</strong> ou <strong>Sublimation — tour complet</strong>, 300&nbsp;dpi.</td></tr>
+      <tr><td><strong>Statut</strong></td><td><span class="badge b-amber">À valider par l’atelier</span> — presse à mug et mugs sublimables à confirmer.</td></tr>
+    </tbody>
+  </table>
+
+  <figure class="fig">
+    <div class="shot"><img src="captures/guide-mug-procede.png" alt="Procédés de production et zone imprimable du mug"></div>
+    <figcaption><span class="fnum">Figure 8</span> — Les deux procédés du mug et la zone imprimable. Les deux sont encore « à valider par l’atelier ». <span class="src">Capture du 12/11/2026.</span></figcaption>
+  </figure>
+
+  <h2>4.3 Composer pour le tour du mug</h2>
+  <div class="steps">
+    <div class="step"><b>Activez la zone « Pourtour du mug »</b><p>Le rail ne propose qu’une vignette. L’éditeur affiche le gabarit déroulé du mug.</p></div>
+    <div class="step"><b>Ajoutez l’image ou le texte</b><p>Mêmes règles que pour le T-shirt : PNG/JPG, 10&nbsp;Mo, 500&nbsp;px minimum.</p></div>
+    <div class="step"><b>Centrez face à l’anse</b><p>La couture est sous l’anse. Le visuel principal doit rester dans la zone visible, centré à l’opposé de l’anse.</p></div>
+    <div class="step"><b>Gardez les marges</b><p>Évitez le bord supérieur, le bord inférieur et la couture : 4&nbsp;mm de marge de sécurité.</p></div>
+    <div class="step"><b>Tournez le mug dans l’aperçu 3D</b><p>Vérifiez le rendu de face, puis de trois quarts. Rien ne doit être coupé par l’anse.</p></div>
+  </div>
+
+  <div class="two">
+    <div class="callout tip" style="margin-top:0;">
+      <span class="ct">Un visuel, pas un bandeau</span>
+      <p>Un logo centré et compact traverse mieux le pourtour qu’un bandeau de texte sur toute la largeur. Si le texte est long, réduisez-le ou passez sur deux lignes.</p>
+    </div>
+    <div class="callout warn" style="margin-top:0;">
+      <span class="ct">Pensez à l’anse</span>
+      <p>Un motif placé près de la couture peut disparaître derrière l’anse une fois le mug posé. Laissez respirer les bords.</p>
+    </div>
+  </div>
+
+  <h2>4.4 Ce qui est possible aujourd’hui</h2>
+  <p>Le mug se compose, s’aperçoit en 3D et s’exporte. En revanche, <strong>la vente en ligne n’est pas encore ouverte</strong> : le prix s’affiche « à confirmer », le procédé est « à valider » et le paiement est fermé. Le parcours prévu est le devis ou WhatsApp.</p>
+
+  <figure class="fig">
+    <div class="shot"><img src="captures/guide-commande-mug-form.png" alt="Écran de commande du mug avec paiement en ligne fermé"></div>
+    <figcaption><span class="fnum">Figure 9</span> — L’écran de commande du mug : total « à confirmer », procédé à valider et message « Paiement en ligne pas encore ouvert pour ce produit ». <span class="src">Capture du 12/11/2026.</span></figcaption>
+  </figure>
+
+  <div class="callout warn">
+    <span class="ct">Ne promettez pas un prix ou un délai</span>
+    <p>Tant que le prix du mug n’est pas validé dans la grille tarifaire, aucun montant ne doit être annoncé au client. La demande de devis permet de fixer un prix ferme, un délai et les modalités de livraison.</p>
+  </div>
+
+  <div class="contact-strip">
+    <span>Un mug à commander&nbsp;? Passez par le devis ou WhatsApp.</span>
+    <span><b>WhatsApp</b> +242 06 478 14 14</span>
+  </div>
+</section>
+
+<!-- ============================ CHAPITRE 5 ============================ -->
+<section class="chapter">
+  <div class="chapter-head">
+    <p class="kicker">Chapitre 05 · Côté client</p>
+    <h1>Créer depuis<br>un téléphone.</h1>
+    <p class="lead">Le studio est utilisable au doigt. L’aperçu 3D, le rail de zones et l’éditeur s’empilent verticalement ; les actions essentielles restent accessibles.</p>
+    <p class="meta">Mobile · gestes tactiles · barre de navigation</p>
+  </div>
+
+  <div class="mobile-grid">
+    <figure class="fig" style="margin-top:0;">
+      <div class="shot"><img src="captures/studio-mobile-initial.png" alt="Studio Elembo sur mobile, écran d’accueil"></div>
+      <figcaption><span class="fnum">Figure 10</span> — Arrivée sur mobile : aperçu 3D, rail horizontal, barre d’actions.</figcaption>
+    </figure>
+    <figure class="fig" style="margin-top:0;">
+      <div class="shot"><img src="captures/studio-mobile-manche.png" alt="Édition de la manche gauche sur mobile"></div>
+      <figcaption><span class="fnum">Figure 11</span> — Édition au doigt sur la manche gauche : l’éditeur et les actions sont sous l’aperçu.</figcaption>
+    </figure>
+  </div>
+
+  <h2>5.1 Ce qui change</h2>
+  <table>
+    <thead><tr><th style="width:26%">Élément</th><th>Sur mobile</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Navigation</strong></td><td>Barre fixe en bas : Accueil, Univers, Créer (+), Boutique, Aide.</td></tr>
+      <tr><td><strong>Vue 3D</strong></td><td>Un doigt pour tourner, deux doigts pour zoomer.</td></tr>
+      <tr><td><strong>Rail des zones</strong></td><td>Défilement horizontal ; la zone active est encadrée en orange.</td></tr>
+      <tr><td><strong>Éditeur</strong></td><td>Sous l’aperçu. Les boutons <strong>Dupliquer</strong> et <strong>Supprimer</strong> remplacent le clavier.</td></tr>
+      <tr><td><strong>Paiement</strong></td><td>La demande MTN MoMo s’ouvre sur le téléphone ; validez avec votre code.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout tip">
+    <span class="ct">Les bons réflexes sur mobile</span>
+    <ul style="margin-bottom:0;">
+      <li>Travaillez en Wi-Fi : le modèle 3D et les images sont plus lourds qu’une page classique.</li>
+      <li>Utilisez les boutons plutôt que les gestes pour les petites poignées.</li>
+      <li>Vérifiez le rendu en orientant le téléphone, puis revenez à la composition.</li>
+      <li>La sauvegarde reste locale : ne videz pas les données du navigateur avant d’avoir commandé.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================ CHAPITRE 6 ============================ -->
+<section class="chapter">
+  <div class="chapter-head">
+    <p class="kicker">Chapitre 06 · Côté client</p>
+    <h1>Vérifier,<br>commander, payer.</h1>
+    <p class="lead">La commande est le moment où le design devient un dossier de production. Tout ce qui est affiché dans l’aperçu sera imprimé ; tout ce qui manque bloquera le paiement.</p>
+    <p class="meta">Aperçu · tailles · MTN MoMo · fichiers</p>
+  </div>
+
+  <h2>6.1 L’écran de commande</h2>
+  <div class="steps">
+    <div class="step"><b>Ouvrez l’onglet « Commande »</b><p>Le panneau affiche les fichiers de production puis le formulaire de commande.</p></div>
+    <div class="step"><b>Vérifiez l’aperçu de chaque zone</b><p>L’aperçu est calculé à partir des mêmes paramètres que le fichier d’impression. C’est votre bon à tirer.</p></div>
+    <div class="step"><b>Choisissez les tailles et les quantités</b><p>Du S au 3XL pour le T-shirt, une quantité unique pour le mug.</p></div>
+    <div class="step"><b>Choisissez la ville</b><p>Brazzaville ou Pointe-Noire. Les frais et le délai s’affichent dans le récapitulatif.</p></div>
+    <div class="step"><b>Vérifiez le total</b><p>Prix unitaire, sous-total, livraison, total à payer et délai estimé (1 à 3 jours).</p></div>
+  </div>
+
+  <figure class="fig">
+    <div class="shot"><img src="captures/guide-commande-tshirt-form-crop.png" alt="Formulaire de commande et bouton de paiement MTN MoMo"></div>
+    <figcaption><span class="fnum">Figure 12</span> — Le bas de l’écran de commande : numéro MTN, récapitulatif, total et bouton de paiement. Le bouton s’active lorsque le numéro est valide et que la commande est prête. <span class="src">Capture du 12/11/2026.</span></figcaption>
+  </figure>
+
+  <h2>6.2 Renseigner le contact</h2>
+  <table>
+    <thead><tr><th style="width:24%">Champ</th><th style="width:14%">Obligatoire</th><th>Format attendu</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Nom du client</strong></td><td>Non</td><td>Libre.</td></tr>
+      <tr><td><strong>Email</strong></td><td>Non</td><td>Adresse valide, pour le reçu et le suivi.</td></tr>
+      <tr><td><strong>Numéro MTN MoMo</strong></td><td><strong>Oui</strong></td><td>9 chiffres commençant par 06 ou 05, ou format +242.</td></tr>
+      <tr><td><strong>Ville</strong></td><td><strong>Oui</strong></td><td>Brazzaville ou Pointe-Noire.</td></tr>
+    </tbody>
+  </table>
+  <p>Un numéro incomplet est signalé immédiatement. Le bouton de paiement reste désactivé tant que le numéro n’est pas plausible, qu’aucun visuel n’est posé ou qu’un blocage de production subsiste.</p>
+
+  <h2>6.3 Payer avec MTN MoMo</h2>
+  <div class="steps">
+    <div class="step"><b>Cliquez sur « Payer … par MTN MoMo »</b><p>Le montant exact est repris dans le bouton.</p></div>
+    <div class="step"><b>Une demande arrive sur le téléphone</b><p>Un message MTN Mobile Money invite à valider la transaction.</p></div>
+    <div class="step"><b>Validez avec votre code</b><p>Vous avez <strong>5 minutes</strong> pour confirmer. Au-delà, la demande expire.</p></div>
+    <div class="step"><b>Le studio suit le statut</b><p>L’écran interroge le service de paiement et affiche l’avancement : en attente, confirmé, échec ou expiré.</p></div>
+    <div class="step"><b>Le paiement est confirmé</b><p>Les fichiers d’impression sont générés et déposés dans l’archive privée de l’atelier. La commande passe « Payée ».</p></div>
+  </div>
+
+  <div class="callout warn">
+    <span class="ct">Aucun fichier avant le paiement</span>
+    <p>Les PNG haute résolution et la fiche de production ne sont générés qu’après un paiement confirmé. Un échec ou un dépassement de délai ne produit aucun fichier. En cas de doute, gardez la référence affichée et contactez l’atelier sur WhatsApp.</p>
+  </div>
+
+  <h2>6.4 Après le paiement</h2>
+  <div class="two">
+    <div class="card">
+      <h3>Ce que reçoit l’atelier</h3>
+      <ul>
+        <li>Un PNG transparent par zone réellement personnalisée, à la densité du procédé.</li>
+        <li>Une fiche de production avec les positions en centimètres, les textes, les couleurs et les tailles.</li>
+        <li>La référence de commande, le client et le montant.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Ce que le client doit garder</h3>
+      <ul>
+        <li>La référence <code>ELB-…</code> affichée à l’écran.</li>
+        <li>Le numéro WhatsApp de l’atelier : <strong>+242 06 478 14 14</strong>.</li>
+        <li>La confirmation de paiement MTN.</li>
+      </ul>
+    </div>
+  </div>
+  <p style="margin-top:3mm;">La livraison est assurée à Brazzaville et à Pointe-Noire. Le délai estimé est de 1 à 3 jours selon la quantité. Les frais et le délai affichés dans le récapitulatif sont ceux qui s’appliquent à la commande.</p>
+
+  <h2>6.5 Panier et reprise</h2>
+  <p><strong>Ajouter au panier</strong> enregistre une copie de la création et permet de continuer à composer. La page <code>/panier</code> liste les créations enregistrées et permet de les rouvrir dans le studio. Le paiement MTN reste <strong>mono-création</strong> : une création est payée à la fois.</p>
+
+  <div class="callout">
+    <span class="ct">Paiement en ligne fermé : les bons réflexes</span>
+    <p>Si le bouton de paiement n’apparaît pas, vérifiez l’un de ces cinq points :</p>
+    <ul style="margin-bottom:1.5mm;">
+      <li>aucun élément n’est posé sur le vêtement ;</li>
+      <li>un visuel occupe une zone encore « à valider » (manche ou col) ;</li>
+      <li>le procédé choisi est « à valider » ou « non proposé » ;</li>
+      <li>le prix du produit n’est pas validé dans la grille tarifaire ;</li>
+      <li>la ville de livraison n’a pas de tarif défini.</li>
+    </ul>
+    <p>Dans ces cas, le studio propose un <strong>devis</strong> ou une <strong>commande WhatsApp</strong> plutôt que d’encaisser un montant ou un visuel non validé.</p>
+  </div>
+
+</section>
+
+<!-- ============================ PARTIE B ============================ -->
+<section class="part">
+  <div class="num">B</div>
+  <div class="part-kicker">Partie B</div>
+  <h1>Le tableau<br><em>de bord.</em></h1>
+  <p class="part-lead">Suivre les ventes, traiter les commandes, piloter l’atelier et transformer les devis en commandes — avec les mêmes données, au même endroit.</p>
+  <ul class="part-list">
+    <li><b>07</b> Entrer dans le back-office</li>
+    <li><b>08</b> Lire le tableau de bord</li>
+    <li><b>09</b> Suivre les commandes</li>
+    <li><b>10</b> Piloter l’atelier</li>
+    <li><b>11</b> Traiter les devis</li>
+  </ul>
+  <figure class="part-shot">
+    <img src="captures/01-dashboard.png" alt="Tableau de bord Elembo">
+    <figcaption>Le tableau de bord : une vue d’ensemble de l’activité, filtrable par période.</figcaption>
+  </figure>
+</section>
+
+<!-- ============================ CHAPITRE 7 ============================ -->
+<section class="chapter">
+  <div class="chapter-head">
+    <p class="kicker">Chapitre 07 · Côté équipe</p>
+    <h1>Entrer dans<br>le back-office.</h1>
+    <p class="lead">Le back-office est réservé au personnel. Chaque compte possède un rôle, et ce rôle détermine les sections visibles et les actions autorisées.</p>
+    <p class="meta">Connexion · rôles · permissions · sécurité</p>
+  </div>
+
+  <h2>7.1 Se connecter</h2>
+  <div class="steps">
+    <div class="step"><b>Ouvrez <code>/admin/connexion</code></b><p>Ou cliquez sur « Se connecter » depuis le pied de page du site.</p></div>
+    <div class="step"><b>Saisissez votre email professionnel</b><p>Celui fourni par l’administrateur, avec le rôle attribué.</p></div>
+    <div class="step"><b>Saisissez votre mot de passe</b><p>Après plusieurs tentatives, l’accès est temporairement limité.</p></div>
+    <div class="step"><b>Vous arrivez sur le tableau de bord</b><p>La section d’accueil dépend de votre rôle.</p></div>
+  </div>
+
+  <div class="callout warn">
+    <span class="ct">Compte sans rôle = pas d’accès</span>
+    <p>Un compte sans rôle attribué ne peut pas entrer dans le back-office. Demandez à un administrateur d’attribuer le rôle dans les métadonnées du compte. Le rôle n’est pas modifiable par l’utilisateur lui-même.</p>
+  </div>
+
+  <h2>7.2 Les quatre rôles</h2>
+  <table>
+    <thead><tr><th style="width:18%">Rôle</th><th>Ce qu’il peut faire</th><th style="width:27%">Ce qu’il ne peut pas faire</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Administrateur</strong></td><td>Tout : ventes, marges, commandes, devis, atelier, produits, clients, permissions.</td><td>—</td></tr>
+      <tr><td><strong>Commercial</strong></td><td>Devis, commandes, clients, catalogue (hors prix et coûts), export.</td><td>Modifier les prix ou les coûts, voir les marges.</td></tr>
+      <tr><td><strong>Atelier</strong></td><td>Vue atelier, dossiers de production, statuts de fabrication, stock.</td><td>Voir les coordonnées complètes du client, les prix ou les marges.</td></tr>
+      <tr><td><strong>Finance</strong></td><td>Chiffre d’affaires, marges, coûts, prix, paiements, facturation.</td><td>Traiter les devis, modifier la production.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>7.3 L’interface</h2>
+  <p>La colonne de gauche donne accès aux six rubriques : <strong>Tableau de bord</strong>, <strong>Commandes</strong>, <strong>Devis</strong>, <strong>Atelier</strong>, <strong>Produits</strong> et <strong>Clients</strong>. Les entrées que votre rôle ne permet pas ne sont pas affichées — et les pages revérifient le droit côté serveur.</p>
+  <p>En bas de la colonne, vous retrouvez votre nom, votre rôle, <strong>Se connecter</strong> (ou <strong>Se déconnecter</strong>) et un lien vers le site public.</p>
+
+  <h2>7.4 Les bonnes pratiques de sécurité</h2>
+  <div class="two">
+    <div class="card">
+      <h3>À faire</h3>
+      <ul>
+        <li>Utiliser un mot de passe unique et robuste.</li>
+        <li>Se déconnecter sur un poste partagé.</li>
+        <li>Signaler immédiatement un accès suspect.</li>
+        <li>Vérifier la référence avant toute action.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>À ne pas faire</h3>
+      <ul>
+        <li>Partager un compte ou un mot de passe.</li>
+        <li>Laisser une session ouverte sans surveillance.</li>
+        <li>Communiquer les coordonnées d’un client hors du cadre prévu.</li>
+        <li>Modifier un statut sans vérifier la réalité de l’atelier.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ CHAPITRE 8 ============================ -->
+<section class="chapter">
+  <div class="chapter-head">
+    <p class="kicker">Chapitre 08 · Côté équipe</p>
+    <h1>Lire le<br>tableau de bord.</h1>
+    <p class="lead">Le tableau de bord répond à trois questions : combien avons-nous vendu, qu’y a-t-il à traiter maintenant, et où se situent les marges et les tensions de stock ?</p>
+    <p class="meta">Période · indicateurs · À traiter · marges · graphiques</p>
+  </div>
+
+  <h2>8.1 Choisir la période</h2>
+  <p>Les boutons en haut à droite changent la période de référence : <strong>7 jours</strong>, <strong>30 jours</strong>, <strong>90 jours</strong>, <strong>12 derniers mois</strong> ou une période <strong>personnalisée</strong> (date de début et date de fin). Les indicateurs de la période sont recalculés ; ceux marqués « en cours » ne suivent pas la période.</p>
+
+  <h2>8.2 Les six indicateurs</h2>
+  <table>
+    <thead><tr><th style="width:28%">Indicateur</th><th>Définition</th><th style="width:20%">Lecture</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Chiffre d’affaires</strong></td><td>Commandes payées sur la période, livraison incluse.</td><td>Le volume encaissé.</td></tr>
+      <tr><td><strong>Commandes reçues</strong></td><td>Commandes créées sur la période, hors brouillons.</td><td>Le flux entrant.</td></tr>
+      <tr><td><strong>Commandes payées</strong></td><td>Paiement confirmé sur la période.</td><td>Le flux réellement encaissé.</td></tr>
+      <tr><td><strong>En production</strong></td><td>Commandes en cours, toutes dates confondues.</td><td>La charge actuelle de l’atelier.</td></tr>
+      <tr><td><strong>Commandes livrées</strong></td><td>Livrées sur la période.</td><td>La satisfaction de la promesse.</td></tr>
+      <tr><td><strong>Demandes de devis</strong></td><td>Demandes reçues sur la période.</td><td>Le pipeline commercial.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>8.3 « À traiter » : la file d’action</h2>
+  <p>Cette carte rassemble les actions concrètes du moment. Chaque badge est cliquable et ouvre la liste pré-filtrée correspondante.</p>
+  <div class="two">
+    <div class="card"><h3>Commandes payées à lancer</h3><p>Paiement confirmé, production pas encore démarrée. C’est la priorité absolue : un client a payé.</p></div>
+    <div class="card"><h3>Tâches d’atelier en retard</h3><p>Échéance dépassée sur une étape de fabrication. À traiter avec le prestataire concerné.</p></div>
+    <div class="card"><h3>Devis à analyser</h3><p>Demandes au statut « Nouveau » qui attendent une réponse commerciale.</p></div>
+    <div class="card"><h3>Paiements en anomalie</h3><p>Transactions à vérifier avant de relancer ou de rembourser.</p></div>
+    <div class="card"><h3>Alertes de stock</h3><p>Variantes dont le stock a atteint le seuil d’alerte, ou en rupture.</p></div>
+    <div class="card"><h3>Prêtes / en livraison</h3><p>Commandes qui sortent de l’atelier et doivent être remises au client.</p></div>
+  </div>
+
+  <h2>8.4 Les indicateurs de marge</h2>
+  <p>La carte <strong>« Indicateurs de marge »</strong> calcule la marge sur les commandes payées de la période :</p>
+  <div class="flow">
+    <span class="node">Ventes hors livraison</span><span class="arrow">−</span>
+    <span class="node">Coût de revient</span><span class="arrow">=</span>
+    <span class="node hot">Marge brute</span><span class="arrow">→</span>
+    <span class="node">Taux de marge</span>
+  </div>
+  <p>Le coût de revient additionne les articles et la sous-traitance. Si une commande payée n’a pas de coût renseigné, un avertissement le signale : la marge est alors <strong>surestimée</strong>. Pensez à renseigner le coût des produits au catalogue ou des lignes dans la fiche commande.</p>
+
+  <h2>8.5 Les graphiques et les listes</h2>
+  <table>
+    <thead><tr><th style="width:28%">Bloc</th><th>Ce qu’il montre</th><th style="width:26%">Question à se poser</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Chiffre d’affaires encaissé</strong></td><td>Les encaissements par semaine ou par jour, à la date de paiement.</td><td>La période est-elle homogène ? Y a-t-il un pic à expliquer ?</td></tr>
+      <tr><td><strong>Ventes par catégorie</strong></td><td>Le montant des lignes payées, hors livraison.</td><td>Quelle famille porte le chiffre d’affaires ?</td></tr>
+      <tr><td><strong>Produits les plus vendus</strong></td><td>Le classement par quantité, avec le montant et la marge.</td><td>Quel produit faut-il réapprovisionner ou pousser ?</td></tr>
+      <tr><td><strong>Alertes de stock</strong></td><td>Les variantes sous le seuil, avec le stock restant.</td><td>Faut-il réapprovisionner avant la prochaine campagne ?</td></tr>
+    </tbody>
+  </table>
+
+  <figure class="fig">
+    <div class="shot"><img src="captures/01-dashboard.png" alt="Tableau de bord complet avec indicateurs, marges, graphique et alertes"></div>
+    <figcaption><span class="fnum">Figure 13</span> — Le tableau de bord complet sur 90 jours. En haut, les six indicateurs et la file « À traiter » ; au milieu, les marges et le chiffre d’affaires encaissé ; en bas, les ventes par catégorie, les produits les plus vendus et les alertes de stock. <span class="src">Capture du 12/11/2026, données de démonstration.</span></figcaption>
+  </figure>
+
+  <h2>8.6 La lecture en trois minutes</h2>
+  <div class="steps">
+    <div class="step"><b>Commencez par « À traiter »</b><p>Y a-t-il des commandes payées non lancées ? Des tâches en retard ? Des devis sans réponse ?</p></div>
+    <div class="step"><b>Regardez le chiffre d’affaires et les commandes payées</b><p>Le volume encaissé correspond-il à la période ? Le nombre de commandes est-il cohérent avec le panier moyen ?</p></div>
+    <div class="step"><b>Vérifiez la marge</b><p>Un taux qui baisse peut venir d’un coût de revient manquant, d’une remise ou d’un produit mal tarifé.</p></div>
+    <div class="step"><b>Terminez par le stock</b><p>Une rupture sur une variante phare peut bloquer des commandes déjà payées.</p></div>
+  </div>
+
+  <div class="callout tip">
+    <span class="ct">Le rituel du matin</span>
+    <p>Ouvrez le tableau de bord sur 7 jours, traitez la file « À traiter », puis passez à l’atelier. Les indicateurs servent à décider, pas seulement à constater.</p>
+  </div>
+</section>
+
+<!-- ============================ CHAPITRE 9 ============================ -->
+<section class="chapter">
+  <div class="chapter-head">
+    <p class="kicker">Chapitre 09 · Côté équipe</p>
+    <h1>Suivre<br>les commandes.</h1>
+    <p class="lead">La liste des commandes est le poste de conduite commercial : on y cherche une référence, on filtre par statut ou par paiement, on exporte, puis on ouvre la fiche pour agir.</p>
+    <p class="meta">Liste · filtres · détail · statuts · export</p>
+  </div>
+
+  <h2>9.1 La liste et les filtres</h2>
+  <p>La recherche accepte une <strong>référence</strong>, un <strong>nom</strong>, un <strong>téléphone</strong> ou un <strong>email</strong> (selon votre rôle). Les filtres permettent de croiser le statut de commande, le statut de paiement et une plage de dates de création.</p>
+  <p>Les onglets de statut affichent le nombre de commandes correspondantes : <strong>Toutes</strong>, <strong>Brouillon</strong>, <strong>À valider</strong>, <strong>En attente de paiement</strong>, <strong>Payée</strong>, <strong>À produire</strong>, <strong>En production</strong>, <strong>Contrôle qualité</strong>, <strong>Prête</strong>, <strong>En livraison</strong>, <strong>Livrée</strong>, <strong>Annulée</strong>, <strong>Remboursement à traiter</strong>.</p>
+
+  <figure class="fig">
+    <div class="shot"><img src="captures/guide-commandes-crop.png" alt="Liste des commandes dans le back-office"></div>
+    <figcaption><span class="fnum">Figure 14</span> — La liste des commandes : recherche, filtre de paiement, dates, onglets de statut et export. Chaque ligne montre la référence, le client, le statut, le paiement, le total, la marge et la date de création. <span class="src">Capture du 12/11/2026, données de démonstration.</span></figcaption>
+  </figure>
+
+  <table>
+    <thead><tr><th style="width:23%">Colonne</th><th>Ce qu’elle signifie</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Référence</strong></td><td>Identifiant unique <code>ELB-AAAAMMJJ-XXXXXXXX</code>, généré côté serveur.</td></tr>
+      <tr><td><strong>Client</strong></td><td>Nom et ville. Les coordonnées complètes dépendent de votre rôle.</td></tr>
+      <tr><td><strong>Statut</strong></td><td>Étape du cycle commercial (payée, à produire, en production, etc.).</td></tr>
+      <tr><td><strong>Paiement</strong></td><td>État du paiement : payé, en attente, échec, anomalie, remboursé.</td></tr>
+      <tr><td><strong>Total</strong></td><td>Montant de la commande, livraison incluse.</td></tr>
+      <tr><td><strong>Marge</strong></td><td>Marge calculée si votre rôle y a accès.</td></tr>
+      <tr><td><strong>Créée</strong></td><td>Date et heure de création.</td></tr>
+      <tr><td><strong>Livraison prévue</strong></td><td>Date promise, si elle a été renseignée.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>9.2 Les exports</h2>
+  <p>Deux exports CSV sont disponibles en haut de la liste : <strong>Exporter (CSV)</strong> pour la vue commande et <strong>Exporter le détail des lignes</strong> pour le détail article par article. Les filtres actifs sont repris dans l’export. Ces fichiers servent à la comptabilité, au suivi commercial et aux réconciliations.</p>
+
+  <h2>9.3 La fiche commande</h2>
+  <p>Un clic sur une référence ouvre la fiche. Elle rassemble tout ce qu’il faut pour décider et agir.</p>
+
+  <figure class="fig">
+    <div class="shot"><img src="captures/03-commande.png" alt="Fiche détaillée d’une commande"></div>
+    <figcaption><span class="fnum">Figure 15</span> — La fiche commande : articles et quantités, fichiers de production, paiement, historique, et à droite les actions, le client, les notes et les jalons. <span class="src">Capture du 12/11/2026, données de démonstration.</span></figcaption>
+  </figure>
+
+  <div class="two">
+    <div>
+      <h3>Colonne principale</h3>
+      <ul>
+        <li><strong>Articles et quantités</strong> : désignation, taille, couleur, quantité, prix unitaire, total, coût unitaire.</li>
+        <li><strong>Fichiers de production</strong> : visuels haute résolution et fiche technique, téléchargeables séparément.</li>
+        <li><strong>Paiement</strong> : mode, statut, date, montant attendu et transaction.</li>
+        <li><strong>Historique</strong> : créations, changements de statut, notes et téléchargements, du plus récent au plus ancien.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Colonne latérale</h3>
+      <ul>
+        <li><strong>Faire avancer la commande</strong> : nouveau statut et note de suivi.</li>
+        <li><strong>Client et livraison</strong> : coordonnées, adresse, date prévue, frais.</li>
+        <li><strong>Notes internes</strong> : échanges, consignes, incidents (visibles uniquement par le personnel).</li>
+        <li><strong>Atelier</strong> : tâches de production.</li>
+        <li><strong>Jalons</strong> : créée, validée, payée, etc.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>9.4 Agir sur une commande</h2>
+  <table>
+    <thead><tr><th style="width:26%">Action</th><th>Règle</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Changer le statut</strong></td><td>Seules les transitions autorisées sont proposées, et elles dépendent du rôle. Une transition invalide est refusée par la base.</td></tr>
+      <tr><td><strong>Ajouter une note</strong></td><td>Visible uniquement par le personnel. À utiliser pour tracer un échange, une consigne ou un incident.</td></tr>
+      <tr><td><strong>Modifier la livraison</strong></td><td>Réservé aux rôles habilités. La date et les frais sont saisis, jamais inventés.</td></tr>
+      <tr><td><strong>Corriger un coût</strong></td><td>Réservé aux rôles financiers. La marge est recalculée à partir de ce coût.</td></tr>
+      <tr><td><strong>Télécharger un fichier</strong></td><td>Chaque téléchargement est tracé. Les liens signés sont valables 60 secondes.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn">
+    <span class="ct">Payé ne veut pas dire produit</span>
+    <p>Le paiement confirmé passe la commande « Payée », mais la production reste « À faire ». C’est à l’équipe de la passer à « À produire », puis à « En production ». Le système ne lance jamais la fabrication tout seul.</p>
+  </div>
+
+  <h2>9.5 Les cas particuliers</h2>
+  <div class="two">
+    <div class="card"><h3>Commande payée non lancée</h3><p>Elle apparaît dans « À traiter » et dans la vue atelier. Priorité : la lancer en production le jour même.</p></div>
+    <div class="card"><h3>Paiement en anomalie</h3><p>Vérifiez la transaction et le montant. Ne relancez pas un paiement sans avoir compris la cause.</p></div>
+    <div class="card"><h3>Remboursement</h3><p>Le statut « Remboursement à traiter » est une file de traitement, pas une preuve de remboursement effectif. Le paiement doit ensuite être marqué « Remboursé ».</p></div>
+    <div class="card"><h3>Annulation</h3><p>Possible uniquement depuis les statuts prévus. Une commande annulée est terminale et ne peut plus avancer.</p></div>
+  </div>
+</section>
+
+<!-- ============================ CHAPITRE 10 ============================ -->
+<section class="chapter">
+  <div class="chapter-head">
+    <p class="kicker">Chapitre 10 · Côté équipe</p>
+    <h1>Piloter<br>l’atelier.</h1>
+    <p class="lead">La vue atelier montre les commandes payées à lancer et celles en fabrication. Chaque carte donne accès au dossier de production et à l’étape suivante.</p>
+    <p class="meta">Vue atelier · cartes · dossier · étapes</p>
+  </div>
+
+  <h2>10.1 La vue atelier</h2>
+  <p>Les filtres reprennent les étapes de fabrication : <strong>Tout</strong>, <strong>Payée</strong>, <strong>À produire</strong>, <strong>En production</strong>, <strong>Contrôle qualité</strong>, <strong>Prête</strong>, et un filtre <strong>En retard</strong>. Le filtre <strong>Prestataire</strong> permet de ne voir que les commandes confiées à un partenaire.</p>
+
+  <figure class="fig">
+    <div class="shot"><img src="captures/04-atelier.png" alt="Vue atelier avec les cartes de commandes"></div>
+    <figcaption><span class="fnum">Figure 16</span> — La vue atelier : une carte par commande, avec les quantités par taille et couleur, la tâche d’atelier, l’état des fichiers et le bouton d’étape suivante. <span class="src">Capture du 12/11/2026, données de démonstration.</span></figcaption>
+  </figure>
+
+  <h2>10.2 Anatomie d’une carte</h2>
+  <table>
+    <thead><tr><th style="width:24%">Élément</th><th>Ce qu’il faut vérifier</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Référence et client</strong></td><td>La bonne commande, la bonne ville.</td></tr>
+      <tr><td><strong>Statut et retard</strong></td><td>Le badge d’étape et l’alerte rouge « En retard ».</td></tr>
+      <tr><td><strong>Quantités</strong></td><td>Le nombre de pièces, la répartition par taille et par couleur.</td></tr>
+      <tr><td><strong>Tâche d’atelier</strong></td><td>Le prestataire, la date prévue et l’état (à faire, en cours, terminé).</td></tr>
+      <tr><td><strong>Fichiers</strong></td><td>Le nombre de visuels HD et de fiches techniques. « Fichiers manquants » est un signal d’alerte.</td></tr>
+      <tr><td><strong>Actions</strong></td><td><strong>Dossier de production</strong> et bouton d’étape suivante.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>10.3 Le flux de fabrication</h2>
+  <div class="flow">
+    <span class="node hot">Payée</span><span class="arrow">→</span>
+    <span class="node">À produire</span><span class="arrow">→</span>
+    <span class="node">En production</span><span class="arrow">→</span>
+    <span class="node">Contrôle qualité</span><span class="arrow">→</span>
+    <span class="node">Prête</span><span class="arrow">→</span>
+    <span class="node valid">En livraison</span><span class="arrow">→</span>
+    <span class="node valid">Livrée</span>
+  </div>
+  <p>Le bouton d’étape suivante fait avancer la commande d’un cran, dans le sens de la fabrication. Une commande peut aussi reculer d’un cran en cas d’erreur (par exemple, de « En production » vers « À produire »). Chaque transition est journalisée avec l’acteur.</p>
+
+  <div class="callout danger">
+    <span class="ct">Aucune production sans paiement confirmé</span>
+    <p>La vue atelier ne montre que les commandes payées. Une commande non payée ne doit jamais être imprimée. Si un doute existe sur un paiement, vérifiez la fiche commande avant de lancer quoi que ce soit.</p>
+  </div>
+
+  <h2>10.4 Le dossier de production</h2>
+  <p>Le dossier rassemble la fiche technique et les fichiers. Il s’ouvre depuis la carte atelier ou depuis la fiche commande.</p>
+
+  <figure class="fig small">
+    <div class="shot"><img src="captures/05-dossier.png" alt="Dossier de production d’une commande"></div>
+    <figcaption><span class="fnum">Figure 17</span> — Le dossier de production : fiche technique, quantités, fichiers, étapes de fabrication et consignes. <span class="src">Capture du 12/11/2026, données de démonstration.</span></figcaption>
+  </figure>
+
+  <div class="two">
+    <div>
+      <h3>La fiche technique</h3>
+      <ul>
+        <li>Quantités par taille et par couleur.</li>
+        <li>Articles, produit, couleur du support.</li>
+        <li>Zones imprimées et origine de la commande.</li>
+        <li>Date de paiement.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>La fabrication</h3>
+      <ul>
+        <li><strong>Préparation</strong>, créée automatiquement au paiement.</li>
+        <li>Ajout d’étapes : impression DTF, pressage, broderie, encadrement…</li>
+        <li>Prestataire, date prévue, coût et instructions.</li>
+        <li>Chaque étape a son état : à faire, en cours, terminé, bloqué, annulé.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>10.5 Télécharger et transmettre les fichiers</h2>
+  <p>Les fichiers sont accessibles par des <strong>liens signés valables 60 secondes</strong>. Chaque téléchargement est tracé dans l’historique. Téléchargez les visuels avant de transmettre le dossier à un prestataire, et vérifiez que le nombre de visuels correspond aux zones personnalisées.</p>
+
+  <div class="contact-strip">
+    <span>Un fichier manquant ou un doute sur une étape&nbsp;?</span>
+    <span><b>Atelier</b> — voir la fiche commande et les notes internes</span>
+  </div>
+</section>
+
+<!-- ============================ CHAPITRE 11 ============================ -->
+<section class="chapter">
+  <div class="chapter-head">
+    <p class="kicker">Chapitre 11 · Côté équipe</p>
+    <h1>Traiter<br>les devis.</h1>
+    <p class="lead">Le devis est un objet distinct de la commande. Il se traite, se propose, se valide, puis se transforme explicitement en commande. Rien n’est automatique.</p>
+    <p class="meta">Pipeline · analyse · proposition · conversion</p>
+  </div>
+
+  <h2>11.1 Le pipeline en sept étapes</h2>
+  <div class="flow">
+    <span class="node">Demande reçue</span><span class="arrow">→</span>
+    <span class="node">Analyse</span><span class="arrow">→</span>
+    <span class="node">Proposition</span><span class="arrow">→</span>
+    <span class="node">Prix validé</span><span class="arrow">→</span>
+    <span class="node">Acceptation client</span><span class="arrow">→</span>
+    <span class="node hot">Commande</span><span class="arrow">→</span>
+    <span class="node valid">Paiement reçu</span>
+  </div>
+
+  <h2>11.2 Dérouler le traitement</h2>
+  <div class="steps">
+    <div class="step"><b>Analyser la demande</b><p>Vérifiez la faisabilité technique, les fournitures, la sous-traitance, le délai et le coût estimé. Consignez l’analyse dans la fiche.</p></div>
+    <div class="step"><b>Proposer un prix</b><p>Renseignez le montant proposé, la marge estimée et les conditions (délai, livraison, BAT).</p></div>
+    <div class="step"><b>Faire valider le prix</b><p>Le prix doit être validé par un rôle habilité (administrateur ou finance) avant d’être présenté comme ferme.</p></div>
+    <div class="step"><b>Recueillir l’acceptation</b><p>Le client accepte la proposition depuis son suivi de devis, protégé par sa session.</p></div>
+    <div class="step"><b>Transformer en commande</b><p>Depuis un devis accepté, le formulaire « Transmission à l’atelier » crée une commande <strong>BROUILLON</strong> avec le mode de paiement, les frais, la ville, l’adresse et la date prévue.</p></div>
+    <div class="step"><b>Suivre le paiement</b><p>La commande suit ensuite son cycle normal : validation, paiement, production, livraison.</p></div>
+  </div>
+
+  <figure class="fig">
+    <div class="shot"><img src="captures/06-devis.png" alt="Fiche d’un devis avec les sept étapes du pipeline"></div>
+    <figcaption><span class="fnum">Figure 18</span> — Une demande de devis arrivée au bout du pipeline : demande, analyse, proposition, prix validé, acceptation, transformation en commande et paiement reçu. <span class="src">Capture du 12/11/2026, données de démonstration.</span></figcaption>
+  </figure>
+
+  <h2>11.3 Les règles à retenir</h2>
+  <table>
+    <thead><tr><th style="width:34%">Règle</th><th>Conséquence</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Un devis accepté n’est pas une commande</strong></td><td>La conversion est une action staff explicite, idempotente et tracée.</td></tr>
+      <tr><td><strong>Un prix non validé n’est pas ferme</strong></td><td>Le prix proposé doit être validé avant d’être communiqué comme définitif.</td></tr>
+      <tr><td><strong>La commande créée est un brouillon</strong></td><td>Elle doit être complétée puis validée avant paiement.</td></tr>
+      <tr><td><strong>Les fichiers du devis sont copiés</strong></td><td>La commande garde les pièces jointes et l’historique du devis.</td></tr>
+      <tr><td><strong>Les sessions de suivi se révoquent</strong></td><td>Un administrateur peut révoquer les sessions de suivi ouvertes par le client.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout tip">
+    <span class="ct">Le bon réflexe</span>
+    <p>Avant de transformer un devis, vérifiez que la proposition est validée, que le client a accepté et que les fichiers nécessaires sont présents. Une conversion hâtive crée une commande difficile à corriger.</p>
+  </div>
+</section>
+
+<!-- ============================ PARTIE C ============================ -->
+<section class="part">
+  <div class="num">C</div>
+  <div class="part-kicker">Partie C</div>
+  <h1>Annexes &amp;<br><em>aide-mémoire.</em></h1>
+  <p class="part-lead">Les statuts, les questions qui reviennent, les checklists et les fichiers de production. De quoi travailler sans rouvrir tout le guide.</p>
+  <ul class="part-list">
+    <li><b>12</b> Le cycle et les statuts</li>
+    <li><b>13</b> Dépannage &amp; questions fréquentes</li>
+    <li><b>14</b> Checklists &amp; fichiers</li>
+  </ul>
+  <figure class="part-shot">
+    <img src="captures/studio-desktop-cinq-zones.png" alt="T-shirt personnalisé sur ses cinq zones">
+    <figcaption>Cinq zones, un seul aperçu : ce que voit le client est ce que reçoit l’atelier.</figcaption>
+  </figure>
+</section>
+
+<!-- ============================ CHAPITRE 12 ============================ -->
+<section class="chapter">
+  <div class="chapter-head">
+    <p class="kicker">Chapitre 12 · Annexe</p>
+    <h1>Le cycle<br>et les statuts.</h1>
+    <p class="lead">Une commande avance dans un ordre précis. Le paiement et la fabrication sont deux étapes distinctes : c’est la règle qui structure tout le back-office.</p>
+    <p class="meta">Cycle commercial · paiement · production · devis</p>
+  </div>
+
+  <h2>12.1 Le cycle de la commande</h2>
+  <div class="flow">
+    <span class="node">Brouillon</span><span class="arrow">→</span>
+    <span class="node">À valider</span><span class="arrow">→</span>
+    <span class="node">En attente de paiement</span><span class="arrow">→</span>
+    <span class="node hot">Payée</span><span class="arrow">→</span>
+    <span class="node">À produire</span><span class="arrow">→</span>
+    <span class="node">En production</span><span class="arrow">→</span>
+    <span class="node">Contrôle qualité</span><span class="arrow">→</span>
+    <span class="node">Prête</span><span class="arrow">→</span>
+    <span class="node valid">En livraison</span><span class="arrow">→</span>
+    <span class="node valid">Livrée</span>
+  </div>
+  <p>Statuts terminaux ou exceptionnels : <strong>Annulée</strong> et <strong>Remboursement à traiter</strong>.</p>
+
+  <table>
+    <thead><tr><th style="width:23%">Statut</th><th>Signification</th><th style="width:24%">Qui peut le poser</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Brouillon</strong></td><td>Commande en préparation, non validée.</td><td>Admin, commercial.</td></tr>
+      <tr><td><strong>À valider</strong></td><td>La commande attend une validation interne.</td><td>Admin, commercial.</td></tr>
+      <tr><td><strong>En attente de paiement</strong></td><td>Prête, le paiement n’est pas encore confirmé.</td><td>Admin, commercial.</td></tr>
+      <tr><td><strong>Payée</strong></td><td>Paiement confirmé. La production reste à lancer.</td><td>Paiement ou confirmation d’encaissement — jamais à la main.</td></tr>
+      <tr><td><strong>À produire</strong></td><td>L’atelier doit prendre la commande en charge.</td><td>Admin, commercial, atelier.</td></tr>
+      <tr><td><strong>En production</strong></td><td>La fabrication est lancée.</td><td>Admin, atelier.</td></tr>
+      <tr><td><strong>Contrôle qualité</strong></td><td>La fabrication est terminée, on vérifie.</td><td>Admin, atelier.</td></tr>
+      <tr><td><strong>Prête</strong></td><td>La commande est prête à être livrée.</td><td>Admin, atelier.</td></tr>
+      <tr><td><strong>En livraison</strong></td><td>La commande est en cours de livraison.</td><td>Admin, commercial, atelier.</td></tr>
+      <tr><td><strong>Livrée</strong></td><td>La commande a été remise au client.</td><td>Admin, commercial, atelier.</td></tr>
+      <tr><td><strong>Annulée</strong></td><td>Commande arrêtée définitivement.</td><td>Admin, commercial, finance.</td></tr>
+      <tr><td><strong>Remboursement à traiter</strong></td><td>File de traitement d’un remboursement.</td><td>Admin, finance.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>12.2 Les sous-statuts</h2>
+  <div class="three">
+    <div class="card">
+      <h3>Paiement</h3>
+      <p><span class="badge b-grey">Non requis</span> <span class="badge b-amber">En attente</span> <span class="badge b-green">Payé</span> <span class="badge b-red">Échec</span> <span class="badge b-orange">Anomalie</span> <span class="badge b-grey">Remboursé</span></p>
+    </div>
+    <div class="card">
+      <h3>Production</h3>
+      <p><span class="badge b-amber">À faire</span> <span class="badge b-blue">En cours</span> <span class="badge b-green">Terminé</span> <span class="badge b-red">Bloqué</span> <span class="badge b-grey">Annulé</span></p>
+    </div>
+    <div class="card">
+      <h3>Devis</h3>
+      <p><span class="badge b-blue">Nouveau</span> <span class="badge b-amber">En analyse</span> <span class="badge b-orange">Proposé</span> <span class="badge b-green">Accepté</span> <span class="badge b-red">Refusé</span> <span class="badge b-grey">Expiré</span></p>
+    </div>
+  </div>
+
+  <h2>12.3 Les invariants</h2>
+  <ul>
+    <li><strong>Une référence unique</strong> <code>ELB-AAAAMMJJ-XXXXXXXX</code>, générée côté serveur.</li>
+    <li><strong>Un contact figé</strong> au moment de la commande : une modification ultérieure de la fiche client ne réécrit pas l’historique.</li>
+    <li><strong>Montants cohérents</strong> : sous-total + livraison = total. La livraison est saisie, jamais inventée.</li>
+    <li><strong>Paiement prouvé</strong> : la commande ne peut passer « Payée » sans un enregistrement de paiement au statut « Payé » et au bon montant.</li>
+    <li><strong>Production après paiement</strong> : le trigger de paiement crée une tâche d’initialisation, mais ne lance jamais la production.</li>
+    <li><strong>Transitions vérifiées</strong> par la base ; une transition invalide ne modifie ni les dates ni l’historique.</li>
+  </ul>
+</section>
+
+<!-- ============================ CHAPITRE 13 ============================ -->
+<section class="chapter">
+  <div class="chapter-head">
+    <p class="kicker">Chapitre 13 · Annexe</p>
+    <h1>Dépannage &amp;<br>questions fréquentes.</h1>
+    <p class="lead">Les blocages les plus courants, côté studio comme côté back-office, et la première chose à vérifier.</p>
+    <p class="meta">Studio · paiement · back-office · livraison</p>
+  </div>
+
+  <div class="qa">
+    <div><p class="q">Le modèle 3D ne s’affiche pas.</p><p class="a">Vérifiez que WebGL est disponible (Chrome ou Safari à jour), désactivez les bloqueurs, rechargez. Si le problème persiste, le studio reste utilisable en mode dégradé pour le reste de la page.</p></div>
+    <div><p class="q">Mon image est refusée.</p><p class="a">Le fichier doit être PNG ou JPG, faire moins de 10&nbsp;Mo et mesurer au moins 500&nbsp;px de côté. Le message affiché donne le motif exact.</p></div>
+    <div><p class="q">Je ne retrouve pas ma création.</p><p class="a">Elle est liée à l’appareil et au navigateur. Vérifiez que vous êtes sur le même appareil, en navigation normale, et ouvrez « Mes créations » ou <code>/panier</code>.</p></div>
+    <div><p class="q">Le bouton « Payer » est grisé.</p><p class="a">Vérifiez qu’un visuel est posé, que le numéro MTN est valide, qu’aucune zone « à valider » n’est utilisée et que le prix du produit est validé.</p></div>
+    <div><p class="q">Le paiement n’a pas été confirmé.</p><p class="a">La demande MTN expire au bout de 5 minutes. Vérifiez le SMS, le solde et le code. Vous pouvez relancer ; en cas d’échec répété, contactez l’atelier avec la référence.</p></div>
+    <div><p class="q">J’ai payé mais l’atelier n’a rien reçu.</p><p class="a">Les fichiers sont générés après confirmation du paiement. Si l’envoi a échoué, l’écran le signale et invite à transmettre les fichiers par WhatsApp avec la référence.</p></div>
+    <div><p class="q">Le mug affiche « à confirmer ».</p><p class="a">C’est normal : la vente en ligne du mug n’est pas encore ouverte. Le studio permet de composer et d’exporter, puis de demander un devis ou de commander sur WhatsApp.</p></div>
+    <div><p class="q">Le back-office refuse mon accès.</p><p class="a">Votre compte doit avoir un rôle attribué par un administrateur. Un compte sans rôle ne peut pas entrer, même avec un mot de passe correct.</p></div>
+    <div><p class="q">Le tableau de bord est indisponible.</p><p class="a">La base ne répond pas ou une migration n’est pas appliquée. Prévenez l’administrateur ; les autres pages peuvent rester accessibles.</p></div>
+    <div><p class="q">Je ne peux pas changer le statut.</p><p class="a">La transition n’est peut-être pas autorisée pour ce statut ou pour votre rôle. La base refuse toute transition hors du cycle prévu.</p></div>
+    <div><p class="q">La livraison est bloquée.</p><p class="a">La ville n’a peut-être pas de tarif défini. Le système refuse d’inventer un montant : faites fixer le tarif dans la grille.</p></div>
+    <div><p class="q">Un fichier de production manque.</p><p class="a">Vérifiez que la zone a bien un visuel et que le paiement est confirmé. Les fichiers sont nommés par zone : <code>front.png</code>, <code>back.png</code>, <code>left-sleeve.png</code>, <code>right-sleeve.png</code>, <code>collar.png</code>, <code>wrap.png</code>.</p></div>
+  </div>
+
+  <div class="contact-strip">
+    <span>Une question qui n’est pas ici&nbsp;?</span>
+    <span><b>WhatsApp</b> +242 06 478 14 14 · <b>Email</b> store@smartvision.cg</span>
+  </div>
+</section>
+
+<!-- ============================ CHAPITRE 14 ============================ -->
+<section class="chapter">
+  <div class="chapter-head">
+    <p class="kicker">Chapitre 14 · Annexe</p>
+    <h1>Checklists<br>&amp; fichiers.</h1>
+    <p class="lead">Trois listes courtes pour ne rien oublier : avant de composer, avant de payer, après la commande.</p>
+    <p class="meta">Préparation · validation · production</p>
+  </div>
+
+  <h2>14.1 Avant de composer</h2>
+  <ul class="checklist">
+    <li>Le brief est clair : texte exact, couleurs, tailles, quantités, ville et date.</li>
+    <li>Le logo est en PNG transparent, ou la photo est en haute résolution.</li>
+    <li>Le visuel est lisible sur la couleur de tissu choisie.</li>
+    <li>Le fichier respecte les règles : PNG/JPG, 10&nbsp;Mo, 500&nbsp;px.</li>
+    <li>La zone choisie est bien celle qui sera imprimée.</li>
+  </ul>
+
+  <h2>14.2 Avant de payer</h2>
+  <ul class="checklist">
+    <li>Chaque zone personnalisée a été vérifiée dans l’aperçu de commande.</li>
+    <li>Les textes sont relus, sans faute ni caractère manquant.</li>
+    <li>Aucun élément important ne sort de la zone orange.</li>
+    <li>Les tailles et les quantités correspondent à la commande.</li>
+    <li>La ville, les frais et le délai sont corrects.</li>
+    <li>Aucune zone « à valider » n’est utilisée, ou le client est informé du devis.</li>
+    <li>Le numéro MTN est au bon format et appartient au client.</li>
+  </ul>
+
+  <h2>14.3 Après la commande</h2>
+  <ul class="checklist">
+    <li>La référence <code>ELB-…</code> est notée et communiquée au client.</li>
+    <li>Le paiement est confirmé et la commande est « Payée ».</li>
+    <li>Les fichiers sont présents dans le dossier de production.</li>
+    <li>L’atelier a lancé la commande : statut « À produire » puis « En production ».</li>
+    <li>Le contrôle qualité, la livraison et la clôture sont tracés.</li>
+  </ul>
+
+  <h2>14.4 Les fichiers de production</h2>
+  <table>
+    <thead><tr><th style="width:24%">Fichier</th><th>Contenu</th><th style="width:20%">Densité</th></tr></thead>
+    <tbody>
+      <tr><td><code>front.png</code></td><td>Visuel de la face avant, fond transparent, dimensions physiques de la zone.</td><td>300&nbsp;dpi (DTF)</td></tr>
+      <tr><td><code>back.png</code></td><td>Visuel du dos.</td><td>300&nbsp;dpi (DTF)</td></tr>
+      <tr><td><code>left-sleeve.png</code></td><td>Visuel de la manche gauche, si la zone est validée.</td><td>300&nbsp;dpi</td></tr>
+      <tr><td><code>right-sleeve.png</code></td><td>Visuel de la manche droite, si la zone est validée.</td><td>300&nbsp;dpi</td></tr>
+      <tr><td><code>collar.png</code></td><td>Étiquette intérieure du col, si la zone est validée.</td><td>300&nbsp;dpi</td></tr>
+      <tr><td><code>wrap.png</code></td><td>Pourtour du mug.</td><td>300&nbsp;dpi</td></tr>
+      <tr><td><code>fiche-production.txt</code></td><td>Fiche lisible pour WhatsApp ou email : procédé, positions, textes, tailles.</td><td>—</td></tr>
+      <tr><td><code>fiche-production.json</code></td><td>Même fiche, structurée pour la traçabilité et l’atelier.</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <span class="ct">Ce que contient la fiche de production</span>
+    <p>Le procédé et sa densité, puis pour chaque élément : type, contenu, police et corps en centimètres, couleur, alignement, position du centre depuis le coin haut-gauche de la zone, dimensions, rotation et, le cas échéant, l’avertissement de débordement. Un imprimeur peut travailler directement avec cette fiche.</p>
+  </div>
+
+  <div class="callout tip">
+    <span class="ct">Le dernier mot</span>
+    <p>Un beau visuel ne suffit pas : ce qui compte, c’est un fichier propre, une zone respectée et un paiement confirmé. Le reste — la 3D, les calques, les couleurs — est là pour vous aider à y arriver.</p>
+  </div>
+</section>
+
+<!-- ============================ FIN ============================ -->
+<section class="backcover">
+  <div class="brand">elembo<span>.</span></div>
+  <h1>Une idée&nbsp;?<br><em>Racontez-la-nous.</em></h1>
+  <p>Ce guide suit la plateforme au plus près. Si un écran a changé, si une règle n’est plus la bonne, signalez-le : le guide se corrige comme le produit.</p>
+  <div class="contact">
+    <div><b>WhatsApp</b> · +242 06 478 14 14</div>
+    <div><b>Email</b> · store@smartvision.cg</div>
+    <div><b>Site</b> · elembo.vercel.app</div>
+    <div><b>Studio</b> · elembo.vercel.app/personnalisation</div>
+    <div><b>Back-office</b> · elembo.vercel.app/admin</div>
+  </div>
+  <p class="fine">Guide d’utilisation Elembo · Édition du 12 novembre 2026 · Smart Vision Congo (SARLU) · Brazzaville, République du Congo.</p>
+</section>
+
+</body>
+</html>

@@ -31,6 +31,7 @@ import {
 } from '@/lib/grand-format/suivi';
 import { exigerAcces } from '@/server/admin/acces';
 import { historiqueDevis, voletCommercial } from '@/server/admin/devis';
+import { partenaireAffectable } from '@/lib/partenaires/statuts';
 import { listerPartenaires } from '@/server/admin/production';
 import { clientDuDevis, fichiersDuDevis } from '@/server/devis/repository';
 import { demandeParDevis, tachesDeCommande } from '@/server/grand-format/repository';
@@ -98,7 +99,7 @@ export default async function PageBanderole({
   const contact = d.devis.contact_snapshot as Record<string, unknown>;
   const surfacePiece = surfaceM2(d.largeur_m, d.hauteur_m);
   const partenaire = partenaires.find((p) => p.id === d.partenaire_id) ?? null;
-  const imprimeurs = partenaires.filter((p) => p.actif || p.id === d.partenaire_id);
+  const imprimeurs = partenaires.filter((p) => partenaireAffectable(p) || p.id === d.partenaire_id);
   const coutSuggere =
     partenaire?.tarifs.prix_m2_fcfa ? Math.ceil((partenaire.tarifs.prix_m2_fcfa * d.surface_totale_m2) / 100) * 100 : null;
   const finitionsApplicables = supportParId(d.support)?.finitionsApplicables ?? false;

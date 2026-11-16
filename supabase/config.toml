@@ -32,14 +32,25 @@ file_size_limit = "50MiB"
 [auth]
 enabled = true
 site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3000", "http://localhost:3000/admin"]
+additional_redirect_urls = ["http://localhost:3000", "http://localhost:3000/admin", "http://localhost:3000/partenaire/**"]
 jwt_expiry = 3600
 enable_signup = true
 
 [auth.email]
 enabled = true
 double_confirm_changes = true
-enable_confirmations = false
+# Inscription libre au portail partenaire : l'adresse doit être confirmée (comme en production).
+enable_confirmations = true
+
+# Modèles Elembo (liens `token_hash` vers /partenaire/auth/confirmer). À reproduire dans le
+# tableau de bord des projets hébergés : Authentication → Emails → Templates.
+[auth.email.template.confirmation]
+subject = "Confirmez votre adresse — Espace partenaires Elembo"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Nouveau mot de passe — Espace partenaires Elembo"
+content_path = "./supabase/templates/recovery.html"
 
 [auth.external.github]
 enabled = false

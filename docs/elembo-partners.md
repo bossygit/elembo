@@ -687,11 +687,37 @@ données héritées, catalogue et règles pures TypeScript, matrice des droits.
 **Recette** : tests unitaires (transitions, paliers, droits) ; tests RLS A/B sur un projet de
 test (§8.3) ; migration rejouée sur une base locale vierge puis sur une copie des données.
 
-### 1.2 — Comptes et accès au portail
+### 1.2 — Comptes et accès au portail ✅ (16/11/2026)
 Proxy, DAL `exigerPartenaire`, inscription, confirmation, connexion, déconnexion, mot de passe
 oublié, création de l'entreprise en `BROUILLON`, pages « en attente », « refusé », « suspendu ».
 **Recette** : un compte sans association, un compte non confirmé, un compte staff et un partenaire
 suspendu n'accèdent à rien ; la connexion admin est inchangée.
+
+Livré : `src/app/partenaire/` (connexion, inscription, mot de passe oublié et nouveau, route
+`auth/confirmer`, tableau de bord « Mon dossier », « Bienvenue », « Accès suspendu »),
+`src/server/partenaires/acces.ts` (DAL) et `dossier.ts` (lecture sous RLS avec la session de
+l'utilisateur), `src/lib/partenaires/compte.ts` (état du compte, navigation sans redirection
+ouverte, validation des formulaires), `src/components/partenaire/`, proxy étendu,
+`robots.txt`, modèles d'e-mail `supabase/templates/` (confirmation et récupération, liens
+`token_hash`), `tests/partenairesCompte.test.ts`.
+
+Choix : l'entreprise n'est créée qu'à la première connexion **confirmée**, et seulement pour un
+compte venu du formulaire d'inscription ; sinon, page « Bienvenue » (création manuelle) — un compte
+invité (sous-lot 1.6) ne crée jamais d'entreprise en double. La route `auth/confirmer` accepte les
+liens `token_hash` (modèles Elembo, ouvrables sur un autre appareil) et `code` (modèles par défaut
+de Supabase, même navigateur) : le parcours fonctionne avant même que les modèles soient installés.
+
+Recette faite le 16/11/2026 sur Supabase local (confirmation d'e-mail activée, e-mails reçus dans
+Mailpit), navigateur à 390 px puis 1 280 px : inscription → e-mail → confirmation → entreprise
+`BROUILLON` + `RESPONSABLE` + audit ; mauvais mot de passe refusé ; déconnexion ; mot de passe
+oublié → e-mail → nouveau mot de passe (ancien refusé, nouveau accepté) ; lien réutilisé, inventé
+ou avec redirection externe → « lien plus valable » ; compte staff refusé sans session résiduelle ;
+compte non confirmé arrêté ; suspension → « Accès suspendu » avec motif à la requête suivante.
+Données de test supprimées ensuite.
+
+**Configuration locale** (`supabase/config.toml`) : confirmation d'e-mail activée, redirections
+`/partenaire/**` autorisées, modèles Elembo. Pour les projets hébergés, voir §10 (au moment de
+Resend).
 
 ### 1.3 — Profil, machines, capacités, services, disponibilités
 Pages du portail, fichiers et photos, soumission à validation.
@@ -772,7 +798,9 @@ production atelier et connexion back-office vérifiés après chaque sous-lot.
 2. **Confirmation d'e-mail activée** (« Confirm email ») sur les deux projets.
 3. **URL de redirection autorisées** : `https://<domaine>/partenaire/auth/confirmer` (et
    l'équivalent staging).
-4. **Modèles d'e-mail** « Confirm signup » et « Reset password » en français, pointant vers
-   `{{ .SiteURL }}/partenaire/auth/confirmer?token_hash={{ .TokenHash }}&type=…`.
+4. **Modèles d'e-mail** « Confirm signup » et « Reset password » : coller le contenu de
+   `supabase/templates/confirmation.html` et `recovery.html` (sujets dans `supabase/config.toml`).
+   Ils pointent vers `{{ .SiteURL }}/partenaire/auth/confirmer?token_hash={{ .TokenHash }}&type=…` ;
+   à installer seulement une fois le code du sous-lot 1.2 déployé.
 5. ~~Application des migrations `0011` et `0012` en staging puis en production~~ — fait le
    16/11/2026 (§8, sous-lot 1.1).

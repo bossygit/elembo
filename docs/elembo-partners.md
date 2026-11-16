@@ -13,9 +13,11 @@ traités que là où ils contraignent le Lot 1.
 ## 0. Méthode et état de référence
 
 L'audit s'appuie sur la lecture des migrations, du code serveur, des pages du back-office et des
-tests présents sur la branche. Aucun projet Supabase distant n'a été interrogé par cette mission. **Selon Smart Vision
-(16/11/2026), les migrations `0001` → `0011` sont appliquées en staging et en production**, y
-compris `0011` (grand format). La migration du Lot 1 sera donc la `0012`.
+tests présents sur la branche. **État vérifié le 16/11/2026** (`supabase migration list` sur elembo-staging, sondage REST en
+lecture seule sur les deux projets) : **staging et production s'arrêtent à `0010`**. La `0011`
+(grand format) n'y est pas appliquée : ni `demandes_grand_format`, ni `tarifs_grand_format`, ni
+la colonne `partenaires.types_impression` n'existent. La `0012` (Lot 1) ne peut donc être
+appliquée qu'après la `0011`. Seule la base locale est à jour (`0001` → `0012`).
 
 | Élément | Constat |
 |---|---|
@@ -669,8 +671,16 @@ que PGlite ne reproduisait pas : les **droits par défaut de Supabase** donnent 
 dans la migration (`revoke all … from service_role` avant le `grant select, insert`), verrouillé
 par `partenairesSchema.test.ts`. Le banc PGlite simule désormais ces droits par défaut.
 
-Reste à faire : application en staging, rejeu de `supabase/tests/elembo_partners.sql`, puis
-production.
+**Staging et production (16/11/2026)** : `0011` (grand format) et `0012` appliquées par
+`supabase db push`, après sauvegarde du schéma et des données de chaque projet.
+
+- elembo-staging : `supabase/tests/elembo_partners.sql`, `grand_format.sql` et `back_office.sql`
+  exécutés à distance (`db query --remote`) ; tous passent, rien ne subsiste après le `rollback`.
+- elembo-production : script de test **non exécuté** (il crée des comptes fictifs) ; contrôles en
+  lecture seule identiques à staging : 11 tables sous RLS, aucun droit `anon`, `authenticated` en
+  lecture seule, historiques en lecture + ajout pour `service_role`, aucune fonction de service
+  exposée, bucket `partenaires` privé ; API publique : 401 sur les tables et `mon_partenaire`.
+- La production ne contenait aucun prestataire : la reprise de données n'avait rien à convertir.
 
 Migration complète (tables, contraintes, triggers, fonctions, RLS, bucket), rollback, reprise des
 données héritées, catalogue et règles pures TypeScript, matrice des droits.
@@ -764,4 +774,5 @@ production atelier et connexion back-office vérifiés après chaque sous-lot.
    l'équivalent staging).
 4. **Modèles d'e-mail** « Confirm signup » et « Reset password » en français, pointant vers
    `{{ .SiteURL }}/partenaire/auth/confirmer?token_hash={{ .TokenHash }}&type=…`.
-5. Application de la migration `0012` en staging, recette §8.3, puis production.
+5. ~~Application des migrations `0011` et `0012` en staging puis en production~~ — fait le
+   16/11/2026 (§8, sous-lot 1.1).

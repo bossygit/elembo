@@ -1396,8 +1396,12 @@ grant all on public.partenaire_utilisateurs, public.partenaire_invitations,
   public.partenaire_services, public.partenaire_tarifs, public.partenaire_tarif_paliers,
   public.partenaire_fichiers
   to service_role;
--- Historiques : ajout et lecture seulement, jamais de réécriture.
+-- Historiques : ajout et lecture seulement, jamais de réécriture. Supabase accorde par défaut
+-- TOUS les droits à service_role sur une nouvelle table (default privileges) : on les retire
+-- explicitement avant d'accorder lecture et ajout.
+revoke all on public.historique_statuts_partenaire, public.partenaire_disponibilites from service_role;
 grant select, insert on public.historique_statuts_partenaire, public.partenaire_disponibilites to service_role;
+revoke all on sequence public.historique_statuts_partenaire_id_seq from anon, authenticated;
 grant usage on sequence public.historique_statuts_partenaire_id_seq to service_role;
 
 -- Fonctions de session : appelées par les politiques et par le portail (session utilisateur).

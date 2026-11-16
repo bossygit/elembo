@@ -96,7 +96,11 @@ describe('migration Elembo Partners', () => {
   });
 
   it('les historiques ne sont jamais réécrits', () => {
-    expect(SQL).toContain('grant select, insert on public.historique_statuts_partenaire, public.partenaire_disponibilites to service_role;');
+    // Supabase accorde tout à service_role par défaut : sans ce revoke, le grant ne restreint rien.
+    const revoke = SQL.indexOf('revoke all on public.historique_statuts_partenaire, public.partenaire_disponibilites from service_role;');
+    const grant = SQL.indexOf('grant select, insert on public.historique_statuts_partenaire, public.partenaire_disponibilites to service_role;');
+    expect(revoke).toBeGreaterThan(0);
+    expect(grant).toBeGreaterThan(revoke);
     expect(SQL).not.toMatch(/grant all on [^;]*(historique_statuts_partenaire|partenaire_disponibilites)/);
   });
 

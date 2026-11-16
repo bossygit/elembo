@@ -660,8 +660,17 @@ Vérification : migrations `0001` → `0012` et les trois scripts `supabase/test
 sur PGlite 0.5 (Postgres en WebAssembly, avec une simulation minimale de `auth` et `storage`),
 y compris retour arrière puis réapplication, et reprise de données héritées. Quatre mutations
 volontaires de la migration (tarifs ouverts, jeton staff accepté, validation non réinitialisée,
-fiche lisible) sont toutes détectées par le script SQL. **À rejouer sur la base locale Supabase
-ou le projet de staging avant application en production.**
+fiche lisible) sont toutes détectées par le script SQL.
+
+**Base Supabase locale (16/11/2026)** : migration `0012` appliquée (`supabase_db_elembo`,
+Postgres 17), les trois scripts `supabase/tests/*.sql` passent. Cette exécution a révélé un écart
+que PGlite ne reproduisait pas : les **droits par défaut de Supabase** donnent tout à
+`service_role` sur une nouvelle table, si bien que les historiques étaient réécrivables. Corrigé
+dans la migration (`revoke all … from service_role` avant le `grant select, insert`), verrouillé
+par `partenairesSchema.test.ts`. Le banc PGlite simule désormais ces droits par défaut.
+
+Reste à faire : application en staging, rejeu de `supabase/tests/elembo_partners.sql`, puis
+production.
 
 Migration complète (tables, contraintes, triggers, fonctions, RLS, bucket), rollback, reprise des
 données héritées, catalogue et règles pures TypeScript, matrice des droits.

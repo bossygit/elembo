@@ -1,5 +1,6 @@
 /**
- * Proxy (ex-middleware, Next 16) limité au back-office.
+ * Proxy (ex-middleware, Next 16) limité au back-office (/admin) et au portail partenaire
+ * (/partenaire).
  *
  * Rôles :
  *  1. Rafraîchir la session Supabase : un Server Component ne peut pas réécrire de cookie. Sans
@@ -9,14 +10,18 @@
  *     PAS la barrière de sécurité : chaque page, action et route revérifie via `exigerAcces`.
  *  3. Poser des en-têtes stricts : pas d'indexation, pas de cache, pas de Referer (les liens
  *     signés de téléchargement ne doivent fuiter vers aucun site tiers).
+ *
+ * Portail partenaire : seule l'absence de session est redirigée. L'appartenance à une entreprise
+ * et son statut sont vérifiés par `exigerPartenaire` (le proxy ne lit pas la base).
  */
 
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { estPagePubliquePartenaire } from '@/lib/partenaires/compte';
 import { roleDepuisClaims } from '@/server/auth/roles';
 
-const PUBLIQUES = ['/admin/connexion'];
+const PUBLIQUES_ADMIN = ['/admin/connexion'];
 
 function entetes(reponse: NextResponse): NextResponse {
   reponse.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
@@ -30,7 +35,10 @@ export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
   const chemin = request.nextUrl.pathname;
-  const publique = PUBLIQUES.some((p) => chemin === p || chemin.startsWith(`${p}/`));
+  const portail = chemin === '/partenaire' || chemin.startsWith('/partenaire/');
+  const publique = portail
+    ? estPagePubliquePartenaire(chemin)
+    : PUBLIQUES_ADMIN.some((p) => chemin === p || chemin.startsWith(`${p}/`));
 
   if (!url || !anon) {
     // Back-office indisponible sans Supabase : on ne sert aucune page protégée.
@@ -52,17 +60,20 @@ export async function proxy(request: NextRequest) {
   });
 
   // `getUser()` revalide le jeton auprès de Supabase Auth et le rafraîchit si besoin.
-  let staff = false;
+  let autorise = false;
   try {
     const { data } = await supabase.auth.getUser();
-    staff = Boolean(data.user && roleDepuisClaims({ app_metadata: data.user.app_metadata }));
+    autorise = portail
+      ? Boolean(data.user)
+      : Boolean(data.user && roleDepuisClaims({ app_metadata: data.user.app_metadata }));
   } catch {
-    staff = false;
+    autorise = false;
   }
 
-  if (!staff && !publique) {
-    const cible = new URL('/admin/connexion', request.url);
-    if (chemin !== '/admin') cible.searchParams.set('suite', chemin);
+  if (!autorise && !publique) {
+    const accueil = portail ? '/partenaire' : '/admin';
+    const cible = new URL(`${accueil}/connexion`, request.url);
+    if (chemin !== accueil) cible.searchParams.set('suite', chemin);
     const redirection = NextResponse.redirect(cible);
     // Conserver les cookies éventuellement nettoyés par Supabase (session expirée).
     for (const cookie of reponse.cookies.getAll()) redirection.cookies.set(cookie);
@@ -73,5 +84,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/partenaire', '/partenaire/:path*'],
 };

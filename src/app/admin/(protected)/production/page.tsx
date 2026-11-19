@@ -76,8 +76,8 @@ export default async function PageAtelier({
         titre="Atelier"
         description="Commandes payées à lancer et commandes en fabrication. La production ne démarre jamais sans paiement confirmé."
         actions={
-          peut(staff.role, 'partenaires.gerer') ? (
-            <Link href="/admin/production/prestataires" className={bouton('secondaire', 'sm')}>
+          peut(staff.role, 'partenaires.voir') ? (
+            <Link href="/admin/partenaires" className={bouton('secondaire', 'sm')}>
               Prestataires
             </Link>
           ) : null

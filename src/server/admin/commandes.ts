@@ -73,7 +73,7 @@ export async function compterParStatut(): Promise<Record<string, number>> {
 
 /* ---------------------------------------------------------- notes internes -- */
 
-export type EntiteNote = 'commande' | 'client' | 'devis';
+export type EntiteNote = 'commande' | 'client' | 'devis' | 'partenaire';
 
 export type NoteInterne = {
   id: string;

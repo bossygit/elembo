@@ -4,6 +4,9 @@
 
 import { supabaseAdmin } from '@/server/supabase/client';
 import { STATUTS_ATELIER, type StatutCommande, type StatutProduction } from '@/lib/admin/statuts';
+import { SUPPORTS } from '@/lib/grand-format/catalogue';
+import { profilGrandFormat } from '@/lib/partenaires/coutGrandFormat';
+import type { StatutPartenaire } from '@/lib/partenaires/statuts';
 
 function admin() {
   return supabaseAdmin();
@@ -67,13 +70,15 @@ export type Partenaire = {
   delai_jours: number | null;
   notes: string | null;
   actif: boolean;
+  /** Cycle de validation Elembo Partners. Affectable = VALIDE et actif (`partenaireAffectable`). */
+  statut: StatutPartenaire;
   contact_nom: string | null;
   adresse: string | null;
   /** Supports maîtrisés (BANDEROLE, BACHE, ROLL_UP…). */
   types_impression: string[];
   largeur_max_m: number | null;
   longueur_max_m: number | null;
-  /** Tarifs négociés — CONFIDENTIELS : à n'afficher qu'avec `grand_format.couts`. */
+  /** HÉRITÉ — ancien prix au m², non validé ; remplacé par `partenaire_tarifs`. CONFIDENTIEL (`grand_format.couts`). */
   tarifs: { prix_m2_fcfa?: number | null; conditions?: string | null };
 };
 
@@ -180,7 +185,21 @@ export type ChampsTache = {
   cout_fcfa: number | null;
 };
 
+/**
+ * Un partenaire ne reçoit un NOUVEAU travail que s'il est validé et actif (CDC §4.2). Conserver
+ * l'imprimeur déjà affecté reste possible (ex. : partenaire suspendu après l'affectation).
+ */
+export async function verifierAffectation(nouveau: string | null | undefined, actuel: string | null): Promise<void> {
+  if (!nouveau || nouveau === actuel) return;
+  const { data, error } = await admin().from('partenaires').select('statut, actif').eq('id', nouveau).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data || data.statut !== 'VALIDE' || !data.actif) {
+    throw new Error('Ce partenaire n’est pas validé ou n’est pas actif : il ne peut pas recevoir de travaux.');
+  }
+}
+
 export async function creerTache(commandeId: string, champs: ChampsTache): Promise<Tache> {
+  await verifierAffectation(champs.partenaire_id, null);
   const { data, error } = await admin()
     .from('travaux_production')
     .insert({
@@ -210,6 +229,7 @@ export async function modifierTache(
     .maybeSingle();
   if (e1) throw new Error(e1.message);
   if (!avant) throw new Error('Tâche introuvable pour cette commande.');
+  await verifierAffectation(champs.partenaire_id, (avant as Tache).partenaire_id);
   const termine_le =
     champs.statut === 'TERMINE' ? (avant as Tache).termine_le ?? new Date().toISOString() : null;
   const { data: apres, error } = await admin()
@@ -228,35 +248,42 @@ export async function modifierTache(
 export async function listerPartenaires(options: { actifsSeulement?: boolean } = {}): Promise<Partenaire[]> {
   let requete = admin()
     .from('partenaires')
-    .select('id, nom, specialite, telephone, email, delai_jours, notes, actif, contact_nom, adresse, types_impression, largeur_max_m, longueur_max_m, tarifs')
+    .select('id, nom, specialite, telephone, email, delai_jours, notes, actif, statut, contact_nom, adresse, types_impression, largeur_max_m, longueur_max_m, tarifs')
     .order('actif', { ascending: false })
     .order('nom');
-  if (options.actifsSeulement) requete = requete.eq('actif', true);
+  if (options.actifsSeulement) requete = requete.eq('actif', true).eq('statut', 'VALIDE');
   const { data, error } = await requete;
   if (error) throw new Error(error.message);
-  return ((data ?? []) as Partenaire[]).map((p) => ({
-    ...p,
-    types_impression: p.types_impression ?? [],
-    largeur_max_m: p.largeur_max_m === null ? null : Number(p.largeur_max_m),
-    longueur_max_m: p.longueur_max_m === null ? null : Number(p.longueur_max_m),
-    tarifs: p.tarifs && typeof p.tarifs === 'object' ? p.tarifs : {},
-  }));
-}
+  const partenaires = (data ?? []) as Partenaire[];
 
-export async function creerPartenaire(champs: Partial<Omit<Partenaire, 'id' | 'actif'>> & Pick<Partenaire, 'nom' | 'specialite'>): Promise<Partenaire> {
-  const { data, error } = await admin().from('partenaires').insert({ ...champs, actif: true }).select('*').single();
-  if (error) throw new Error(error.message);
-  return data as Partenaire;
-}
+  // Supports et laize : déduits des capacités grand format VALIDÉES (Elembo Partners, §4.8).
+  const { data: capacites, error: e2 } = partenaires.length
+    ? await admin()
+        .from('partenaire_capacites')
+        .select('partenaire_id, prestation, largeur_max_mm, longueur_max_mm')
+        .in('partenaire_id', partenaires.map((p) => p.id))
+        .eq('categorie', 'GRAND_FORMAT')
+        .eq('statut_validation', 'VALIDEE')
+        .eq('actif', true)
+    : { data: [], error: null };
+  if (e2) throw new Error(e2.message);
+  const supports = SUPPORTS.map((s) => s.id as string);
 
-export async function modifierPartenaire(
-  id: string,
-  champs: Partial<Omit<Partenaire, 'id'>>,
-): Promise<{ avant: Partenaire; apres: Partenaire }> {
-  const { data: avant, error: e1 } = await admin().from('partenaires').select('*').eq('id', id).maybeSingle();
-  if (e1) throw new Error(e1.message);
-  if (!avant) throw new Error('Prestataire introuvable.');
-  const { data: apres, error } = await admin().from('partenaires').update(champs).eq('id', id).select('*').single();
-  if (error) throw new Error(error.message);
-  return { avant: avant as Partenaire, apres: apres as Partenaire };
+  return partenaires.map((p) => {
+    const ancien = {
+      types_impression: p.types_impression ?? [],
+      largeur_max_m: p.largeur_max_m === null ? null : Number(p.largeur_max_m),
+      longueur_max_m: p.longueur_max_m === null ? null : Number(p.longueur_max_m),
+    };
+    const siennes = (capacites ?? []).filter((c) => c.partenaire_id === p.id) as {
+      prestation: string;
+      largeur_max_mm: number | null;
+      longueur_max_mm: number | null;
+    }[];
+    return {
+      ...p,
+      ...profilGrandFormat(siennes, supports, ancien),
+      tarifs: p.tarifs && typeof p.tarifs === 'object' ? p.tarifs : {},
+    };
+  });
 }

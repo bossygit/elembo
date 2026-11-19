@@ -7,6 +7,7 @@ import { Badge, Carte, Definitions, EnTete, Flash, Vide, bouton, champ, libelle,
 import { aujourdhui, dateCourte, dateHeure, estUuid, fcfa, libelleEtape, taille } from '@/lib/admin/format';
 import { peut } from '@/lib/admin/permissions';
 import { STATUTS_PRODUCTION, libelleCommande, libelleProduction } from '@/lib/admin/statuts';
+import { partenaireAffectable } from '@/lib/partenaires/statuts';
 import { exigerAcces } from '@/server/admin/acces';
 import {
   dossierProduction,
@@ -56,7 +57,7 @@ function ChampsTache({ tache, partenaires }: { tache?: Tache; partenaires: Parte
         <select name="partenaire_id" defaultValue={tache?.partenaire_id ?? ''} className={champ}>
           <option value="">Atelier interne</option>
           {partenaires
-            .filter((p) => p.actif || p.id === tache?.partenaire_id)
+            .filter((p) => partenaireAffectable(p) || p.id === tache?.partenaire_id)
             .map((p) => (
               <option key={p.id} value={p.id}>
                 {p.nom} — {p.specialite}

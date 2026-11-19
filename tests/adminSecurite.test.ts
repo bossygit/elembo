@@ -99,7 +99,8 @@ describe('back-office — séparation du site public et proxy', () => {
 
   it('le proxy couvre tout /admin, ne fait pas confiance à user_metadata et interdit l’indexation', () => {
     const proxy = readFileSync(join(RACINE, 'src/proxy.ts'), 'utf8');
-    expect(proxy).toMatch(/matcher: \['\/admin\/:path\*'\]/);
+    // /admin en tête du matcher ; le portail partenaire (/partenaire) y est ajouté par le lot 1.2.
+    expect(proxy).toMatch(/matcher: \['\/admin\/:path\*'[,\]]/);
     expect(proxy).toMatch(/auth\.getUser\(\)/);
     expect(proxy).not.toMatch(/user_metadata/);
     expect(proxy).toMatch(/X-Robots-Tag/);

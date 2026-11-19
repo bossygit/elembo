@@ -21,6 +21,7 @@ export type EntiteAuditee =
   | 'devis'
   | 'production'
   | 'partenaire'
+  | 'tarif_grand_format'
   | 'fichier'
   | 'export'
   | 'session';

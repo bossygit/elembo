@@ -51,6 +51,14 @@ export const MATRICE = {
   /** Révoquer les sessions de suivi ouvertes par le client. */
   'devis.sessions': ['admin'],
 
+  /** Banderoles & grand format : demandes, chiffrage, proposition, imprimeur affecté, dates. */
+  'grand_format.voir': ['admin', 'commercial', 'finance'],
+  'grand_format.chiffrer': ['admin', 'commercial'],
+  /** Coûts estimés et réels, marges, tarifs négociés des imprimeurs (confidentiels). */
+  'grand_format.couts': ['admin', 'finance'],
+  /** Grille de vente servant à l'estimation publique : saisie et validation. */
+  'grand_format.tarifs': ['admin', 'finance'],
+
   'production.voir': ['admin', 'atelier', 'commercial'],
   'production.modifier': ['admin', 'atelier'],
   'partenaires.gerer': ['admin', 'atelier'],

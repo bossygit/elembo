@@ -67,6 +67,14 @@ export type Partenaire = {
   delai_jours: number | null;
   notes: string | null;
   actif: boolean;
+  contact_nom: string | null;
+  adresse: string | null;
+  /** Supports maîtrisés (BANDEROLE, BACHE, ROLL_UP…). */
+  types_impression: string[];
+  largeur_max_m: number | null;
+  longueur_max_m: number | null;
+  /** Tarifs négociés — CONFIDENTIELS : à n'afficher qu'avec `grand_format.couts`. */
+  tarifs: { prix_m2_fcfa?: number | null; conditions?: string | null };
 };
 
 const SELECTION_ATELIER = `
@@ -220,16 +228,22 @@ export async function modifierTache(
 export async function listerPartenaires(options: { actifsSeulement?: boolean } = {}): Promise<Partenaire[]> {
   let requete = admin()
     .from('partenaires')
-    .select('id, nom, specialite, telephone, email, delai_jours, notes, actif')
+    .select('id, nom, specialite, telephone, email, delai_jours, notes, actif, contact_nom, adresse, types_impression, largeur_max_m, longueur_max_m, tarifs')
     .order('actif', { ascending: false })
     .order('nom');
   if (options.actifsSeulement) requete = requete.eq('actif', true);
   const { data, error } = await requete;
   if (error) throw new Error(error.message);
-  return (data ?? []) as Partenaire[];
+  return ((data ?? []) as Partenaire[]).map((p) => ({
+    ...p,
+    types_impression: p.types_impression ?? [],
+    largeur_max_m: p.largeur_max_m === null ? null : Number(p.largeur_max_m),
+    longueur_max_m: p.longueur_max_m === null ? null : Number(p.longueur_max_m),
+    tarifs: p.tarifs && typeof p.tarifs === 'object' ? p.tarifs : {},
+  }));
 }
 
-export async function creerPartenaire(champs: Omit<Partenaire, 'id' | 'actif'>): Promise<Partenaire> {
+export async function creerPartenaire(champs: Partial<Omit<Partenaire, 'id' | 'actif'>> & Pick<Partenaire, 'nom' | 'specialite'>): Promise<Partenaire> {
   const { data, error } = await admin().from('partenaires').insert({ ...champs, actif: true }).select('*').single();
   if (error) throw new Error(error.message);
   return data as Partenaire;

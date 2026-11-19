@@ -8,7 +8,8 @@ import { estModePaiement } from '@/lib/admin/statuts';
 import { exigerAcces } from '@/server/admin/acces';
 import { journaliser } from '@/server/admin/audit';
 import { ajouterNoteInterne } from '@/server/admin/commandes';
-import { enregistrerAnalyse, enregistrerProposition, reporterCoutEstime, validerPrix } from '@/server/admin/devis';
+import { enregistrerAnalyse, enregistrerProposition, validerPrix } from '@/server/admin/devis';
+import { reporterCoutsApresConversion } from '@/server/grand-format/conversion';
 import { echec, succes } from '@/server/admin/retour';
 import { commandeDuDevis, creerCommandeDepuisDevis } from '@/server/commandes/repository';
 import { devisParId, fichierDuDevis, revoquerSessionsDevis, transitionnerDevis } from '@/server/devis/repository';
@@ -184,13 +185,16 @@ export async function creerCommande(formData: FormData): Promise<void> {
       acteur: staff.id,
     });
     commandeId = commande.id;
-    const coutUnitaire = await reporterCoutEstime(id, commande.id);
+    const report = await reporterCoutsApresConversion(id, commande.id);
     await journaliser({
       staff,
       action: 'DEVIS_CONVERTI',
       entite: 'devis',
       entiteId: id,
-      apres: { commande: commande.reference, cout_unitaire_reporte_fcfa: coutUnitaire },
+      apres:
+        report.mode === 'devis'
+          ? { commande: commande.reference, cout_unitaire_reporte_fcfa: report.coutUnitaire }
+          : { commande: commande.reference, taches_grand_format: report.taches },
     });
   } catch (erreur) {
     echec(chemin, erreur);

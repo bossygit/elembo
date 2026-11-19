@@ -10,6 +10,7 @@ const NAVIGATION: (EntreeNav & { permission: Permission })[] = [
   { href: '/admin', label: 'Tableau de bord', permission: 'tableau_de_bord.voir' },
   { href: '/admin/commandes', label: 'Commandes', permission: 'commandes.voir' },
   { href: '/admin/devis', label: 'Devis', permission: 'devis.voir' },
+  { href: '/admin/banderoles', label: 'Banderoles', permission: 'grand_format.voir' },
   { href: '/admin/production', label: 'Atelier', permission: 'production.voir' },
   { href: '/admin/produits', label: 'Produits', permission: 'produits.voir' },
   { href: '/admin/clients', label: 'Clients', permission: 'clients.voir' },

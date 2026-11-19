@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
+import Link from 'next/link';
 
 import { ArrowRight, Check } from '../../../components/site/Icons';
 import { BoutonLien, Etiquette } from '../../../components/site/ui';
@@ -114,6 +115,25 @@ export default function ImpressionPage() {
         </div>
       </section>
 
+      <section className="mx-auto w-full max-w-[90rem] px-4 pb-16 sm:px-8 sm:pb-20">
+        <Link
+          href="/banderoles"
+          className="group flex flex-col items-start justify-between gap-4 bg-encre p-6 text-creme sm:flex-row sm:items-center sm:p-8"
+        >
+          <span>
+            <span className="surtitre text-orange">Nouveau · Grand format</span>
+            <span className="mt-2 block font-display text-3xl">Banderoles, bâches, roll-ups</span>
+            <span className="mt-1 block text-sm text-creme/70">
+              Deuil, église, événement, publicité : dimensions libres, création graphique, devis rapide.
+            </span>
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full bg-orange px-5 py-3 text-sm font-semibold text-encre transition-colors group-hover:bg-creme">
+            Découvrir
+            <ArrowRight className="h-4 w-4" />
+          </span>
+        </Link>
+      </section>
+
       <section className="border-y border-filet bg-white">
         <div className="mx-auto grid w-full max-w-[90rem] gap-10 px-4 py-16 sm:px-8 sm:py-20 lg:grid-cols-2">
           <div>
@@ -171,8 +191,8 @@ export default function ImpressionPage() {
               r: 'Oui pour plusieurs supports, mais l’impression a un coût de calage. Le devis précise le minimum économique et le prix par palier.',
             },
             {
-              q: 'Imprimez-vous des grands formats (bâche, roll-up) ?',
-              r: 'Pas en interne aujourd’hui. Ces supports passent par un partenaire ; nous coordonnons la production et le contrôle, et le devis le mentionne.',
+              q: 'Imprimez-vous des grands formats (banderole, bâche, roll-up) ?',
+              r: 'Oui, avec nos imprimeurs partenaires : nous gérons la création, le contrôle du fichier, le suivi de production et la livraison. Commandez-les depuis la rubrique « Banderoles & grand format ».',
             },
             {
               q: 'Comment se passe le paiement ?',

@@ -10,12 +10,14 @@ import { revalidatePath } from 'next/cache';
 import { estUuid, texteChamp } from '@/lib/admin/format';
 import { peut } from '@/lib/admin/permissions';
 import { lireEntreprise, lireTarif } from '@/lib/partenaires/formulaires';
+import { lireInvitation } from '@/lib/partenaires/invitations';
 import { DECISIONS_AVEC_MOTIF } from '@/lib/partenaires/statuts';
 import { exigerAcces } from '@/server/admin/acces';
 import { journaliser } from '@/server/admin/audit';
 import { ajouterNoteInterne } from '@/server/admin/commandes';
 import {
   creerPartenaireAdmin,
+  fichePartenaireAdmin,
   deciderElement,
   deciderPartenaireAdmin,
   modifierPartenaireAdmin,
@@ -23,6 +25,9 @@ import {
   type TypeElement,
 } from '@/server/admin/partenaires';
 import { echec, succes } from '@/server/admin/retour';
+import { ErreurIntrouvable, ErreurMetier } from '@/server/partenaires/ecriture';
+import { creerInvitation, modifierMembre, revoquerInvitation } from '@/server/partenaires/invitations';
+import { urlSite } from '@/server/partenaires/site';
 import {
   demanderModificationTarif,
   refuserTarif,
@@ -169,4 +174,65 @@ export async function deciderTarifAction(formData: FormData): Promise<void> {
   }
   rafraichir(estUuid(partenaire) ? partenaire : undefined);
   succes(retour, `tarif-${decision.toLowerCase()}`);
+}
+
+/* ------------------------------------------------------------------ comptes -- */
+
+export type EtatInvitationAdmin = { erreur?: string; lien?: string; email?: string };
+
+/** Invite un RESPONSABLE (ex. : rattacher une fiche créée au back-office à un compte). */
+export async function inviterResponsableAction(_e: EtatInvitationAdmin, formData: FormData): Promise<EtatInvitationAdmin> {
+  const staff = await exigerAcces('partenaires.comptes');
+  const id = texteChamp(formData.get('partenaire_id'), 64);
+  if (!estUuid(id)) return { erreur: 'Partenaire invalide.' };
+  const lu = lireInvitation(formData, ['RESPONSABLE']);
+  if (!lu.ok) return { erreur: lu.erreur };
+  try {
+    const fiche = await fichePartenaireAdmin(id);
+    if (!fiche) return { erreur: 'Partenaire introuvable.' };
+    const lien = await creerInvitation({
+      partenaireId: id,
+      nomPartenaire: fiche.partenaire.nom,
+      email: lu.email,
+      role: lu.role,
+      invitePar: staff.id,
+      site: await urlSite(),
+    });
+    await journaliser({ staff, action: 'PARTENAIRE_INVITATION', entite: 'partenaire', entiteId: id, apres: { email: lu.email, role: lu.role } });
+    rafraichir(id);
+    return { lien, email: lu.email };
+  } catch (erreur) {
+    if (erreur instanceof ErreurMetier || erreur instanceof ErreurIntrouvable) return { erreur: erreur.message };
+    console.error('Invitation (back-office) :', erreur instanceof Error ? erreur.message : erreur);
+    return { erreur: 'L’invitation n’a pas pu être créée.' };
+  }
+}
+
+export async function revoquerInvitationAdminAction(formData: FormData): Promise<void> {
+  const staff = await exigerAcces('partenaires.comptes');
+  const id = idPartenaire(formData);
+  const invitation = texteChamp(formData.get('invitation_id'), 64);
+  try {
+    await revoquerInvitation(id, invitation);
+    await journaliser({ staff, action: 'PARTENAIRE_INVITATION_ANNULEE', entite: 'partenaire', entiteId: id, apres: { invitation } });
+  } catch (erreur) {
+    echec(fiche(id, 'comptes'), erreur);
+  }
+  rafraichir(id);
+  succes(fiche(id, 'comptes'), 'invitation-annulee');
+}
+
+export async function basculerMembreAdminAction(formData: FormData): Promise<void> {
+  const staff = await exigerAcces('partenaires.comptes');
+  const id = idPartenaire(formData);
+  const membre = texteChamp(formData.get('membre_id'), 64);
+  const actif = formData.get('actif') === 'true';
+  try {
+    await modifierMembre(id, membre, { actif });
+    await journaliser({ staff, action: actif ? 'PARTENAIRE_MEMBRE_REACTIVE' : 'PARTENAIRE_MEMBRE_DESACTIVE', entite: 'partenaire', entiteId: id, apres: { membre } });
+  } catch (erreur) {
+    echec(fiche(id, 'comptes'), erreur);
+  }
+  rafraichir(id);
+  succes(fiche(id, 'comptes'), actif ? 'membre-reactive' : 'membre-desactive');
 }

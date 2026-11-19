@@ -116,3 +116,14 @@ export async function creerEntreprise(userId: string, nom: string, telephone: st
   const ligne = data as { partenaire_id: string; deja_existant: boolean };
   return ligne.partenaire_id;
 }
+
+/** Ateliers dont l'accès de ce compte a été désactivé (message sur la page « Bienvenue »). */
+export async function accesDesactives(userId: string): Promise<string[]> {
+  const { data, error } = await supabaseAdmin()
+    .from('partenaire_utilisateurs')
+    .select('partenaires!inner(nom)')
+    .eq('user_id', userId)
+    .eq('actif', false);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((l) => (l.partenaires as unknown as { nom: string }).nom);
+}

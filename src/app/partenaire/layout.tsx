@@ -7,7 +7,7 @@ import { accesPortail } from '@/lib/partenaires/statuts';
 import { etatCompte } from '@/server/partenaires/acces';
 import { deconnecter } from './actions';
 
-/** Rubriques du dossier, affichées selon le droit du rôle (utilisateurs : sous-lot 1.6). */
+/** Rubriques du dossier, affichées selon le droit du rôle. */
 const RUBRIQUES: { href: string; libelle: string; droit: DroitPartenaire }[] = [
   { href: '/partenaire', libelle: 'Mon dossier', droit: 'entreprise.voir' },
   { href: '/partenaire/entreprise', libelle: 'Entreprise', droit: 'entreprise.voir' },
@@ -16,6 +16,7 @@ const RUBRIQUES: { href: string; libelle: string; droit: DroitPartenaire }[] = [
   { href: '/partenaire/services', libelle: 'Services', droit: 'services.voir' },
   { href: '/partenaire/tarifs', libelle: 'Tarifs', droit: 'tarifs.voir' },
   { href: '/partenaire/disponibilites', libelle: 'Disponibilités', droit: 'disponibilites.voir' },
+  { href: '/partenaire/utilisateurs', libelle: 'Utilisateurs', droit: 'utilisateurs.gerer' },
 ];
 
 export const metadata: Metadata = {

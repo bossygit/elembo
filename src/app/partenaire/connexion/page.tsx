@@ -5,6 +5,7 @@ import { FormulaireConnexion } from '@/components/partenaire/FormulairesAcces';
 import { Alerte, LienTexte, PageAcces } from '@/components/partenaire/ui';
 import { devisConfigure } from '@/lib/devis/configuration';
 import { destinationPartenaire } from '@/lib/partenaires/compte';
+import { estCheminInvitation } from '@/lib/partenaires/invitations';
 import { etatCompte } from '@/server/partenaires/acces';
 
 export const metadata: Metadata = { title: 'Connexion' };
@@ -24,7 +25,7 @@ export default async function PageConnexionPartenaire({
   const destination = destinationPartenaire(suite);
   const etat = await etatCompte();
   if (etat.type === 'partenaire') redirect(destination);
-  if (etat.type === 'sans_entreprise') redirect('/partenaire/bienvenue');
+  if (etat.type === 'sans_entreprise') redirect(estCheminInvitation(destination) ? destination : '/partenaire/bienvenue');
 
   return (
     <PageAcces

@@ -17,6 +17,7 @@ export const dynamic = 'force-dynamic';
 const MESSAGES: Record<string, string> = {
   bienvenue: 'Votre compte est actif. Complétez maintenant le dossier de votre atelier.',
   mot_de_passe: 'Votre mot de passe a été modifié.',
+  invitation: 'Invitation acceptée : vous avez rejoint l’atelier.',
   soumis: 'Dossier soumis. Smart Vision va l’examiner et vous prévenir de sa décision.',
 };
 
@@ -30,7 +31,7 @@ const TONS_STATUT = {
   production: 'bg-sable text-encre',
 } as const;
 
-/** Rubriques du dossier, selon le droit du rôle ; « Mes utilisateurs » s'ouvre au sous-lot 1.6. */
+/** Rubriques du dossier, selon le droit du rôle. */
 const RUBRIQUES: { titre: string; texte: string; href?: string; droit?: DroitPartenaire }[] = [
   { titre: 'Mon entreprise', texte: 'Identité, coordonnées, conditions de travail.', href: '/partenaire/entreprise' },
   { titre: 'Mes machines', texte: 'Équipements, dimensions maximales, état de fonctionnement.', href: '/partenaire/machines' },
@@ -38,7 +39,7 @@ const RUBRIQUES: { titre: string; texte: string; href?: string; droit?: DroitPar
   { titre: 'Mes services', texte: 'Impression, finition, pose, livraison…', href: '/partenaire/services' },
   { titre: 'Mes tarifs', texte: 'Vos prix pour Smart Vision, confidentiels.', href: '/partenaire/tarifs', droit: 'tarifs.voir' },
   { titre: 'Mes disponibilités', texte: 'Votre charge du moment.', href: '/partenaire/disponibilites' },
-  { titre: 'Mes utilisateurs', texte: 'Les personnes de votre atelier qui ont un accès.' },
+  { titre: 'Mes utilisateurs', texte: 'Les personnes de votre atelier qui ont un accès.', href: '/partenaire/utilisateurs', droit: 'utilisateurs.gerer' },
 ];
 
 export default async function PageDossierPartenaire({

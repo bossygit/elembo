@@ -27,7 +27,17 @@ import { exigerAcces } from '@/server/admin/acces';
 import { notesInternes } from '@/server/admin/commandes';
 import { fichePartenaireAdmin } from '@/server/admin/partenaires';
 import { tarifsDuPartenaire } from '@/server/admin/tarifsPartenaires';
-import { deciderPartenaireAction, deciderTarifAction, enregistrerPartenaireAction, noteAction, saisirTarifAction } from '../actions';
+import { invitations } from '@/server/partenaires/invitations';
+import { InvitationResponsable } from '@/components/admin/InvitationResponsable';
+import {
+  basculerMembreAdminAction,
+  deciderPartenaireAction,
+  deciderTarifAction,
+  enregistrerPartenaireAction,
+  noteAction,
+  revoquerInvitationAdminAction,
+  saisirTarifAction,
+} from '../actions';
 
 export const metadata: Metadata = { title: 'Partenaire' };
 export const dynamic = 'force-dynamic';
@@ -48,6 +58,9 @@ const MESSAGES: Record<string, string> = {
   'tarif-refuser': 'Tarif refusé.',
   'tarif-modifier': 'Modification demandée à l’atelier.',
   'tarif-retirer': 'Tarif retiré.',
+  'invitation-annulee': 'Invitation annulée.',
+  'membre-desactive': 'Accès désactivé.',
+  'membre-reactive': 'Accès réactivé.',
 };
 
 const LIBELLE_DECISION: Record<DecisionPartenaire, string> = {
@@ -72,11 +85,14 @@ export default async function PagePartenaire({
   const [{ id }, messages] = await Promise.all([params, searchParams]);
   if (!estUuid(id)) notFound();
   const voirTarifs = peut(staff.role, 'partenaires.tarifs_voir');
-  const [f, notes, tarifs] = await Promise.all([
+  const comptes = peut(staff.role, 'partenaires.comptes');
+  const [f, notes, tarifs, toutesInvitations] = await Promise.all([
     fichePartenaireAdmin(id),
     notesInternes('partenaire', id),
     voirTarifs ? tarifsDuPartenaire(id) : Promise.resolve([]),
+    comptes ? invitations(id) : Promise.resolve([]),
   ]);
+  const invitationsEnAttente = toutesInvitations.filter((i) => i.etat === 'EN_ATTENTE');
   if (!f) notFound();
 
   const p = f.partenaire;
@@ -392,16 +408,51 @@ export default async function PagePartenaire({
             ) : null}
           </Carte>
 
-          <Carte titre={`Comptes (${f.utilisateurs.filter((u) => u.actif).length})`}>
-            {f.utilisateurs.length === 0 ? <Vide>Aucun compte rattaché.</Vide> : null}
-            <ul className="space-y-1.5 text-sm">
+          <Carte id="comptes" titre={`Comptes (${f.utilisateurs.filter((u) => u.actif).length})`}>
+            {f.utilisateurs.length === 0 ? <p className="text-sm text-neutral-500">Aucun compte rattaché.</p> : null}
+            <ul className="divide-y divide-neutral-100 text-sm">
               {f.utilisateurs.map((u) => (
-                <li key={u.id} className={u.actif ? '' : 'opacity-60'}>
-                  {u.email ?? '—'} · <span className="text-neutral-500">{u.role_partenaire.toLowerCase()}</span>
-                  {!u.actif ? ' · désactivé' : ''}
+                <li key={u.id} className={`flex flex-wrap items-center justify-between gap-2 py-2 ${u.actif ? '' : 'opacity-60'}`}>
+                  <span className="min-w-0 break-all">
+                    {u.email ?? '—'} · <span className="text-neutral-500">{u.role_partenaire.toLowerCase()}</span>
+                    {!u.actif ? ' · désactivé' : ''}
+                  </span>
+                  {comptes ? (
+                    <form action={basculerMembreAdminAction}>
+                      <input type="hidden" name="partenaire_id" value={p.id} />
+                      <input type="hidden" name="membre_id" value={u.id} />
+                      <input type="hidden" name="actif" value={u.actif ? 'false' : 'true'} />
+                      <button type="submit" className={bouton('discret')}>
+                        {u.actif ? 'Désactiver' : 'Réactiver'}
+                      </button>
+                    </form>
+                  ) : null}
                 </li>
               ))}
             </ul>
+            {comptes ? (
+              <div className="mt-4 space-y-3 border-t border-neutral-100 pt-4">
+                {invitationsEnAttente.length ? (
+                  <ul className="space-y-1.5 text-sm">
+                    {invitationsEnAttente.map((i) => (
+                      <li key={i.id} className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="break-all">
+                          {i.email} · <span className="text-neutral-500">invité {i.role_partenaire.toLowerCase()}, jusqu’au {dateCourte(i.expire_le)}</span>
+                        </span>
+                        <form action={revoquerInvitationAdminAction}>
+                          <input type="hidden" name="partenaire_id" value={p.id} />
+                          <input type="hidden" name="invitation_id" value={i.id} />
+                          <button type="submit" className={bouton('discret')}>
+                            Annuler
+                          </button>
+                        </form>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {statut !== 'SUSPENDU' && statut !== 'ARCHIVE' ? <InvitationResponsable partenaireId={p.id} nom={p.nom} /> : null}
+              </div>
+            ) : null}
           </Carte>
 
           <Carte titre="Disponibilité">

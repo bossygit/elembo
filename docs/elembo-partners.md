@@ -819,9 +819,37 @@ création refusée. Données de recette supprimées.
 Reste pour 1.6 : invitations (opérateurs, rattachement d'une fiche créée par Smart Vision),
 page « Mes utilisateurs ».
 
-### 1.6 — Utilisateurs du partenaire et finitions
+### 1.6 — Utilisateurs du partenaire et finitions ✅ (19/11/2026)
 Invitations d'opérateurs, rôles, désactivation, dernier responsable protégé ; notifications ;
 documentation et guide d'utilisation.
+
+Livré : `/partenaire/utilisateurs` (responsable : équipe, rôles, désactivation et réactivation,
+invitations en attente et annulation ; jamais sur son propre accès) ; `/partenaire/invitation/[jeton]`
+(page publique : créer son compte avec l'adresse imposée, ou se connecter puis « Rejoindre » ; tous
+les cas d'échec expliqués) ; « Bienvenue » propose les invitations en attente adressées à l'adresse
+CONFIRMÉE du compte et explique un accès désactivé ; back-office : carte « Comptes » de la fiche
+(inviter un responsable — rattachement d'une fiche créée par Smart Vision —, annuler, désactiver,
+réactiver ; permission `partenaires.comptes`, admin). Jeton aléatoire de 32 octets, 7 jours, usage
+unique, seule l'empreinte SHA-256 en base ; lien affiché UNE fois (copie, partage WhatsApp) en plus
+de l'e-mail mis en file. Modules : `src/lib/partenaires/invitations.ts`,
+`src/server/partenaires/invitations.ts`, `site.ts`, `utilisateurs-actions.ts`. Tests :
+`partenairesInvitations.test.ts`.
+
+Défauts trouvés et corrigés pendant la recette : (1) le lien de confirmation des modèles Elembo ne
+ramène pas sur l'invitation → la page « Bienvenue » propose désormais les invitations en attente pour
+l'adresse confirmée ; (2) après une action qui change l'état du compte (connexion, acceptation…), la
+coque du portail restait celle d'avant (onglets absents) → `revalidatePath('/partenaire', 'layout')`.
+
+Recette faite le 19/11/2026 (Supabase local, 390 px et 1 366 px) : invitation d'un opérateur par le
+responsable (lien affiché, empreinte seule en base, e-mail en file) ; création de compte depuis le lien,
+confirmation, « Rejoindre » → rôle Production, onglets attendus ; lien réutilisé refusé ; rattachement
+d'une fiche créée au back-office par invitation d'un responsable → responsable, tous les onglets ;
+invitation ouverte avec un autre compte → refus, déconnexion proposée ; opérateur désactivé → plus
+d'accès, message explicatif. Données de recette supprimées.
+
+**Lot 1 terminé.** Prérequis restant avant ouverture en production : configuration de Resend dans
+Supabase Auth (§10) et installation des modèles d'e-mail ; déploiement du code (branche à fusionner
+après `feature/banderoles-grand-format`).
 
 ### 8.1 Tests unitaires
 Transitions de statut (entreprise, validation, tarif), paliers (contiguïté, chevauchement,

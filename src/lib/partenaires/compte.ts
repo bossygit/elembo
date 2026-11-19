@@ -8,6 +8,7 @@
  */
 
 import { estRolePartenaire, type RolePartenaire } from './droits';
+import { estCheminInvitation } from './invitations';
 import { estStatutPartenaire, type StatutPartenaire } from './statuts';
 
 /* ---------------------------------------------------------- état du compte -- */
@@ -109,6 +110,8 @@ export function destinationPartenaire(suite: unknown): string {
   if (!/^\/partenaire(?:\/[A-Za-z0-9/_\-.]*)?$/.test(suite) || suite.includes('//') || suite.includes('..')) {
     return '/partenaire';
   }
+  // Seule page publique admise : l'invitation à accepter après connexion ou inscription.
+  if (estCheminInvitation(suite)) return suite;
   if (estPagePubliquePartenaire(suite)) return '/partenaire';
   return suite;
 }

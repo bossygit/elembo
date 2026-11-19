@@ -8,6 +8,7 @@
 
 import { createHash } from 'node:crypto';
 
+import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
@@ -19,9 +20,13 @@ import {
   lireInscription,
   lireNouveauMotDePasse,
 } from '@/lib/partenaires/compte';
+import { CHEMIN_INVITATION, estJetonInvitation } from '@/lib/partenaires/invitations';
 import { journaliser } from '@/server/admin/audit';
 import { creerClientAuthServeur } from '@/server/auth/session';
 import { creerEntreprise, etatCompte, finaliserInscription, lireEtatCompte } from '@/server/partenaires/acces';
+import { urlSite } from '@/server/partenaires/site';
+import { ErreurIntrouvable, ErreurMetier } from '@/server/partenaires/ecriture';
+import { accepterInvitation, accepterInvitationParId, invitationParJeton } from '@/server/partenaires/invitations';
 import { ErreurLimiteIndisponible, limiter } from '@/server/security/rateLimit';
 
 export type EtatFormulaire = {
@@ -33,6 +38,14 @@ export type EtatFormulaire = {
 };
 
 const LIMITE_ATTEINTE = 'Trop de tentatives. Réessayez dans quelques minutes.';
+
+/**
+ * L'état du compte a changé (connexion, déconnexion, entreprise créée ou rejointe) : la coque du
+ * portail (en-tête, onglets) doit être recalculée, sinon le routeur réutiliserait l'ancienne.
+ */
+function rafraichirCompte() {
+  revalidatePath('/partenaire', 'layout');
+}
 
 function empreinte(valeur: string): string {
   return createHash('sha256').update(valeur.trim().toLowerCase()).digest('hex').slice(0, 32);
@@ -60,16 +73,6 @@ async function autorise(action: string, cles: [string, number, number][]): Promi
     }
     throw erreur;
   }
-}
-
-/** Adresse publique du site, pour les liens envoyés par e-mail. */
-async function urlSite(): Promise<string> {
-  const configuree = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, '');
-  if (configuree) return configuree;
-  const h = await headers();
-  const hote = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost:3000';
-  const protocole = h.get('x-forwarded-proto') ?? (hote.startsWith('localhost') ? 'http' : 'https');
-  return `${protocole}://${hote}`;
 }
 
 /* ------------------------------------------------------------- inscription -- */
@@ -122,6 +125,7 @@ export async function inscrire(_prec: EtatFormulaire, formData: FormData): Promi
       entiteId: partenaireId,
       apres: { nom, statut: 'BROUILLON', confirmation: 'automatique' },
     });
+    rafraichirCompte();
     redirect('/partenaire?ok=bienvenue');
   }
 
@@ -175,8 +179,10 @@ export async function connecter(_prec: EtatFormulaire, formData: FormData): Prom
       entiteId: cree,
       apres: { statut: 'BROUILLON' },
     });
+    rafraichirCompte();
     redirect('/partenaire?ok=bienvenue');
   }
+  rafraichirCompte();
   redirect(suite);
 }
 
@@ -193,6 +199,7 @@ export async function deconnecter(): Promise<void> {
       entiteId: etat.session.userId,
     });
   }
+  rafraichirCompte();
   redirect('/partenaire/connexion?ok=deconnexion');
 }
 
@@ -263,5 +270,90 @@ export async function creerMonEntreprise(_prec: EtatFormulaire, formData: FormDa
     entiteId: partenaireId,
     apres: { nom, statut: 'BROUILLON' },
   });
+  rafraichirCompte();
   redirect('/partenaire?ok=bienvenue');
+}
+
+/* ------------------------------------------------------------- invitation -- */
+
+/**
+ * Inscription d'une personne invitée : l'adresse vient de l'invitation (jamais du formulaire).
+ * Aucune entreprise n'est créée (pas d'intention d'inscription) : après confirmation de
+ * l'adresse, la personne revient sur l'invitation pour l'accepter.
+ */
+export async function inscrireInvite(_prec: EtatFormulaire, formData: FormData): Promise<EtatFormulaire> {
+  const jeton = String(formData.get('jeton') ?? '');
+  const invitation = estJetonInvitation(jeton) ? await invitationParJeton(jeton) : null;
+  if (!invitation || invitation.etat !== 'EN_ATTENTE' || !invitation.partenaireOuvert) {
+    return { erreur: 'Cette invitation n’est plus valable. Demandez-en une nouvelle.' };
+  }
+  const lu = lireNouveauMotDePasse(formData);
+  if (!lu.ok) return { erreur: lu.erreur };
+
+  const adresse = await ip();
+  if (!(await autorise('inscription', [[`ip:${empreinte(adresse)}`, 5, 3600], [`compte:${empreinte(invitation.email)}`, 3, 3600]]))) {
+    return { erreur: LIMITE_ATTEINTE };
+  }
+
+  const retour = `${CHEMIN_INVITATION}${jeton}`;
+  const client = await creerClientAuthServeur();
+  const { data, error } = await client.auth.signUp({
+    email: invitation.email,
+    password: lu.motDePasse,
+    options: { emailRedirectTo: `${await urlSite()}/partenaire/auth/confirmer?suite=${encodeURIComponent(retour)}` },
+  });
+  if (error?.code === 'weak_password') return { erreur: 'Ce mot de passe est trop faible ou connu publiquement. Choisissez-en un autre.' };
+  if (error) {
+    // Adresse déjà inscrite : la personne doit se connecter (réponse sans détail superflu).
+    if (error.code === 'user_already_exists' || error.code === 'email_exists') return { ok: 'deja_inscrit' };
+    console.error('Inscription d’une personne invitée refusée :', error.code ?? error.status);
+    return { erreur: 'Création du compte impossible pour le moment. Réessayez.' };
+  }
+  // Confirmation d'e-mail désactivée sur ce projet : la session est ouverte, on revient accepter.
+  if (data.session) {
+    rafraichirCompte();
+    redirect(retour);
+  }
+  return { ok: 'verifier' };
+}
+
+export async function accepterInvitationAction(_prec: EtatFormulaire, formData: FormData): Promise<EtatFormulaire> {
+  const etat = await etatCompte();
+  const jeton = String(formData.get('jeton') ?? '');
+  if (etat.type === 'anonyme' || etat.type === 'non_confirme') {
+    redirect(`/partenaire/connexion?suite=${encodeURIComponent(`${CHEMIN_INVITATION}${jeton}`)}`);
+  }
+  if (etat.type === 'staff') return { erreur: 'Un compte du personnel Smart Vision ne peut pas rejoindre un atelier.' };
+  const userId = etat.type === 'partenaire' ? etat.session.userId : etat.userId;
+  const email = etat.type === 'partenaire' ? etat.session.email : etat.email;
+
+  let partenaireId: string;
+  try {
+    partenaireId = await accepterInvitation(jeton, userId);
+  } catch (erreur) {
+    if (erreur instanceof ErreurMetier || erreur instanceof ErreurIntrouvable) return { erreur: erreur.message };
+    console.error('Acceptation d’invitation :', erreur instanceof Error ? erreur.message : erreur);
+    return { erreur: 'L’invitation n’a pas pu être acceptée. Réessayez.' };
+  }
+  await journaliser({ staff: { id: userId, email }, action: 'PARTENAIRE_INVITATION_ACCEPTEE', entite: 'partenaire', entiteId: partenaireId });
+  rafraichirCompte();
+  redirect('/partenaire?ok=invitation');
+}
+
+/** Depuis « Bienvenue » : accepter une invitation adressée à l'adresse confirmée du compte. */
+export async function accepterInvitationBienvenue(_prec: EtatFormulaire, formData: FormData): Promise<EtatFormulaire> {
+  const etat = await etatCompte();
+  if (etat.type !== 'sans_entreprise') redirect(etat.type === 'partenaire' ? '/partenaire' : '/partenaire/connexion');
+  const invitationId = String(formData.get('invitation_id') ?? '');
+  let partenaireId: string;
+  try {
+    partenaireId = await accepterInvitationParId(invitationId, etat.userId, etat.email);
+  } catch (erreur) {
+    if (erreur instanceof ErreurMetier || erreur instanceof ErreurIntrouvable) return { erreur: erreur.message };
+    console.error('Acceptation d’invitation (bienvenue) :', erreur instanceof Error ? erreur.message : erreur);
+    return { erreur: 'L’invitation n’a pas pu être acceptée. Réessayez.' };
+  }
+  await journaliser({ staff: { id: etat.userId, email: etat.email }, action: 'PARTENAIRE_INVITATION_ACCEPTEE', entite: 'partenaire', entiteId: partenaireId });
+  rafraichirCompte();
+  redirect('/partenaire?ok=invitation');
 }

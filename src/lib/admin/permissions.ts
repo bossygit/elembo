@@ -75,6 +75,8 @@ export const MATRICE = {
   'partenaires.tarifs_saisir': ['admin', 'finance'],
   /** Valider, refuser, demander une modification, retirer un tarif (P7 : y compris sa propre saisie). */
   'partenaires.tarifs_valider': ['admin', 'finance'],
+  /** Comptes d'un atelier : inviter un responsable (rattachement d'une fiche), désactiver un accès. */
+  'partenaires.comptes': ['admin'],
 
   'clients.voir': ['admin', 'commercial', 'finance'],
   'clients.modifier': ['admin', 'commercial'],

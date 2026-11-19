@@ -14,6 +14,7 @@ import { redirect } from 'next/navigation';
 import type { NextRequest } from 'next/server';
 
 import { destinationPartenaire, estTypeLien } from '@/lib/partenaires/compte';
+import { estCheminInvitation } from '@/lib/partenaires/invitations';
 import { journaliser } from '@/server/admin/audit';
 import { creerClientAuthServeur } from '@/server/auth/session';
 import { finaliserInscription, lireEtatCompte } from '@/server/partenaires/acces';
@@ -72,5 +73,7 @@ export async function GET(request: NextRequest) {
     });
     redirect('/partenaire?ok=bienvenue');
   }
-  redirect(etat.type === 'sans_entreprise' ? '/partenaire/bienvenue' : suite);
+  // Compte invité : retour à l'invitation pour l'accepter ; sinon, création de l'entreprise.
+  if (etat.type === 'sans_entreprise') redirect(estCheminInvitation(suite) ? suite : '/partenaire/bienvenue');
+  redirect(suite);
 }

@@ -851,6 +851,8 @@ d'accès, message explicatif. Données de recette supprimées.
 Supabase Auth (§10) et installation des modèles d'e-mail ; déploiement du code (branche à fusionner
 après `feature/banderoles-grand-format`).
 
+**Lot 2** : cadrage, décisions à valider et découpage dans [`docs/plan-lot-2.md`](plan-lot-2.md).
+
 ### 8.1 Tests unitaires
 Transitions de statut (entreprise, validation, tarif), paliers (contiguïté, chevauchement,
 palier ouvert, calcul du prix pour une quantité), matrice des droits du portail, validation des

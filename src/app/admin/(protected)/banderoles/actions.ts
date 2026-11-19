@@ -10,6 +10,7 @@ import { SUPPORTS } from '@/lib/grand-format/catalogue';
 import { exigerAcces } from '@/server/admin/acces';
 import { journaliser } from '@/server/admin/audit';
 import { enregistrerProposition } from '@/server/admin/devis';
+import { verifierAffectation } from '@/server/admin/production';
 import { echec, succes } from '@/server/admin/retour';
 import { commandeDuDevis, creerCommandeDepuisDevis } from '@/server/commandes/repository';
 import { transitionnerDevis } from '@/server/devis/repository';
@@ -122,6 +123,7 @@ export async function enregistrerChiffrageAction(formData: FormData): Promise<vo
   if (Object.keys(champs).length === 0) echec(chemin, 'Rien à enregistrer.');
 
   try {
+    await verifierAffectation(champs.partenaire_id, demande.partenaire_id);
     const { avant, apres } = await enregistrerChiffrage(id, champs);
     if (demande.devis.statut === 'NOUVEAU') await transitionnerDevis(id, 'EN_ANALYSE', null, null, staff.id, 'STAFF');
     await journaliser({ staff, action: 'GRAND_FORMAT_CHIFFRAGE', entite: 'devis', entiteId: id, avant, apres });
@@ -275,6 +277,7 @@ export async function planifierProductionAction(formData: FormData): Promise<voi
   if (production && livraison && livraison < production) echec(chemin, 'La livraison ne peut pas précéder la production.');
 
   try {
+    await verifierAffectation(p, demande.partenaire_id);
     const taches = await tachesDeCommande(commande.id);
     const impression = taches.find((t) => t.etape === ETAPES_GRAND_FORMAT.impression);
     const r1 = await enregistrerCoutReel(commande.id, 'impression', {

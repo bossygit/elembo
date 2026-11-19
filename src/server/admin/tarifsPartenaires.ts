@@ -13,6 +13,7 @@
  * Les transitions sont contrôlées par la base (`transition_tarif_autorisee`, tarif décidé figé).
  */
 
+import type { TarifImpression } from '@/lib/partenaires/coutGrandFormat';
 import type { ChampsTarif } from '@/lib/partenaires/formulaires';
 import { regrouperTarifs, type LigneeTarif, type Palier } from '@/lib/partenaires/paliers';
 import { supabaseAdmin } from '@/server/supabase/client';
@@ -127,4 +128,38 @@ export async function retirerTarifValide(staff: Staff, tarifId: string): Promise
   if (error) traduireErreurTarif(error);
   if (!data?.length) throw new ErreurMetier('Ce tarif n’est pas validé.');
   await journaliser({ staff, action: 'PARTENAIRE_TARIF_RETIRE', entite: 'partenaire', entiteId: t.partenaire_id, apres: { tarif_id: tarifId, valide_jusquau: fin } });
+}
+
+/**
+ * Tarifs au m² VALIDÉS d'un imprimeur, avec la prestation de la capacité rattachée — pour le
+ * coût d'impression d'une banderole. CONFIDENTIEL : l'appelant a vérifié `grand_format.couts`.
+ */
+export async function tarifsImpressionValides(partenaireId: string): Promise<TarifImpression[]> {
+  verifierId(partenaireId, 'Partenaire');
+  const { data, error } = await supabaseAdmin()
+    .from('partenaire_tarifs')
+    .select(
+      'id, nom, mode_calcul, prix_fcfa, conditions, valide_du, valide_jusquau, capacite:partenaire_capacites(prestation), paliers:partenaire_tarif_paliers(quantite_min, quantite_max, prix_unitaire_fcfa)',
+    )
+    .eq('partenaire_id', partenaireId)
+    .eq('statut', 'VALIDE')
+    .eq('mode_calcul', 'AU_M2');
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((l) => {
+    const ligne = l as unknown as Omit<TarifImpression, 'prestation' | 'paliers'> & {
+      capacite: { prestation: string } | null;
+      paliers: { quantite_min: number; quantite_max: number | null; prix_unitaire_fcfa: number | null }[] | null;
+    };
+    return {
+      id: ligne.id,
+      nom: ligne.nom,
+      mode_calcul: ligne.mode_calcul,
+      prix_fcfa: ligne.prix_fcfa,
+      conditions: ligne.conditions,
+      valide_du: ligne.valide_du,
+      valide_jusquau: ligne.valide_jusquau,
+      prestation: ligne.capacite?.prestation ?? null,
+      paliers: (ligne.paliers ?? []).map((p) => ({ quantiteMin: p.quantite_min, quantiteMax: p.quantite_max, prixUnitaireFcfa: p.prix_unitaire_fcfa })),
+    };
+  });
 }

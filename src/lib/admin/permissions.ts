@@ -61,7 +61,20 @@ export const MATRICE = {
 
   'production.voir': ['admin', 'atelier', 'commercial'],
   'production.modifier': ['admin', 'atelier'],
-  'partenaires.gerer': ['admin', 'atelier'],
+
+  /** Elembo Partners (docs/elembo-partners.md §6.2). Lecture des fiches pour tout le personnel. */
+  'partenaires.voir': TOUS,
+  /** Créer une fiche, modifier ses informations, notes internes. L'atelier lit seulement (P9). */
+  'partenaires.gerer': ['admin'],
+  /** Valider ou refuser un dossier, une machine, une capacité, un service. */
+  'partenaires.valider': ['admin'],
+  /** Suspendre, réactiver, archiver un partenaire. */
+  'partenaires.suspendre': ['admin'],
+  /** Tarifs négociés des partenaires : confidentiels (P3). */
+  'partenaires.tarifs_voir': ['admin', 'finance'],
+  'partenaires.tarifs_saisir': ['admin', 'finance'],
+  /** Valider, refuser, demander une modification, retirer un tarif (P7 : y compris sa propre saisie). */
+  'partenaires.tarifs_valider': ['admin', 'finance'],
 
   'clients.voir': ['admin', 'commercial', 'finance'],
   'clients.modifier': ['admin', 'commercial'],

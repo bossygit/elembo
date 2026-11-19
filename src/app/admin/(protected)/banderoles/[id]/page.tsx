@@ -31,8 +31,11 @@ import {
 } from '@/lib/grand-format/suivi';
 import { exigerAcces } from '@/server/admin/acces';
 import { historiqueDevis, voletCommercial } from '@/server/admin/devis';
+import { coutImpression, tarifImpression } from '@/lib/partenaires/coutGrandFormat';
+import { resumeVersion } from '@/lib/partenaires/paliers';
 import { partenaireAffectable } from '@/lib/partenaires/statuts';
 import { listerPartenaires } from '@/server/admin/production';
+import { tarifsImpressionValides } from '@/server/admin/tarifsPartenaires';
 import { clientDuDevis, fichiersDuDevis } from '@/server/devis/repository';
 import { demandeParDevis, tachesDeCommande } from '@/server/grand-format/repository';
 import { telechargerFichier } from '../../devis/[id]/actions';
@@ -100,8 +103,11 @@ export default async function PageBanderole({
   const surfacePiece = surfaceM2(d.largeur_m, d.hauteur_m);
   const partenaire = partenaires.find((p) => p.id === d.partenaire_id) ?? null;
   const imprimeurs = partenaires.filter((p) => partenaireAffectable(p) || p.id === d.partenaire_id);
-  const coutSuggere =
-    partenaire?.tarifs.prix_m2_fcfa ? Math.ceil((partenaire.tarifs.prix_m2_fcfa * d.surface_totale_m2) / 100) * 100 : null;
+  // Coût d'impression : tarif négocié VALIDÉ et en vigueur (Elembo Partners), sinon ancien prix de la fiche.
+  const tarifsImpression = voirCouts && partenaire ? await tarifsImpressionValides(partenaire.id) : [];
+  const tarifRetenu = tarifImpression(tarifsImpression, d.support, new Date().toISOString().slice(0, 10));
+  const cout = voirCouts && partenaire ? coutImpression(tarifRetenu, d.surface_totale_m2, partenaire.tarifs.prix_m2_fcfa) : null;
+  const coutSuggere = cout?.type === 'MONTANT' ? cout.montantFcfa : null;
   const finitionsApplicables = supportParId(d.support)?.finitionsApplicables ?? false;
   const estimationRaison = (d.estimation_detail as { raison?: RaisonSansEstimation }).raison;
 
@@ -293,9 +299,16 @@ export default async function PageBanderole({
                     <Montant name="autres_couts_estimes_fcfa" label="Autres dépenses" valeur={d.autres_couts_estimes_fcfa} />
                     {coutSuggere !== null ? (
                       <p className="text-xs text-amber-900 sm:col-span-2">
-                        Tarif négocié de {partenaire?.nom} : {fcfa(partenaire?.tarifs.prix_m2_fcfa)} / m² × {formatSurface(d.surface_totale_m2)} ≈{' '}
-                        <strong>{fcfa(coutSuggere)}</strong>
-                        {partenaire?.tarifs.conditions ? ` (${partenaire.tarifs.conditions})` : ''}.
+                        {cout?.type === 'MONTANT' && cout.source === 'TARIF_VALIDE' ? 'Tarif validé' : 'Ancien prix (non validé)'} de {partenaire?.nom} :{' '}
+                        {fcfa(cout?.type === 'MONTANT' ? cout.prixUnitaireFcfa : null)} / m² × {formatSurface(d.surface_totale_m2)} ≈ <strong>{fcfa(coutSuggere)}</strong>
+                        {cout?.type === 'MONTANT' && cout.source === 'TARIF_VALIDE'
+                          ? tarifRetenu?.conditions
+                            ? ` (${tarifRetenu.conditions})`
+                            : ''
+                          : partenaire?.tarifs.conditions
+                            ? ` (${partenaire.tarifs.conditions})`
+                            : ''}
+                        .
                       </p>
                     ) : null}
                   </fieldset>
@@ -659,16 +672,25 @@ export default async function PageBanderole({
                   ['Laize max.', partenaire.largeur_max_m ? `${String(partenaire.largeur_max_m).replace('.', ',')} m` : null],
                   ['Délai habituel', partenaire.delai_jours !== null ? `${partenaire.delai_jours} jours` : null],
                   ...(voirCouts
-                    ? ([['Tarif négocié', partenaire.tarifs.prix_m2_fcfa ? `${fcfa(partenaire.tarifs.prix_m2_fcfa)} / m²` : null]] as [string, React.ReactNode][])
+                    ? ([
+                        [
+                          'Tarif négocié',
+                          tarifRetenu
+                            ? `${resumeVersion(tarifRetenu)} (validé)`
+                            : partenaire.tarifs.prix_m2_fcfa
+                              ? `${fcfa(partenaire.tarifs.prix_m2_fcfa)} / m² (ancien, non validé)`
+                              : null,
+                        ],
+                      ] as [string, React.ReactNode][])
                     : []),
                 ]}
               />
             ) : (
               <p className="text-sm text-neutral-500">Aucun imprimeur affecté.</p>
             )}
-            {peut(staff.role, 'partenaires.gerer') ? (
-              <Link href="/admin/production/prestataires" className={`${bouton('discret')} mt-3 inline-block`}>
-                Gérer les imprimeurs
+            {peut(staff.role, 'partenaires.voir') ? (
+              <Link href="/admin/partenaires" className={`${bouton('discret')} mt-3 inline-block`}>
+                Voir les partenaires
               </Link>
             ) : null}
           </Carte>

@@ -72,8 +72,8 @@ export default async function PageBanderolesAdmin({
                 Grille d’estimation
               </Link>
             ) : null}
-            {peut(staff.role, 'partenaires.gerer') ? (
-              <Link href="/admin/production/prestataires" className={bouton('secondaire', 'sm')}>
+            {peut(staff.role, 'partenaires.voir') ? (
+              <Link href="/admin/partenaires" className={bouton('secondaire', 'sm')}>
                 Imprimeurs partenaires
               </Link>
             ) : null}

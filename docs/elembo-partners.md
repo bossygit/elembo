@@ -779,11 +779,45 @@ Correction en route : le ruban de navigation ramène l'onglet actif à l'écran 
 Reste pour 1.5 : écrans de décision dans le back-office, e-mail au partenaire après décision, et
 lecture du tarif validé par le calcul de coût Banderoles (§4.8).
 
-### 1.5 — Back-office Partenaires
+### 1.5 — Back-office Partenaires ✅ (19/11/2026)
 Liste, fiche, file de validation, création staff, invitations de rattachement, suspension,
 transition Banderoles/Production.
 **Recette** : Smart Vision crée et valide un partenaire ; une suspension coupe l'accès au portail
 à la requête suivante ; le calcul de coût Banderoles reste juste avec et sans tarif validé.
+
+Livré : section `/admin/partenaires` (entrée « Partenaires » du menu) — liste (recherche, statut,
+pagination), file `/validation` (dossiers soumis, machines, capacités, services, tarifs), fiche
+`/[id]` (décision sur le dossier avec motif, décision élément par élément, tarifs : valider avec
+période, demander une modification, refuser, retirer, saisir un tarif ou un nouveau prix,
+historique des versions ; informations modifiables, comptes, disponibilité, photos et documents,
+notes internes, historique des statuts), création `/nouveau` (fiche validée d'emblée).
+Permissions `partenaires.*` (§6.2) ; l'atelier passe en lecture seule (P9) ; finance : tarifs
+uniquement. `/admin/production/prestataires` redirige ; ses actions héritées (qui écrivaient
+l'ancien prix jsonb) sont retirées. E-mails de décision aux responsables actifs de l'atelier mis
+en file `notifications` (envoyés une fois Resend configuré), sans aucun montant.
+
+Banderoles (§4.8) : supports et laize des imprimeurs déduits de leurs capacités grand format
+validées (`profilGrandFormat`) ; coût d'impression suggéré à partir du tarif au m² VALIDÉ et en
+vigueur (capacité du même support d'abord, sinon tarif général ; paliers sur la surface arrondie),
+à défaut l'ancien prix signalé « non validé » (`src/lib/partenaires/coutGrandFormat.ts`).
+
+Correction de sécurité : l'affectation d'un imprimeur à une banderole ou à une tâche de production
+n'était filtrée que par la liste déroulante. Désormais `verifierAffectation` (serveur) refuse tout
+NOUVEAU partenaire non validé ou inactif (garder l'imprimeur déjà affecté reste possible).
+
+Tests : `partenairesBackOffice.test.ts` ; le test de sécurité du back-office couvre
+automatiquement les nouvelles pages et actions. `next build` : succès.
+
+Recette faite le 19/11/2026 (Supabase local, 1 366 px) avec des comptes admin, finance, atelier
+fictifs : file de validation → machine et capacité validées, service refusé avec motif (e-mail
+en file) ; dossier validé (e-mail en file, historique) ; finance : tarifs seulement, tarif à
+paliers validé ; banderole de 6 m² : imprimeur listé « laize 3,2 m », coût suggéré 2 200 × 6 =
+13 200 FCFA « tarif validé » ; affectation forcée d'un partenaire non validé refusée par le
+serveur ; suspension avec motif (e-mail en file) ; atelier : fiche en lecture seule, sans tarif,
+création refusée. Données de recette supprimées.
+
+Reste pour 1.6 : invitations (opérateurs, rattachement d'une fiche créée par Smart Vision),
+page « Mes utilisateurs ».
 
 ### 1.6 — Utilisateurs du partenaire et finitions
 Invitations d'opérateurs, rôles, désactivation, dernier responsable protégé ; notifications ;

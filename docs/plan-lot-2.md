@@ -1,6 +1,6 @@
 # Elembo Partners — Lot 2 : affectation des travaux et exécution par les ateliers
 
-**Statut : cadrage validé le 19 novembre 2026 — sous-lots 2.1 et 2.2 livrés et testés en local, suite au 2.3.**
+**Statut : cadrage validé le 19 novembre 2026 — sous-lots 2.1 à 2.3 livrés et testés en local, suite au 2.4.**
 Références : `docs/elembo-partners.md` (Lot 1), `docs/banderoles-grand-format.md`, code de `main`
 au commit `618f4fa` (Lot 1 fusionné et déployé ; migrations `0001` → `0012` appliquées en staging
 et en production).
@@ -679,7 +679,7 @@ Deux ateliers A et B, un compte sans entreprise, un compte staff, un compte susp
 |---|---|---|---|
 | **2.1 — Socle données et sécurité** | Migration `0013`, tables, index, contraintes, triggers, fonctions, RLS, grants, rollback ; correction `DROITS_DOSSIER` | Migration + rollback, `supabase/tests/affectations.sql`, tests A/B | 4–5 j — ✅ 19/11 |
 | **2.2 — Affectation côté Smart Vision** | Formulaire de proposition (production + banderoles), instantané tarifaire, permissions, écran `/admin/affectations`, onglet fiche partenaire | Pages, actions, modules `src/lib/partenaires/affectations.ts`, `src/server/admin/affectations.ts`, tests | 5–6 j — ✅ 19/11 |
-| **2.3 — Portail atelier** | `/partenaire/travaux`, fiche, accepter/refuser/terminer, montants masqués, navigation, tableau de bord | Pages, actions, DAL, tests composants | 4–5 j |
+| **2.3 — Portail atelier** | `/partenaire/travaux`, fiche, accepter/refuser/terminer, montants masqués, navigation, tableau de bord | Pages, actions, DAL, tests composants | 4–5 j — ✅ 19/11 |
 | **2.4 — Notifications et fichiers** | File de notifications, envoi immédiat, rappels, partage sélectif de fichiers, audit de téléchargement | Module notifications, route de téléchargement, tests | 3–4 j |
 | **2.5 — Purge et finitions** | Archivage des `BROUILLON` > 90 j, expiration des propositions, intégration au cron existant, doc et guide | Fonctions + route cron, tests, doc | 1–2 j |
 
@@ -701,8 +701,16 @@ de chiffrage et de planning banderole est retirée : seul le trigger d'acceptati
 Tests : `partenairesAffectations.test.ts`, `affectationsService.test.ts`, garde-fous admin et
 back-office adaptés. Vérifié : `npx tsc --noEmit`, `npx vitest run` (818 tests) et `next build`.
 
-**Aucune application sur staging ni en production.** **Reste : 8 à 11 jours ouvrés** pour les
-sous-lots 2.3 à 2.5, hors recette finale (2 jours).
+**Avancement du 2.3 (19/11/2026)** : pages `/partenaire/travaux` (liste « à confirmer / en cours /
+historique » et fiche détaillée), actions accepter / refuser avec motif / signaler terminé,
+entrée de navigation et alerte « travaux à confirmer » sur le tableau de bord. Les lectures
+passent par `mes_affectations()` / `mon_affectation()` avec la session de l'utilisateur, les
+écritures par `service_role` après `exigerPartenaire` ; le montant reste masqué hors
+`RESPONSABLE`. Tests : `partenairesTravaux.test.ts`, garde-fous du portail. Vérifié :
+`npx tsc --noEmit`, `npx vitest run` (823 tests) et `next build`.
+
+**Aucune application sur staging ni en production.** **Reste : 4 à 6 jours ouvrés** pour les
+sous-lots 2.4 et 2.5, hors recette finale (2 jours).
 
 ---
 

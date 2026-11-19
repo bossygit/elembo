@@ -205,6 +205,30 @@ describe('droits du portail', () => {
       expect(peutPartenaire('RESPONSABLE', 'tarifs.proposer', s), s).toBe(true);
     }
   });
+
+  it('aucun droit travaux n’est ouvert à un dossier non validé', () => {
+    const travaux = Object.keys(DROITS).filter((d) => d.startsWith('travaux.')) as DroitPartenaire[];
+    expect(travaux.sort()).toEqual(['travaux.decider', 'travaux.executer', 'travaux.montant', 'travaux.voir']);
+    for (const s of ['BROUILLON', 'EN_ATTENTE_VALIDATION', 'REFUSE'] as const) {
+      for (const d of travaux) {
+        expect(peutPartenaire('RESPONSABLE', d, s), `${s}/${d}`).toBe(false);
+        expect(droitsDu('RESPONSABLE', s)).not.toContain(d);
+      }
+    }
+  });
+
+  it('travaux affectés : responsable décide, production exécute, lecture consulte', () => {
+    expect(peutPartenaire('RESPONSABLE', 'travaux.decider', 'VALIDE')).toBe(true);
+    expect(peutPartenaire('PRODUCTION', 'travaux.decider', 'VALIDE')).toBe(false);
+    expect(peutPartenaire('PRODUCTION', 'travaux.executer', 'VALIDE')).toBe(true);
+    expect(peutPartenaire('PRODUCTION', 'travaux.montant', 'VALIDE')).toBe(false);
+    expect(peutPartenaire('LECTURE', 'travaux.voir', 'VALIDE')).toBe(true);
+    expect(peutPartenaire('LECTURE', 'travaux.decider', 'VALIDE')).toBe(false);
+    expect(peutPartenaire('LECTURE', 'travaux.executer', 'VALIDE')).toBe(false);
+    for (const r of ROLES_PARTENAIRE) {
+      expect(peutPartenaire(r.id, 'travaux.voir', 'VALIDE'), r.id).toBe(true);
+    }
+  });
 });
 
 describe('paliers de quantité', () => {

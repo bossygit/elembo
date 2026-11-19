@@ -40,16 +40,40 @@ export const DROITS = {
   'disponibilites.declarer': ['RESPONSABLE', 'PRODUCTION'],
   'fichiers.envoyer': ['RESPONSABLE', 'PRODUCTION'],
   'validation.soumettre': ['RESPONSABLE'],
+  /* Travaux affectés (Lot 2) : jamais accordés à un dossier non validé (voir DROITS_DOSSIER). */
+  'travaux.voir': TOUS,
+  'travaux.decider': ['RESPONSABLE'],
+  'travaux.executer': ['RESPONSABLE', 'PRODUCTION'],
+  'travaux.montant': ['RESPONSABLE'],
 } as const satisfies Record<string, readonly RolePartenaire[]>;
 
 export type DroitPartenaire = keyof typeof DROITS;
 
 /**
- * Droits ouverts tant que le dossier n'est pas validé (compléter, corriger). Au lot 1, tous les
- * droits servent à constituer le dossier ; les droits des travaux affectés (lot 2) n'en feront
- * pas partie : un partenaire non validé ne reçoit aucun travail.
+ * Droits ouverts tant que le dossier n'est pas validé (compléter, corriger).
+ *
+ * Liste explicite, jamais `Object.keys(DROITS)` : les droits des travaux affectés (`travaux.*`,
+ * Lot 2) n'en font pas partie, un partenaire non validé ne reçoit aucun travail. Un test vérifie
+ * qu'aucun droit `travaux.*` ne fuit dans cette liste.
  */
-const DROITS_DOSSIER: readonly DroitPartenaire[] = Object.keys(DROITS) as DroitPartenaire[];
+const DROITS_DOSSIER: readonly DroitPartenaire[] = [
+  'entreprise.voir',
+  'entreprise.modifier',
+  'utilisateurs.gerer',
+  'machines.voir',
+  'machines.modifier',
+  'machines.etat',
+  'capacites.voir',
+  'capacites.modifier',
+  'services.voir',
+  'services.modifier',
+  'tarifs.voir',
+  'tarifs.proposer',
+  'disponibilites.voir',
+  'disponibilites.declarer',
+  'fichiers.envoyer',
+  'validation.soumettre',
+];
 
 export function estRolePartenaire(v: unknown): v is RolePartenaire {
   return typeof v === 'string' && (TOUS as readonly string[]).includes(v);

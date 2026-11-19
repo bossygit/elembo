@@ -2,18 +2,20 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { NavPortail } from '@/components/partenaire/NavPortail';
+import { peutPartenaire, type DroitPartenaire } from '@/lib/partenaires/droits';
 import { accesPortail } from '@/lib/partenaires/statuts';
 import { etatCompte } from '@/server/partenaires/acces';
 import { deconnecter } from './actions';
 
-/** Rubriques du dossier ouvertes à ce stade (tarifs : sous-lot 1.4 ; utilisateurs : 1.6). */
-const RUBRIQUES = [
-  { href: '/partenaire', libelle: 'Mon dossier' },
-  { href: '/partenaire/entreprise', libelle: 'Entreprise' },
-  { href: '/partenaire/machines', libelle: 'Machines' },
-  { href: '/partenaire/capacites', libelle: 'Capacités' },
-  { href: '/partenaire/services', libelle: 'Services' },
-  { href: '/partenaire/disponibilites', libelle: 'Disponibilités' },
+/** Rubriques du dossier, affichées selon le droit du rôle (utilisateurs : sous-lot 1.6). */
+const RUBRIQUES: { href: string; libelle: string; droit: DroitPartenaire }[] = [
+  { href: '/partenaire', libelle: 'Mon dossier', droit: 'entreprise.voir' },
+  { href: '/partenaire/entreprise', libelle: 'Entreprise', droit: 'entreprise.voir' },
+  { href: '/partenaire/machines', libelle: 'Machines', droit: 'machines.voir' },
+  { href: '/partenaire/capacites', libelle: 'Capacités', droit: 'capacites.voir' },
+  { href: '/partenaire/services', libelle: 'Services', droit: 'services.voir' },
+  { href: '/partenaire/tarifs', libelle: 'Tarifs', droit: 'tarifs.voir' },
+  { href: '/partenaire/disponibilites', libelle: 'Disponibilités', droit: 'disponibilites.voir' },
 ];
 
 export const metadata: Metadata = {
@@ -54,7 +56,11 @@ export default async function LayoutPartenaire({ children }: { children: React.R
           ) : null}
         </div>
       </header>
-      {avecNav ? <NavPortail entrees={RUBRIQUES} /> : null}
+      {avecNav && etat.type === 'partenaire' ? (
+        <NavPortail
+          entrees={RUBRIQUES.filter((r) => peutPartenaire(etat.session.role, r.droit, etat.session.statutPartenaire)).map(({ href, libelle }) => ({ href, libelle }))}
+        />
+      ) : null}
       <main id="contenu" className="flex-1">
         {children}
       </main>

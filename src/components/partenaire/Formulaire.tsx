@@ -59,15 +59,21 @@ type PropsChamp = {
   mode?: 'decimal' | 'numeric' | 'tel' | 'email' | 'url' | 'text';
   exemple?: string;
   suffixe?: string;
+  /** Rang du champ quand plusieurs champs portent le même nom (lignes de paliers). */
+  indice?: number;
+  /** Masque le libellé visuellement (il reste lu par les lecteurs d'écran). */
+  libelleMasque?: boolean;
 };
 
-export function Champ({ nom, libelle: titre, defaut, aide, requis, max = 120, type = 'text', mode, exemple, suffixe }: PropsChamp) {
+export function Champ({ nom, libelle: titre, defaut, aide, requis, max = 120, type = 'text', mode, exemple, suffixe, indice = 0, libelleMasque }: PropsChamp) {
   const repris = useValeur(nom);
-  const valeur = repris ? (repris[0] ?? '') : defaut === null || defaut === undefined ? '' : String(defaut);
+  const valeur = repris ? (repris[indice] ?? '') : defaut === null || defaut === undefined ? '' : String(defaut);
   return (
     <label className={libelle}>
-      {titre}
-      {requis ? null : <span className="font-normal text-attenue"> (facultatif)</span>}
+      <span className={libelleMasque ? 'sr-only' : undefined}>
+        {titre}
+        {requis || libelleMasque ? null : <span className="font-normal text-attenue"> (facultatif)</span>}
+      </span>
       <span className="relative block">
         <input
           className={`${champ} ${suffixe ? 'pr-16' : ''}`}

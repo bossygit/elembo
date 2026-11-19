@@ -751,10 +751,33 @@ déclarée sans perte de validation, page d'ajout refusée, aucun envoi sur la f
 Photos : 3 000 px / 222 Ko réduite à 73 Ko, faux JPEG refusé et supprimé du bucket, retrait
 (ligne + objet), remplacement du logo (un seul objet restant). Données de test supprimées.
 
-### 1.4 — Tarifs et paliers
+### 1.4 — Tarifs et paliers ✅ (19/11/2026)
 Proposition côté partenaire, saisie côté Smart Vision, paliers, versions, décisions.
 **Recette** : un tarif proposé n'est jamais validé automatiquement ; une nouvelle version validée
 remplace l'ancienne sans la modifier ; un `LECTURE` ou un `PRODUCTION` ne voit aucun tarif.
+
+Livré — côté atelier (responsable seulement, droits `tarifs.*` et RLS) : `/partenaire/tarifs`
+(tarifs regroupés par lignée : en vigueur, proposition en cours, statut), `/nouveau`, fiche
+`/[lignee]` (version en vigueur, motif d'une demande de modification, correction ou nouveau prix,
+retrait de la proposition, historique des versions avec origine et motifs) ; huit lignes de paliers
+« de / jusqu'à / prix » sans JavaScript ; Smart Vision prévenu par Telegram **sans le montant**.
+Côté Smart Vision (fonctions prêtes pour le back-office 1.5) : `src/server/admin/tarifsPartenaires.ts`
+— saisir (origine SMART_VISION, reste PROPOSE), valider, refuser et demander une modification (motif
+obligatoire), retirer un tarif validé (fin de validité posée). Modules : `lireTarif` et `fcfaChamp`
+(`formulaires.ts`), `regrouperTarifs`, `resumeVersion` (`paliers.ts`), `src/server/partenaires/tarifs.ts`,
+`tarifs-actions.ts`. Tests : `partenairesTarifs.test.ts` ; `supabase/tests/elembo_partners.sql`
+complété (cas 13 à 16 : motif obligatoire, correction sur la même version, refus définitif, retrait
+avec historique), passé sur Supabase local. `next build` : succès, pages du portail dynamiques.
+
+Recette faite le 19/11/2026 (Supabase local, 390 px) : trou entre paliers refusé avec lignes
+conservées ; tarif à paliers proposé (PROPOSE, PARTENAIRE, notification sans montant) ; validé
+(simulation du back-office) → affiché « en vigueur » ; nouveau prix → version 2 proposée, version 1
+inchangée ; demande de modification → motif affiché, formulaire « Corriger » ; retrait → v2 RETIRE,
+v1 toujours en vigueur ; opérateur : ni onglet ni carte « Tarifs », adresse directe refusée.
+Correction en route : le ruban de navigation ramène l'onglet actif à l'écran sur téléphone.
+
+Reste pour 1.5 : écrans de décision dans le back-office, e-mail au partenaire après décision, et
+lecture du tarif validé par le calcul de coût Banderoles (§4.8).
 
 ### 1.5 — Back-office Partenaires
 Liste, fiche, file de validation, création staff, invitations de rattachement, suspension,

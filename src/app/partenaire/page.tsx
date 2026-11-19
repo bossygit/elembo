@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Formulaire } from '@/components/partenaire/Formulaire';
 import { Alerte, Carte } from '@/components/partenaire/ui';
 import { dateCourte } from '@/lib/admin/format';
-import { ROLES_PARTENAIRE, peutPartenaire } from '@/lib/partenaires/droits';
+import { ROLES_PARTENAIRE, peutPartenaire, type DroitPartenaire } from '@/lib/partenaires/droits';
 import { soumissionPossible, statutPartenaire } from '@/lib/partenaires/statuts';
 import { exigerPartenaire } from '@/server/partenaires/acces';
 import { resumeDossier } from '@/server/partenaires/dossier';
@@ -30,14 +30,14 @@ const TONS_STATUT = {
   production: 'bg-sable text-encre',
 } as const;
 
-/** Rubriques du dossier ; celles sans lien s'ouvrent aux sous-lots 1.4 (tarifs) et 1.6 (utilisateurs). */
-const RUBRIQUES: { titre: string; texte: string; href?: string }[] = [
+/** Rubriques du dossier, selon le droit du rôle ; « Mes utilisateurs » s'ouvre au sous-lot 1.6. */
+const RUBRIQUES: { titre: string; texte: string; href?: string; droit?: DroitPartenaire }[] = [
   { titre: 'Mon entreprise', texte: 'Identité, coordonnées, conditions de travail.', href: '/partenaire/entreprise' },
   { titre: 'Mes machines', texte: 'Équipements, dimensions maximales, état de fonctionnement.', href: '/partenaire/machines' },
   { titre: 'Mes capacités', texte: 'Ce que vous produisez, en quelles quantités et quels délais.', href: '/partenaire/capacites' },
   { titre: 'Mes services', texte: 'Impression, finition, pose, livraison…', href: '/partenaire/services' },
+  { titre: 'Mes tarifs', texte: 'Vos prix pour Smart Vision, confidentiels.', href: '/partenaire/tarifs', droit: 'tarifs.voir' },
   { titre: 'Mes disponibilités', texte: 'Votre charge du moment.', href: '/partenaire/disponibilites' },
-  { titre: 'Mes tarifs', texte: 'Vos prix pour Smart Vision, confidentiels.' },
   { titre: 'Mes utilisateurs', texte: 'Les personnes de votre atelier qui ont un accès.' },
 ];
 
@@ -137,7 +137,7 @@ export default async function PageDossierPartenaire({
       </Carte>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {RUBRIQUES.map((r) =>
+        {RUBRIQUES.filter((r) => !r.droit || peutPartenaire(session.role, r.droit, session.statutPartenaire)).map((r) =>
           r.href ? (
             <Link key={r.titre} href={r.href} className="rounded-2xl border border-filet bg-white p-5 transition-colors hover:border-encre">
               <p className="font-semibold">{r.titre}</p>

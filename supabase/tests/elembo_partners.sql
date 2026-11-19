@@ -408,6 +408,56 @@ end;
 $$;
 reset role;
 
+/* ------------------------------------- décisions de Smart Vision sur un tarif ---- */
+
+do $$
+declare
+  v_a uuid := current_setting('test.a')::uuid;
+  v_t uuid;
+  v_t2 uuid;
+  v_echec boolean;
+begin
+  v_t := public.proposer_tarif_partenaire(v_a, null, 'PARTENAIRE', null, '{"nom":"Œillets à la pièce","mode_calcul":"A_LA_PIECE","prix_fcfa":100}'::jsonb, null);
+
+  -- 13. Demande de modification : motif obligatoire.
+  v_echec := false;
+  begin
+    update public.partenaire_tarifs set statut = 'MODIFICATION_DEMANDEE' where id = v_t;
+  exception when others then v_echec := true; end;
+  if not v_echec then raise exception '13 : demande de modification sans motif acceptée'; end if;
+  update public.partenaire_tarifs set statut = 'MODIFICATION_DEMANDEE', motif_decision = 'Prix trop élevé pour ce volume' where id = v_t;
+
+  -- 14. L'atelier corrige : même version, de nouveau PROPOSE, motif effacé.
+  v_t2 := public.proposer_tarif_partenaire(v_a, v_t, 'PARTENAIRE', null, '{"nom":"Œillets à la pièce","mode_calcul":"A_LA_PIECE","prix_fcfa":80}'::jsonb, null);
+  if v_t2 <> v_t or (select statut || coalesce(motif_decision, '') from public.partenaire_tarifs where id = v_t) <> 'PROPOSE' then
+    raise exception '14 : correction mal enregistrée';
+  end if;
+
+  -- 15. Refus : définitif, puis plus aucune transition ni modification.
+  update public.partenaire_tarifs set statut = 'REFUSE', motif_decision = 'Tarif non retenu' where id = v_t;
+  v_echec := false;
+  begin
+    update public.partenaire_tarifs set statut = 'PROPOSE' where id = v_t;
+  exception when others then v_echec := true; end;
+  if not v_echec then raise exception '15 : un tarif refusé a été rouvert'; end if;
+  v_echec := false;
+  begin
+    update public.partenaire_tarifs set prix_fcfa = 1 where id = v_t;
+  exception when others then v_echec := true; end;
+  if not v_echec then raise exception '15 : un tarif refusé a été modifié'; end if;
+
+  -- 16. Retrait d'un tarif validé : fin de validité posée, historique conservé.
+  update public.partenaire_tarifs set statut = 'RETIRE', valide_jusquau = greatest(valide_du, current_date)
+   where lignee_id = current_setting('test.t1')::uuid and statut = 'VALIDE';
+  if exists (select 1 from public.partenaire_tarifs where lignee_id = current_setting('test.t1')::uuid and statut = 'VALIDE') then
+    raise exception '16 : le tarif validé n’a pas été retiré';
+  end if;
+  if (select count(*) from public.partenaire_tarifs where lignee_id = current_setting('test.t1')::uuid) <> 2 then
+    raise exception '16 : historique de la lignée perdu';
+  end if;
+end;
+$$;
+
 /* ------------------------------------------- suspension : accès coupé ---- */
 
 do $$

@@ -12,6 +12,8 @@ import {
   ETATS_MACHINE,
   FAMILLES,
   FINITIONS_PRODUCTION,
+  MODES_CALCUL,
+  NATURES_TARIF,
   PRESTATIONS,
   STATUTS_DISPONIBILITE,
   TYPES_MACHINE,
@@ -21,10 +23,13 @@ import {
   type CategorieService,
   type EtatMachine,
   type FamilleId,
+  type ModeCalcul,
+  type NatureTarif,
   type StatutDisponibilite,
   type UniteCapacite,
   type UniteVitesse,
 } from './catalogue';
+import { trierPaliers, verifierPaliers, type Palier } from './paliers';
 
 export type Lecture<T> = { ok: true; valeur: T } | { ok: false; erreur: string };
 
@@ -454,4 +459,76 @@ export function disponibiliteCourante<T extends { debut_periode: string; fin_per
       .filter((d) => d.debut_periode <= aujourdhui && (d.fin_periode === null || d.fin_periode >= aujourdhui))
       .sort((a, b) => (a.debut_periode === b.debut_periode ? b.cree_le.localeCompare(a.cree_le) : b.debut_periode.localeCompare(a.debut_periode)))[0] ?? null
   );
+}
+
+/* ------------------------------------------------------------------- tarifs -- */
+
+/** Nombre de lignes de paliers proposées par le formulaire (sans JavaScript). */
+export const LIGNES_PALIERS = 8;
+
+/** Montant en FCFA, entier : « 2 500 », « 2500 », « 2.500 ». `null` si vide, `NaN` si invalide. */
+export function fcfaChamp(valeur: FormDataEntryValue | null | undefined): number | null {
+  if (typeof valeur !== 'string') return null;
+  const brut = valeur.replace(/[\s.  ]/g, '').replace(/fcfa$/i, '');
+  if (!brut) return null;
+  return /^\d{1,9}$/.test(brut) ? Number(brut) : Number.NaN;
+}
+
+export type ChampsTarif = {
+  nom: string;
+  mode_calcul: ModeCalcul;
+  nature: NatureTarif;
+  prix_fcfa: number | null;
+  conditions: string | null;
+  capacite_id: string | null;
+  service_id: string | null;
+};
+
+export function lireTarif(fd: FormData): Lecture<{ champs: ChampsTarif; paliers: Palier[] }> {
+  const nom = texte(fd, 'nom', 120);
+  if (nom.length < 2) return echec('Donnez un nom au tarif (ex. « Impression bâche au m² »).');
+  const mode = texte(fd, 'mode_calcul', 30);
+  if (!MODES_CALCUL.some((m) => m.id === mode)) return echec('Choisissez le mode de calcul.');
+  const nature = texte(fd, 'nature', 30) || 'PRESTATION';
+  if (!NATURES_TARIF.some((n) => n.id === nature)) return echec('Nature du tarif inconnue.');
+  const prix = fcfaChamp(fd.get('prix_fcfa'));
+  if (invalide(prix)) return echec('Prix invalide : un montant entier en FCFA (ex. 2 500).');
+  const capacite = texte(fd, 'capacite_id', 40);
+  const service = texte(fd, 'service_id', 40);
+  if ((capacite && !/^[0-9a-f-]{36}$/i.test(capacite)) || (service && !/^[0-9a-f-]{36}$/i.test(service))) {
+    return echec('Capacité ou service invalide.');
+  }
+
+  const mins = fd.getAll('palier_min');
+  const maxs = fd.getAll('palier_max');
+  const prixPaliers = fd.getAll('palier_prix');
+  const paliers: Palier[] = [];
+  for (let i = 0; i < Math.min(mins.length, LIGNES_PALIERS * 3); i++) {
+    const min = typeof mins[i] === 'string' ? (mins[i] as string).trim() : '';
+    const max = typeof maxs[i] === 'string' ? (maxs[i] as string).trim() : '';
+    const p = fcfaChamp(prixPaliers[i]);
+    if (!min && !max && p === null) continue; // ligne vide
+    if (!/^\d{1,9}$/.test(min)) return echec(`Palier ${i + 1} : indiquez la quantité de départ.`);
+    if (max && !/^\d{1,9}$/.test(max)) return echec(`Palier ${i + 1} : quantité maximale invalide.`);
+    if (invalide(p)) return echec(`Palier ${i + 1} : prix invalide.`);
+    paliers.push({ quantiteMin: Number(min), quantiteMax: max ? Number(max) : null, prixUnitaireFcfa: p });
+  }
+  const erreur = verifierPaliers(prix, paliers);
+  if (erreur) return echec(erreur);
+
+  return {
+    ok: true,
+    valeur: {
+      champs: {
+        nom,
+        mode_calcul: mode as ModeCalcul,
+        nature: nature as NatureTarif,
+        prix_fcfa: prix,
+        conditions: texteLong(fd, 'conditions', 2000),
+        capacite_id: capacite || null,
+        service_id: service || null,
+      },
+      paliers: trierPaliers(paliers),
+    },
+  };
 }

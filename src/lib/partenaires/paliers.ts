@@ -1,3 +1,5 @@
+import { MODES_CALCUL } from './catalogue';
+
 /**
  * Paliers de quantité d'un tarif négocié.
  *
@@ -84,4 +86,88 @@ export function prixPourQuantite(
     return { type: 'SOUS_MINIMUM', quantiteMin: tries[0].quantiteMin };
   }
   return { type: 'HORS_GRILLE' };
+}
+
+/* ------------------------------------------------- versions d'un tarif -- */
+
+export type VersionTarif = {
+  id: string;
+  lignee_id: string;
+  version: number;
+  nom: string;
+  mode_calcul: string;
+  nature: string;
+  prix_fcfa: number | null;
+  conditions: string | null;
+  capacite_id: string | null;
+  service_id: string | null;
+  statut: string;
+  origine: string;
+  valide_du: string | null;
+  valide_jusquau: string | null;
+  valide_le: string | null;
+  motif_decision: string | null;
+  cree_le: string;
+  paliers: Palier[];
+};
+
+export type LigneeTarif = {
+  ligneeId: string;
+  /** Nom de la version la plus récente. */
+  nom: string;
+  /** Version validée en vigueur (au plus une, garanti en base). */
+  enVigueur: VersionTarif | null;
+  /** Version en discussion : proposée ou à modifier (au plus une, garanti en base). */
+  enCours: VersionTarif | null;
+  /** Toutes les versions, de la plus récente à la plus ancienne. */
+  historique: VersionTarif[];
+};
+
+/** Regroupe les versions par lignée ; les lignées les plus récemment actives en premier. */
+export function regrouperTarifs(versions: readonly VersionTarif[]): LigneeTarif[] {
+  const parLignee = new Map<string, VersionTarif[]>();
+  for (const v of versions) parLignee.set(v.lignee_id, [...(parLignee.get(v.lignee_id) ?? []), v]);
+  return [...parLignee.entries()]
+    .map(([ligneeId, liste]) => {
+      const historique = [...liste].sort((a, b) => b.version - a.version);
+      return {
+        ligneeId,
+        nom: historique[0].nom,
+        enVigueur: historique.find((v) => v.statut === 'VALIDE') ?? null,
+        enCours: historique.find((v) => v.statut === 'PROPOSE' || v.statut === 'MODIFICATION_DEMANDEE') ?? null,
+        historique,
+      };
+    })
+    .sort((a, b) => b.historique[0].cree_le.localeCompare(a.historique[0].cree_le));
+}
+
+/** Une lignée est-elle encore active (en vigueur ou en discussion) ? */
+export function ligneeActive(l: LigneeTarif): boolean {
+  return Boolean(l.enVigueur || l.enCours);
+}
+
+/* ------------------------------------------------------------- affichage -- */
+
+const fcfa = (n: number) => `${n.toLocaleString('fr-FR').replace(/ /g, ' ')} FCFA`;
+
+/** « 2 500 FCFA / m² » (unité selon le mode de calcul). */
+export function libellePrix(prix: number | null, uniteMode: string | undefined): string | null {
+  if (prix === null) return null;
+  return uniteMode && uniteMode !== 'forfait' ? `${fcfa(prix)} / ${uniteMode}` : fcfa(prix);
+}
+
+/** « 1 à 5 : 2 500 FCFA · 6 à 20 : 2 200 FCFA · 21 et plus : sur négociation ». */
+export function resumePaliers(paliers: readonly Palier[]): string {
+  return trierPaliers(paliers)
+    .map((p) => {
+      const tranche = p.quantiteMax === null ? `${p.quantiteMin} et plus` : p.quantiteMin === p.quantiteMax ? `${p.quantiteMin}` : `${p.quantiteMin} à ${p.quantiteMax}`;
+      return `${tranche} : ${p.prixUnitaireFcfa === null ? 'sur négociation' : fcfa(p.prixUnitaireFcfa)}`;
+    })
+    .join(' · ');
+}
+
+/** Résumé d'une version : prix de base par unité, puis paliers. */
+export function resumeVersion(v: Pick<VersionTarif, 'prix_fcfa' | 'mode_calcul' | 'paliers'>): string {
+  const unite = MODES_CALCUL.find((m) => m.id === v.mode_calcul)?.unite;
+  return [libellePrix(v.prix_fcfa, unite), v.paliers.length ? resumePaliers(v.paliers) : null].filter(Boolean).join(' · ') || '—';
 }

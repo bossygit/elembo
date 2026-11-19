@@ -7,12 +7,15 @@ import {
   CATEGORIES_SERVICE,
   ETATS_MACHINE,
   FINITIONS_PRODUCTION,
+  MODES_CALCUL,
+  NATURES_TARIF,
   UNITES_CAPACITE,
   UNITES_VITESSE,
   nomPrestation,
   nomTypeMachine,
 } from '@/lib/partenaires/catalogue';
-import { mmEnMetres } from '@/lib/partenaires/formulaires';
+import { LIGNES_PALIERS, mmEnMetres } from '@/lib/partenaires/formulaires';
+import type { VersionTarif } from '@/lib/partenaires/paliers';
 import type { Capacite, Machine, Service } from '@/server/partenaires/dossier';
 import { Case, Cases, Champ, Choix, ZoneTexte } from './Formulaire';
 import { GROUPES_MACHINES, GROUPES_PRESTATIONS } from './affichage';
@@ -176,5 +179,80 @@ export function ChampsService({ s, capacites }: { s?: Service; capacites: Capaci
         <ZoneTexte nom="tiers_precision" libelle="Quel atelier, pour quelle étape ?" defaut={s?.tiers_precision} max={1000} />
       </div>
     </Carte>
+  );
+}
+
+/* ------------------------------------------------------------------- tarifs -- */
+
+export function ChampsTarif({
+  v,
+  capacites,
+  services,
+}: {
+  v?: VersionTarif;
+  capacites: Capacite[];
+  services: Service[];
+}) {
+  const lignes = Array.from({ length: LIGNES_PALIERS }, (_, i) => v?.paliers[i] ?? null);
+  return (
+    <>
+      <Carte titre="Le tarif">
+        <div className="space-y-5">
+          <Champ nom="nom" libelle="Nom du tarif" defaut={v?.nom} requis exemple="Impression bâche au m²" />
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Choix nom="mode_calcul" libelle="Calcul" defaut={v?.mode_calcul ?? 'AU_M2'} options={MODES_CALCUL.map((m) => ({ valeur: m.id, libelle: m.nom }))} />
+            <Choix nom="nature" libelle="Nature" defaut={v?.nature ?? 'PRESTATION'} options={NATURES_TARIF.map((n) => ({ valeur: n.id, libelle: n.nom }))} />
+          </div>
+          <Champ
+            nom="prix_fcfa"
+            libelle="Prix unitaire"
+            defaut={v?.prix_fcfa ?? ''}
+            mode="numeric"
+            max={14}
+            suffixe="FCFA"
+            aide="Laissez vide si le prix dépend uniquement de la quantité (paliers ci-dessous)."
+          />
+          <Choix
+            nom="capacite_id"
+            libelle="Capacité concernée"
+            defaut={v?.capacite_id ?? ''}
+            requis={false}
+            vide="Aucune en particulier"
+            options={capacites.filter((c) => c.actif || c.id === v?.capacite_id).map((c) => ({ valeur: c.id, libelle: c.nom }))}
+          />
+          <Choix
+            nom="service_id"
+            libelle="Service concerné"
+            defaut={v?.service_id ?? ''}
+            requis={false}
+            vide="Aucun en particulier"
+            options={services.filter((s) => s.actif || s.id === v?.service_id).map((s) => ({ valeur: s.id, libelle: s.nom }))}
+          />
+        </div>
+      </Carte>
+      <Carte titre="Prix selon la quantité">
+        <p className="mb-4 text-sm text-attenue">
+          Facultatif. Les tranches doivent se suivre (1 à 5, puis 6 à 20…). Laissez « jusqu’à » vide sur la dernière ligne pour
+          « et plus », et le prix vide pour « sur négociation ».
+        </p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-3 text-xs font-medium text-attenue" aria-hidden>
+            <span>De</span>
+            <span>Jusqu’à</span>
+            <span>Prix unitaire (FCFA)</span>
+          </div>
+          {lignes.map((p, i) => (
+            <div key={i} className="grid grid-cols-3 gap-3">
+              <Champ nom="palier_min" indice={i} libelle={`Palier ${i + 1} : quantité de départ`} libelleMasque defaut={p?.quantiteMin} mode="numeric" max={9} />
+              <Champ nom="palier_max" indice={i} libelle={`Palier ${i + 1} : quantité maximale`} libelleMasque defaut={p?.quantiteMax} mode="numeric" max={9} />
+              <Champ nom="palier_prix" indice={i} libelle={`Palier ${i + 1} : prix unitaire`} libelleMasque defaut={p?.prixUnitaireFcfa} mode="numeric" max={14} />
+            </div>
+          ))}
+        </div>
+      </Carte>
+      <Carte>
+        <ZoneTexte nom="conditions" libelle="Conditions" defaut={v?.conditions} aide="Œillets inclus, minimum de commande, matière fournie…" />
+      </Carte>
+    </>
   );
 }

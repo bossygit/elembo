@@ -719,11 +719,37 @@ Données de test supprimées ensuite.
 `/partenaire/**` autorisées, modèles Elembo. Pour les projets hébergés, voir §10 (au moment de
 Resend).
 
-### 1.3 — Profil, machines, capacités, services, disponibilités
+### 1.3 — Profil, machines, capacités, services, disponibilités ✅ (19/11/2026)
 Pages du portail, fichiers et photos, soumission à validation.
 **Recette** : le responsable ajoute plusieurs machines et capacités distinctes, associe des
 machines à une capacité ; un opérateur `PRODUCTION` déclare une panne sans pouvoir modifier les
 dimensions.
+
+Livré : rubriques `/partenaire/entreprise`, `machines` (liste, ajout, fiche, état, retrait),
+`capacites` (machines associées, finitions, pause), `services` (sous-traitance déclarée),
+`disponibilites` (déclaration, en vigueur, historique), soumission depuis « Mon dossier »
+(notification Telegram à Smart Vision), navigation du portail ; photos et documents (logo unique,
+atelier, machines, réalisations, documents PDF). Modules : `src/lib/partenaires/formulaires.ts`
+(lecteurs en liste blanche, mètres → mm) et `fichiers.ts`, `src/server/partenaires/ecriture.ts`
+(service_role, chaque objet filtré par l'entreprise de la session) et `fichiers.ts`, lectures sous
+RLS dans `dossier.ts`, actions `dossier-actions.ts` et `fichiers-actions.ts`, kit `Formulaire`
+(saisie restituée après un refus, cases comprises). Tests : `partenairesFormulaires.test.ts`,
+`partenairesFichiers.test.ts`.
+
+Fichiers : envoi direct du navigateur au bucket privé par URL signée (pas de limite de corps des
+Server Actions), chemin fabriqué par le serveur, octets revérifiés à la confirmation (un fichier
+non conforme est supprimé), quotas par type, URL de lecture signées 10 minutes. Les photos sont
+réduites dans le navigateur (2 000 px, JPEG) avant l'envoi ; le logo est conservé tel quel.
+
+Recette faite le 19/11/2026 sur Supabase local, 390 px puis 1 280 px : fiche entreprise ;
+machine (laize « 3,20 » → 3 200 mm, doublons de supports retirés) ; capacité liée à la machine,
+finitions ; refus serveur avec saisie et cases conservées ; service sous-traité ; disponibilité ;
+soumission → `EN_ATTENTE_VALIDATION`, historique, notification, 7 actions en audit. Cloisonnement :
+l'atelier B obtient 404 sur la machine de A, et un formulaire falsifié (identifiant de A) est refusé
+« Machine introuvable » sans rien modifier. Opérateur `PRODUCTION` : pas de champ technique, panne
+déclarée sans perte de validation, page d'ajout refusée, aucun envoi sur la fiche entreprise.
+Photos : 3 000 px / 222 Ko réduite à 73 Ko, faux JPEG refusé et supprimé du bucket, retrait
+(ligne + objet), remplacement du logo (un seul objet restant). Données de test supprimées.
 
 ### 1.4 — Tarifs et paliers
 Proposition côté partenaire, saisie côté Smart Vision, paliers, versions, décisions.

@@ -1,8 +1,20 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { NavPortail } from '@/components/partenaire/NavPortail';
+import { accesPortail } from '@/lib/partenaires/statuts';
 import { etatCompte } from '@/server/partenaires/acces';
 import { deconnecter } from './actions';
+
+/** Rubriques du dossier ouvertes à ce stade (tarifs : sous-lot 1.4 ; utilisateurs : 1.6). */
+const RUBRIQUES = [
+  { href: '/partenaire', libelle: 'Mon dossier' },
+  { href: '/partenaire/entreprise', libelle: 'Entreprise' },
+  { href: '/partenaire/machines', libelle: 'Machines' },
+  { href: '/partenaire/capacites', libelle: 'Capacités' },
+  { href: '/partenaire/services', libelle: 'Services' },
+  { href: '/partenaire/disponibilites', libelle: 'Disponibilités' },
+];
 
 export const metadata: Metadata = {
   title: { default: 'Espace partenaires', template: '%s · Espace partenaires Elembo' },
@@ -18,6 +30,7 @@ export default async function LayoutPartenaire({ children }: { children: React.R
   const etat = await etatCompte();
   const connecte = etat.type === 'partenaire' || etat.type === 'sans_entreprise';
   const email = etat.type === 'partenaire' ? etat.session.email : etat.type === 'sans_entreprise' ? etat.email : null;
+  const avecNav = etat.type === 'partenaire' && accesPortail(etat.session.statutPartenaire) !== 'aucun';
 
   return (
     <div className="flex min-h-screen flex-col bg-creme text-encre">
@@ -41,6 +54,7 @@ export default async function LayoutPartenaire({ children }: { children: React.R
           ) : null}
         </div>
       </header>
+      {avecNav ? <NavPortail entrees={RUBRIQUES} /> : null}
       <main id="contenu" className="flex-1">
         {children}
       </main>

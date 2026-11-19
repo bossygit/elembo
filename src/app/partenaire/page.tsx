@@ -1,11 +1,14 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
+import { Formulaire } from '@/components/partenaire/Formulaire';
 import { Alerte, Carte } from '@/components/partenaire/ui';
 import { dateCourte } from '@/lib/admin/format';
 import { ROLES_PARTENAIRE, peutPartenaire } from '@/lib/partenaires/droits';
 import { soumissionPossible, statutPartenaire } from '@/lib/partenaires/statuts';
 import { exigerPartenaire } from '@/server/partenaires/acces';
 import { resumeDossier } from '@/server/partenaires/dossier';
+import { soumettreDossierAction } from './dossier-actions';
 
 // La page partage le segment du layout : le modèle de titre du layout ne s'y applique pas.
 export const metadata: Metadata = { title: { absolute: 'Mon dossier · Espace partenaires Elembo' } };
@@ -14,6 +17,7 @@ export const dynamic = 'force-dynamic';
 const MESSAGES: Record<string, string> = {
   bienvenue: 'Votre compte est actif. Complétez maintenant le dossier de votre atelier.',
   mot_de_passe: 'Votre mot de passe a été modifié.',
+  soumis: 'Dossier soumis. Smart Vision va l’examiner et vous prévenir de sa décision.',
 };
 
 const TONS_STATUT = {
@@ -26,16 +30,16 @@ const TONS_STATUT = {
   production: 'bg-sable text-encre',
 } as const;
 
-/** Rubriques du dossier. Elles s'ouvrent au fil des sous-lots 1.3 à 1.6. */
-const RUBRIQUES = [
-  { titre: 'Mon entreprise', texte: 'Identité, coordonnées, photos de l’atelier.' },
-  { titre: 'Mes machines', texte: 'Équipements, dimensions maximales, état de fonctionnement.' },
-  { titre: 'Mes capacités', texte: 'Ce que vous produisez, en quelles quantités et quels délais.' },
-  { titre: 'Mes services', texte: 'Impression, finition, pose, livraison…' },
+/** Rubriques du dossier ; celles sans lien s'ouvrent aux sous-lots 1.4 (tarifs) et 1.6 (utilisateurs). */
+const RUBRIQUES: { titre: string; texte: string; href?: string }[] = [
+  { titre: 'Mon entreprise', texte: 'Identité, coordonnées, conditions de travail.', href: '/partenaire/entreprise' },
+  { titre: 'Mes machines', texte: 'Équipements, dimensions maximales, état de fonctionnement.', href: '/partenaire/machines' },
+  { titre: 'Mes capacités', texte: 'Ce que vous produisez, en quelles quantités et quels délais.', href: '/partenaire/capacites' },
+  { titre: 'Mes services', texte: 'Impression, finition, pose, livraison…', href: '/partenaire/services' },
+  { titre: 'Mes disponibilités', texte: 'Votre charge du moment.', href: '/partenaire/disponibilites' },
   { titre: 'Mes tarifs', texte: 'Vos prix pour Smart Vision, confidentiels.' },
-  { titre: 'Mes disponibilités', texte: 'Votre charge du moment.' },
   { titre: 'Mes utilisateurs', texte: 'Les personnes de votre atelier qui ont un accès.' },
-] as const;
+];
 
 export default async function PageDossierPartenaire({
   searchParams,
@@ -50,9 +54,9 @@ export default async function PageDossierPartenaire({
 
   const etapes = dossier
     ? [
-        { fait: Boolean(dossier.fiche.telephone), libelle: 'Téléphone de contact' },
-        { fait: dossier.machines > 0, libelle: 'Au moins une machine déclarée' },
-        { fait: dossier.capacites > 0, libelle: 'Au moins une capacité de production' },
+        { fait: Boolean(dossier.fiche.telephone), libelle: 'Téléphone de contact', href: '/partenaire/entreprise' },
+        { fait: dossier.machines > 0, libelle: 'Au moins une machine déclarée', href: '/partenaire/machines' },
+        { fait: dossier.capacites > 0, libelle: 'Au moins une capacité de production', href: '/partenaire/capacites' },
       ]
     : [];
   const pret = etapes.length > 0 && etapes.every((e) => e.fait);
@@ -109,30 +113,44 @@ export default async function PageDossierPartenaire({
                   >
                     {e.fait ? '✓' : ''}
                   </span>
-                  <span className={e.fait ? 'text-encre' : 'text-attenue'}>
+                  <Link href={e.href} className={`underline-offset-4 hover:underline ${e.fait ? 'text-encre' : 'text-attenue'}`}>
                     {e.libelle}
                     <span className="sr-only">{e.fait ? ' : fait' : ' : à faire'}</span>
-                  </span>
+                  </Link>
                 </li>
               ))}
             </ul>
-            <p className="mt-4 text-sm text-attenue">
-              {pret
-                ? 'Votre dossier est complet : la soumission sera disponible avec la prochaine mise à jour de l’espace.'
-                : 'La déclaration des machines et des capacités arrive avec la prochaine mise à jour de l’espace.'}
-            </p>
+            <div className="mt-5">
+              {pret ? (
+                <Formulaire action={soumettreDossierAction} envoyer="Soumettre mon dossier" attente="Envoi…">
+                  <p className="text-sm text-attenue">
+                    Smart Vision vérifiera vos informations, peut-être lors d’une visite de l’atelier. Vous pourrez encore compléter
+                    votre dossier pendant l’examen.
+                  </p>
+                </Formulaire>
+              ) : (
+                <p className="text-sm text-attenue">Complétez les points ci-dessus pour pouvoir soumettre votre dossier.</p>
+              )}
+            </div>
           </div>
         ) : null}
       </Carte>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {RUBRIQUES.map((r) => (
-          <div key={r.titre} className="rounded-2xl border border-dashed border-filet p-5">
-            <p className="font-semibold">{r.titre}</p>
-            <p className="mt-1 text-sm leading-relaxed text-attenue">{r.texte}</p>
-            <p className="mt-3 text-xs font-medium uppercase tracking-wide text-bordure">Bientôt disponible</p>
-          </div>
-        ))}
+        {RUBRIQUES.map((r) =>
+          r.href ? (
+            <Link key={r.titre} href={r.href} className="rounded-2xl border border-filet bg-white p-5 transition-colors hover:border-encre">
+              <p className="font-semibold">{r.titre}</p>
+              <p className="mt-1 text-sm leading-relaxed text-attenue">{r.texte}</p>
+            </Link>
+          ) : (
+            <div key={r.titre} className="rounded-2xl border border-dashed border-filet p-5">
+              <p className="font-semibold">{r.titre}</p>
+              <p className="mt-1 text-sm leading-relaxed text-attenue">{r.texte}</p>
+              <p className="mt-3 text-xs font-medium uppercase tracking-wide text-bordure">Bientôt disponible</p>
+            </div>
+          ),
+        )}
       </div>
     </div>
   );

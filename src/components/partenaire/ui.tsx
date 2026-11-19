@@ -23,7 +23,7 @@ export function bouton(variante: keyof typeof BOUTONS = 'primaire'): string {
   const base =
     variante === 'discret'
       ? 'inline-flex items-center text-sm font-medium'
-      : 'inline-flex h-12 items-center justify-center rounded-xl px-5 text-base font-semibold';
+      : 'inline-flex min-h-12 items-center justify-center rounded-xl px-5 py-2 text-center text-base font-semibold';
   return `${base} transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-encre disabled:cursor-not-allowed disabled:opacity-50 ${BOUTONS[variante]}`;
 }
 

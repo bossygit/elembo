@@ -10,7 +10,6 @@ import { SUPPORTS } from '@/lib/grand-format/catalogue';
 import { exigerAcces } from '@/server/admin/acces';
 import { journaliser } from '@/server/admin/audit';
 import { enregistrerProposition } from '@/server/admin/devis';
-import { verifierAffectation } from '@/server/admin/production';
 import { echec, succes } from '@/server/admin/retour';
 import { commandeDuDevis, creerCommandeDepuisDevis } from '@/server/commandes/repository';
 import { transitionnerDevis } from '@/server/devis/repository';
@@ -51,13 +50,6 @@ function date(formData: FormData, cle: string, chemin: string): string | null | 
   return d || null;
 }
 
-function partenaire(formData: FormData, chemin: string): string | null | undefined {
-  if (!formData.has('partenaire_id')) return undefined;
-  const p = texteChamp(formData.get('partenaire_id'), 64);
-  if (p && !estUuid(p)) echec(chemin, 'Imprimeur invalide.');
-  return p || null;
-}
-
 function sansIndefinis<T extends Record<string, unknown>>(o: T): Partial<T> {
   return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
 }
@@ -94,7 +86,6 @@ export async function enregistrerChiffrageAction(formData: FormData): Promise<vo
     Object.assign(
       champs,
       sansIndefinis({
-        partenaire_id: partenaire(formData, chemin),
         production_prevue_le: date(formData, 'production_prevue_le', chemin),
         livraison_prevue_le: date(formData, 'livraison_prevue_le', chemin),
       }),
@@ -123,7 +114,6 @@ export async function enregistrerChiffrageAction(formData: FormData): Promise<vo
   if (Object.keys(champs).length === 0) echec(chemin, 'Rien à enregistrer.');
 
   try {
-    await verifierAffectation(champs.partenaire_id, demande.partenaire_id);
     const { avant, apres } = await enregistrerChiffrage(id, champs);
     if (demande.devis.statut === 'NOUVEAU') await transitionnerDevis(id, 'EN_ANALYSE', null, null, staff.id, 'STAFF');
     await journaliser({ staff, action: 'GRAND_FORMAT_CHIFFRAGE', entite: 'devis', entiteId: id, avant, apres });
@@ -271,33 +261,30 @@ export async function planifierProductionAction(formData: FormData): Promise<voi
   const demande = await demandeParDevis(id);
   if (!demande?.commande) echec(chemin, 'Aucune commande pour cette demande.');
   const commande = demande.commande;
-  const p = partenaire(formData, chemin) ?? null;
   const production = date(formData, 'production_prevue_le', chemin) ?? null;
   const livraison = date(formData, 'livraison_prevue_le', chemin) ?? null;
   if (production && livraison && livraison < production) echec(chemin, 'La livraison ne peut pas précéder la production.');
 
   try {
-    await verifierAffectation(p, demande.partenaire_id);
     const taches = await tachesDeCommande(commande.id);
     const impression = taches.find((t) => t.etape === ETAPES_GRAND_FORMAT.impression);
     const r1 = await enregistrerCoutReel(commande.id, 'impression', {
       cout_fcfa: impression?.cout_fcfa ?? null,
-      partenaire_id: p,
       date_prevue: production,
     });
     const tacheLivraison = taches.find((t) => t.etape === ETAPES_GRAND_FORMAT.livraison);
     if (tacheLivraison || livraison) {
       await enregistrerCoutReel(commande.id, 'livraison', { cout_fcfa: tacheLivraison?.cout_fcfa ?? null, date_prevue: livraison });
     }
-    await enregistrerChiffrage(id, { partenaire_id: p, production_prevue_le: production, livraison_prevue_le: livraison });
+    await enregistrerChiffrage(id, { production_prevue_le: production, livraison_prevue_le: livraison });
     await modifierLivraisonPrevue(commande.id, livraison);
     await journaliser({
       staff,
       action: 'GRAND_FORMAT_PLANIFICATION',
       entite: 'commande',
       entiteId: commande.id,
-      avant: { partenaire_id: r1.avant?.partenaire_id ?? null, date_prevue: r1.avant?.date_prevue ?? null },
-      apres: { partenaire_id: p, production_prevue_le: production, livraison_prevue_le: livraison },
+      avant: { date_prevue: r1.avant?.date_prevue ?? null },
+      apres: { production_prevue_le: production, livraison_prevue_le: livraison },
     });
   } catch (erreur) {
     echec(chemin, erreur);

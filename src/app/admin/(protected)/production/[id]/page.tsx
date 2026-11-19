@@ -3,18 +3,22 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { BoutonImprimer } from '@/components/admin/BoutonImprimer';
+import { PropositionAffectation } from '@/components/admin/PropositionAffectation';
 import { Badge, Carte, Definitions, EnTete, Flash, Vide, bouton, champ, libelle, tableau } from '@/components/admin/ui';
 import { aujourdhui, dateCourte, dateHeure, estUuid, fcfa, libelleEtape, taille } from '@/lib/admin/format';
 import { peut } from '@/lib/admin/permissions';
 import { STATUTS_PRODUCTION, libelleCommande, libelleProduction } from '@/lib/admin/statuts';
-import { partenaireAffectable } from '@/lib/partenaires/statuts';
 import { exigerAcces } from '@/server/admin/acces';
 import {
+  affectationsDeCommande,
+  fichiersPartageables,
+  partenairesAffectables,
+  tarifsParPartenaire,
+} from '@/server/admin/affectations';
+import {
   dossierProduction,
-  listerPartenaires,
   quantiteTotale,
   quantitesParTailleCouleur,
-  type Partenaire,
   type Tache,
 } from '@/server/admin/production';
 import { creerTacheAction, modifierTacheAction } from '../actions';
@@ -39,7 +43,7 @@ function valeurOption(v: unknown): string {
   return String(v);
 }
 
-function ChampsTache({ tache, partenaires }: { tache?: Tache; partenaires: Partenaire[] }) {
+function ChampsTache({ tache }: { tache?: Tache }) {
   return (
     <>
       <label className={libelle}>
@@ -50,19 +54,6 @@ function ChampsTache({ tache, partenaires }: { tache?: Tache; partenaires: Parte
               {s.label}
             </option>
           ))}
-        </select>
-      </label>
-      <label className={libelle}>
-        Prestataire
-        <select name="partenaire_id" defaultValue={tache?.partenaire_id ?? ''} className={champ}>
-          <option value="">Atelier interne</option>
-          {partenaires
-            .filter((p) => partenaireAffectable(p) || p.id === tache?.partenaire_id)
-            .map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nom} — {p.specialite}
-              </option>
-            ))}
         </select>
       </label>
       <label className={libelle}>
@@ -93,14 +84,22 @@ export default async function PageDossierProduction({
   const { id } = await params;
   if (!estUuid(id)) notFound();
   const messages = await searchParams;
-  const [dossier, partenaires] = await Promise.all([dossierProduction(id), listerPartenaires()]);
+  const [dossier, partenaires, affectations, fichiersAffectation] = await Promise.all([
+    dossierProduction(id),
+    partenairesAffectables(),
+    affectationsDeCommande(id),
+    fichiersPartageables(id),
+  ]);
   if (!dossier) notFound();
+  const tarifsAffectation = await tarifsParPartenaire(partenaires);
 
   const { commande: c, fichiers } = dossier;
   const contact = c.contact_snapshot as Record<string, unknown>;
   const design = c.design_snapshot as Record<string, unknown>;
   const quantites = quantitesParTailleCouleur(c.lignes, design);
   const peutModifier = peut(staff.role, 'production.modifier');
+  const peutAffecter = peut(staff.role, 'affectations.gerer');
+  const peutCoutsAffectation = peut(staff.role, 'affectations.couts');
   const jour = aujourdhui();
   const statut = libelleCommande(c.statut);
   const zones = Array.isArray(design.zones) ? (design.zones as unknown[]).map(String) : [];
@@ -132,7 +131,7 @@ export default async function PageDossierProduction({
         }
       />
       <div className="print:hidden">
-        <Flash ok={messages.ok} erreur={messages.erreur} messages={{ tache: 'Tâche enregistrée.' }} />
+        <Flash ok={messages.ok} erreur={messages.erreur} messages={{ tache: 'Tâche enregistrée.', affectation: 'Proposition envoyée à l’atelier.' }} />
       </div>
       {!autorisee ? (
         <p role="alert" className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
@@ -254,6 +253,7 @@ export default async function PageDossierProduction({
               {c.travaux.map((t) => {
                 const s = libelleProduction(t.statut);
                 const retard = t.date_prevue && t.date_prevue < jour && ['A_FAIRE', 'EN_COURS', 'BLOQUE'].includes(t.statut);
+                const aff = affectations.find((a) => a.tache_id === t.id && (a.statut === 'PROPOSEE' || a.statut === 'ACCEPTEE'));
                 return (
                   <li key={t.id} className="rounded-lg border border-neutral-200 p-3">
                     <div className="flex items-start justify-between gap-2">
@@ -272,13 +272,36 @@ export default async function PageDossierProduction({
                     </div>
                     {t.instructions ? <p className="mt-2 whitespace-pre-wrap text-sm">{t.instructions}</p> : null}
                     {t.cout_fcfa ? <p className="mt-1 text-xs text-neutral-500">Coût : {fcfa(t.cout_fcfa)}</p> : null}
+                    {aff ? (
+                      <p className="mt-2 text-xs text-neutral-600">
+                        Affectation <span className="tabular-nums">{aff.reference}</span> ·{' '}
+                        {aff.statut === 'PROPOSEE' ? 'en attente de réponse' : 'acceptée'}
+                        {aff.partenaire ? ` · ${aff.partenaire.nom}` : ''} ·{' '}
+                        <Link href="/admin/affectations" className="underline underline-offset-2">
+                          suivre
+                        </Link>
+                      </p>
+                    ) : peutAffecter ? (
+                      <PropositionAffectation
+                        objet="TACHE_PRODUCTION"
+                        commandeId={c.id}
+                        tacheId={t.id}
+                        libelle={`${libelleEtape(t.etape)} — ${c.reference}`}
+                        dateFinPrevue={t.date_prevue}
+                        suite={`/admin/production/${c.id}`}
+                        partenaires={partenaires.map((p) => ({ id: p.id, nom: p.nom }))}
+                        tarifs={tarifsAffectation}
+                        fichiers={fichiersAffectation.map((f) => ({ id: f.id, nom: f.nom, type_fichier: f.type_fichier }))}
+                        peutCouts={peutCoutsAffectation}
+                      />
+                    ) : null}
                     {peutModifier ? (
                       <details className="mt-2 print:hidden">
                         <summary className="cursor-pointer text-xs font-medium text-neutral-600">Modifier</summary>
                         <form action={modifierTacheAction} className="mt-2 grid gap-3 sm:grid-cols-2">
                           <input type="hidden" name="commande_id" value={c.id} />
                           <input type="hidden" name="tache_id" value={t.id} />
-                          <ChampsTache tache={t} partenaires={partenaires} />
+                          <ChampsTache tache={t} />
                           <div className="sm:col-span-2">
                             <button type="submit" className={bouton('primaire', 'sm')}>
                               Enregistrer
@@ -301,7 +324,7 @@ export default async function PageDossierProduction({
                   Étape
                   <input name="etape" required minLength={2} maxLength={80} placeholder="Impression DTF, pressage, broderie, encadrement…" className={champ} />
                 </label>
-                <ChampsTache partenaires={partenaires} />
+                <ChampsTache />
                 <div className="sm:col-span-2">
                   <button type="submit" className={bouton('primaire')}>
                     Ajouter l’étape

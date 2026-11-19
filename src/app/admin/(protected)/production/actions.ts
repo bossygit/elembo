@@ -17,8 +17,6 @@ function dossier(id: string, ancre = 'taches'): string {
 function lireTache(formData: FormData): { champs: Omit<ChampsTache, 'etape'> } | { erreur: string } {
   const statut = texteChamp(formData.get('statut'), 20);
   if (!estStatutProduction(statut)) return { erreur: 'État de fabrication inconnu.' };
-  const partenaire = texteChamp(formData.get('partenaire_id'), 64);
-  if (partenaire && !estUuid(partenaire)) return { erreur: 'Prestataire invalide.' };
   const date = texteChamp(formData.get('date_prevue'), 10);
   if (date && !estDateIso(date)) return { erreur: 'Date prévue invalide.' };
   const cout = entierChamp(formData.get('cout_fcfa'));
@@ -26,8 +24,6 @@ function lireTache(formData: FormData): { champs: Omit<ChampsTache, 'etape'> } |
   return {
     champs: {
       statut,
-      partenaire_id: partenaire || null,
-      interne: !partenaire,
       date_prevue: date || null,
       instructions: texteOuNull(formData.get('instructions'), 4000),
       cout_fcfa: cout,
@@ -68,7 +64,7 @@ export async function modifierTacheAction(formData: FormData): Promise<void> {
   if ('erreur' in lu) echec(dossier(commandeId), lu.erreur);
   try {
     const { avant, apres } = await modifierTache(commandeId, tacheId, lu.champs);
-    const champs = ['statut', 'partenaire_id', 'date_prevue', 'instructions', 'cout_fcfa'] as const;
+    const champs = ['statut', 'date_prevue', 'instructions', 'cout_fcfa'] as const;
     await journaliser({
       staff,
       action: 'PRODUCTION_TACHE',

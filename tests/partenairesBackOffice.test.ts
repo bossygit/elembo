@@ -118,10 +118,14 @@ describe('affectation et notifications', () => {
   it('un partenaire non validé ne reçoit aucun travail, quel que soit le chemin d’écriture', () => {
     const production = lire('src/server/admin/production.ts');
     expect(production).toMatch(/data\.statut !== 'VALIDE' \|\| !data\.actif/);
-    expect(production).toMatch(/export async function creerTache[^]*?await verifierAffectation\(champs\.partenaire_id, null\)/);
-    expect(production).toMatch(/await verifierAffectation\(champs\.partenaire_id, \(avant as Tache\)\.partenaire_id\)/);
+    // Depuis le Lot 2, une tâche naît interne : l'atelier n'est posé qu'à l'acceptation
+    // d'une affectation (trigger 0013), plus jamais par le formulaire de tâche.
+    expect(production).toMatch(/partenaire_id: null/);
+    expect(production).not.toMatch(/export async function creerTache[^]*?partenaire_id: champs\.partenaire_id/);
+    const affectations = lire('src/server/admin/affectations.ts');
+    expect(affectations).toMatch(/await verifierAffectation\(champs\.partenaireId, null\)/);
     const banderoles = lire('src/app/admin/(protected)/banderoles/actions.ts');
-    expect(banderoles.match(/await verifierAffectation\(/g)?.length).toBe(2);
+    expect(banderoles).not.toMatch(/verifierAffectation|partenaire_id: p/);
   });
 
   it('les e-mails aux ateliers ne contiennent jamais de montant, et ne vont qu’aux responsables actifs', () => {

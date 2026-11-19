@@ -178,8 +178,6 @@ export function quantiteTotale(lignes: LigneProduction[]): number {
 export type ChampsTache = {
   etape: string;
   statut: StatutProduction;
-  partenaire_id: string | null;
-  interne: boolean;
   date_prevue: string | null;
   instructions: string | null;
   cout_fcfa: number | null;
@@ -199,12 +197,14 @@ export async function verifierAffectation(nouveau: string | null | undefined, ac
 }
 
 export async function creerTache(commandeId: string, champs: ChampsTache): Promise<Tache> {
-  await verifierAffectation(champs.partenaire_id, null);
   const { data, error } = await admin()
     .from('travaux_production')
     .insert({
       commande_id: commandeId,
       ...champs,
+      // L'atelier n'est posé qu'à l'acceptation d'une affectation (trigger 0013).
+      partenaire_id: null,
+      interne: true,
       termine_le: champs.statut === 'TERMINE' ? new Date().toISOString() : null,
     })
     .select('*')
@@ -229,7 +229,7 @@ export async function modifierTache(
     .maybeSingle();
   if (e1) throw new Error(e1.message);
   if (!avant) throw new Error('Tâche introuvable pour cette commande.');
-  await verifierAffectation(champs.partenaire_id, (avant as Tache).partenaire_id);
+  // `partenaire_id` n'est plus modifiable ici : il vient de l'affectation acceptée.
   const termine_le =
     champs.statut === 'TERMINE' ? (avant as Tache).termine_le ?? new Date().toISOString() : null;
   const { data: apres, error } = await admin()

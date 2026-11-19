@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { PropositionAffectation } from '@/components/admin/PropositionAffectation';
 import { Badge, Carte, Definitions, EnTete, Flash, Vide, bouton, champ, libelle, tableau } from '@/components/admin/ui';
 import ApercuBanderole from '@/components/grand-format/ApercuBanderole';
 import { dateCourte, dateHeure, estUuid, fcfa, pourcentage } from '@/lib/admin/format';
@@ -33,8 +34,8 @@ import { exigerAcces } from '@/server/admin/acces';
 import { historiqueDevis, voletCommercial } from '@/server/admin/devis';
 import { coutImpression, tarifImpression } from '@/lib/partenaires/coutGrandFormat';
 import { resumeVersion } from '@/lib/partenaires/paliers';
-import { partenaireAffectable } from '@/lib/partenaires/statuts';
 import { listerPartenaires } from '@/server/admin/production';
+import { affectationsDeCommande, fichiersPartageables, tarifsParPartenaire } from '@/server/admin/affectations';
 import { tarifsImpressionValides } from '@/server/admin/tarifsPartenaires';
 import { clientDuDevis, fichiersDuDevis } from '@/server/devis/repository';
 import { demandeParDevis, tachesDeCommande } from '@/server/grand-format/repository';
@@ -57,6 +58,7 @@ const MESSAGES: Record<string, string> = {
   decision: 'Décision enregistrée.',
   commande: 'Commande créée : le chiffrage a été reporté en tâches d’atelier.',
   production: 'Production planifiée.',
+  affectation: 'Proposition envoyée à l’atelier.',
   couts: 'Coûts réels enregistrés : la marge de la commande est recalculée.',
 };
 
@@ -83,14 +85,17 @@ export default async function PageBanderole({
   const d = await demandeParDevis(id);
   if (!d) notFound();
 
-  const [client, fichiers, commercial, historique, partenaires, taches] = await Promise.all([
+  const [client, fichiers, commercial, historique, partenaires, taches, affectations, fichiersAffectation] = await Promise.all([
     clientDuDevis(d.devis.client_id),
     fichiersDuDevis(id),
     voletCommercial(id),
     historiqueDevis(id),
     listerPartenaires(),
     d.commande ? tachesDeCommande(d.commande.id) : Promise.resolve([]),
+    d.commande ? affectationsDeCommande(d.commande.id) : Promise.resolve([]),
+    d.commande ? fichiersPartageables(d.commande.id) : Promise.resolve([]),
   ]);
+  const tarifsAffectation = await tarifsParPartenaire(partenaires);
 
   const chiffrer = peut(staff.role, 'grand_format.chiffrer');
   const voirCouts = peut(staff.role, 'grand_format.couts');
@@ -102,7 +107,11 @@ export default async function PageBanderole({
   const contact = d.devis.contact_snapshot as Record<string, unknown>;
   const surfacePiece = surfaceM2(d.largeur_m, d.hauteur_m);
   const partenaire = partenaires.find((p) => p.id === d.partenaire_id) ?? null;
-  const imprimeurs = partenaires.filter((p) => partenaireAffectable(p) || p.id === d.partenaire_id);
+  const affectationActive = affectations.find(
+    (a) => a.devis_id === id && (a.statut === 'PROPOSEE' || a.statut === 'ACCEPTEE'),
+  );
+  const peutAffecter = peut(staff.role, 'affectations.gerer');
+  const peutCoutsAffectation = peut(staff.role, 'affectations.couts');
   // Coût d'impression : tarif négocié VALIDÉ et en vigueur (Elembo Partners), sinon ancien prix de la fiche.
   const tarifsImpression = voirCouts && partenaire ? await tarifsImpressionValides(partenaire.id) : [];
   const tarifRetenu = tarifImpression(tarifsImpression, d.support, new Date().toISOString().slice(0, 10));
@@ -254,25 +263,7 @@ export default async function PageBanderole({
                 <input type="hidden" name="devis_id" value={id} />
                 {chiffrer ? (
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <label className={`${libelle} sm:col-span-2`}>
-                      Imprimeur partenaire pressenti
-                      <select name="partenaire_id" defaultValue={d.partenaire_id ?? ''} className={champ}>
-                        <option value="">— Aucun / interne —</option>
-                        {imprimeurs.map((p) => {
-                          const compatible = p.types_impression.length === 0 || p.types_impression.includes(d.support);
-                          const tient = !p.largeur_max_m || Math.min(d.largeur_m, d.hauteur_m) <= p.largeur_max_m;
-                          return (
-                            <option key={p.id} value={p.id}>
-                              {p.nom}
-                              {p.largeur_max_m ? ` · laize ${String(p.largeur_max_m).replace('.', ',')} m` : ''}
-                              {p.delai_jours !== null ? ` · ${p.delai_jours} j` : ''}
-                              {!compatible ? ' · support non déclaré' : ''}
-                              {!tient ? ' · format trop large' : ''}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </label>
+
                     <Montant name="prix_impression_fcfa" label="Prix de vente — impression (FCFA)" valeur={d.prix_impression_fcfa} desactive={!prixModifiable} />
                     <Montant name="frais_creation_fcfa" label="Frais de création graphique facturés (FCFA)" valeur={d.frais_creation_fcfa} desactive={!prixModifiable} />
                     <label className={libelle}>
@@ -501,20 +492,37 @@ export default async function PageBanderole({
           {/* ---------------------------------------------------- production ---- */}
           {d.commande ? (
             <Carte titre="6 · Production chez l’imprimeur" id="production">
+              {affectationActive ? (
+                <p className="mb-3 text-xs text-neutral-600">
+                  Affectation <span className="tabular-nums">{affectationActive.reference}</span> ·{' '}
+                  {affectationActive.statut === 'PROPOSEE' ? 'en attente de réponse' : 'acceptée'}
+                  {affectationActive.partenaire ? ` · ${affectationActive.partenaire.nom}` : ''} ·{' '}
+                  <Link href="/admin/affectations" className="underline underline-offset-2">
+                    suivre
+                  </Link>
+                </p>
+              ) : chiffrer && peutAffecter ? (
+                <PropositionAffectation
+                  objet="BANDEROLE"
+                  commandeId={d.commande.id}
+                  devisId={id}
+                  libelle={`Impression ${libelleSupport(d.support)} — ${d.devis.reference}`}
+                  support={d.support}
+                  quantite={d.quantite}
+                  unite="PIECE"
+                  surfaceM2={d.surface_totale_m2}
+                  dateFinPrevue={d.production_prevue_le}
+                  suite={`/admin/banderoles/${id}`}
+                  partenaires={partenaires.map((p) => ({ id: p.id, nom: p.nom }))}
+                  tarifs={tarifsAffectation}
+                  fichiers={fichiersAffectation.map((f) => ({ id: f.id, nom: f.nom, type_fichier: f.type_fichier }))}
+                  peutCouts={peutCoutsAffectation}
+                />
+              ) : null}
               {chiffrer ? (
                 <form action={planifierProductionAction} className="mb-4 grid gap-3 sm:grid-cols-3">
                   <input type="hidden" name="devis_id" value={id} />
-                  <label className={libelle}>
-                    Imprimeur affecté
-                    <select name="partenaire_id" defaultValue={tacheImpression?.partenaire_id ?? d.partenaire_id ?? ''} className={champ}>
-                      <option value="">— Interne —</option>
-                      {imprimeurs.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.nom}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+
                   <label className={libelle}>
                     Production prévue le
                     <input type="date" name="production_prevue_le" defaultValue={tacheImpression?.date_prevue ?? d.production_prevue_le ?? ''} className={champ} />
@@ -544,16 +552,19 @@ export default async function PageBanderole({
                       </tr>
                     </thead>
                     <tbody className={tableau.tbody}>
-                      {taches.map((t) => (
+                      {taches.map((t) => {
+                        const partenaireId = t.partenaire_id ?? (t.etape === 'Impression grand format' ? d.partenaire_id : null);
+                        return (
                         <tr key={t.id}>
                           <td className={tableau.td}>{t.etape === 'INITIALISATION' ? 'Préparation (créée au paiement)' : t.etape}</td>
                           <td className={tableau.td}>
                             <Badge ton={libelleProduction(t.statut).ton}>{libelleProduction(t.statut).label}</Badge>
                           </td>
-                          <td className={tableau.td}>{partenaires.find((p) => p.id === t.partenaire_id)?.nom ?? (t.interne ? 'Interne' : '—')}</td>
+                          <td className={tableau.td}>{partenaires.find((p) => p.id === partenaireId)?.nom ?? (partenaireId ? '—' : t.interne ? 'Interne' : '—')}</td>
                           <td className={tableau.td}>{t.date_prevue ? dateCourte(t.date_prevue) : '—'}</td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

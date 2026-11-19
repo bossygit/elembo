@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { BadgePartenaire, BadgeTarif, BadgeValidationAdmin, ChampsFiche, ChampsTarifAdmin, DecisionElement } from '@/components/admin/partenaires';
 import { Badge, Carte, Confirmation, Definitions, EnTete, Flash, Vide, bouton, champ, libelle, tableau } from '@/components/admin/ui';
-import { dateCourte, dateHeure, estUuid } from '@/lib/admin/format';
+import { dateCourte, dateHeure, estUuid, fcfa } from '@/lib/admin/format';
 import { peut } from '@/lib/admin/permissions';
 import {
   CATEGORIES_SERVICE,
@@ -14,6 +15,7 @@ import {
   nomPrestation,
   nomTypeMachine,
 } from '@/lib/partenaires/catalogue';
+import { estStatutAffectation, libelleSourceTarif, statutAffectation } from '@/lib/partenaires/affectations';
 import { disponibiliteCourante } from '@/lib/partenaires/formulaires';
 import { resumeVersion } from '@/lib/partenaires/paliers';
 import {
@@ -24,6 +26,7 @@ import {
   type StatutPartenaire,
 } from '@/lib/partenaires/statuts';
 import { exigerAcces } from '@/server/admin/acces';
+import { listerAffectations } from '@/server/admin/affectations';
 import { notesInternes } from '@/server/admin/commandes';
 import { fichePartenaireAdmin } from '@/server/admin/partenaires';
 import { tarifsDuPartenaire } from '@/server/admin/tarifsPartenaires';
@@ -86,11 +89,12 @@ export default async function PagePartenaire({
   if (!estUuid(id)) notFound();
   const voirTarifs = peut(staff.role, 'partenaires.tarifs_voir');
   const comptes = peut(staff.role, 'partenaires.comptes');
-  const [f, notes, tarifs, toutesInvitations] = await Promise.all([
+  const [f, notes, tarifs, toutesInvitations, affectations] = await Promise.all([
     fichePartenaireAdmin(id),
     notesInternes('partenaire', id),
     voirTarifs ? tarifsDuPartenaire(id) : Promise.resolve([]),
     comptes ? invitations(id) : Promise.resolve([]),
+    listerAffectations({ partenaireId: id, limite: 20 }),
   ]);
   const invitationsEnAttente = toutesInvitations.filter((i) => i.etat === 'EN_ATTENTE');
   if (!f) notFound();
@@ -102,6 +106,7 @@ export default async function PagePartenaire({
   const gerer = peut(staff.role, 'partenaires.gerer');
   const saisir = peut(staff.role, 'partenaires.tarifs_saisir');
   const deciderTarifs = peut(staff.role, 'partenaires.tarifs_valider');
+  const voirCoutsAffectations = peut(staff.role, 'affectations.couts');
   const decisions = decisionsPossibles(statut).filter((d) =>
     d === 'SUSPENDU' || d === 'ARCHIVE' || (d === 'VALIDE' && (statut === 'SUSPENDU' || statut === 'ARCHIVE')) ? suspendre : valider,
   );
@@ -376,6 +381,50 @@ export default async function PagePartenaire({
         </div>
 
         <div className="space-y-6">
+          <Carte id="travaux" titre={`Travaux (${affectations.length})`} description="Propositions et affectations acceptées.">
+            {affectations.length === 0 ? (
+              <Vide>Aucun travail proposé à cet atelier.</Vide>
+            ) : (
+              <div className={tableau.conteneur}>
+                <table className={tableau.table}>
+                  <thead className={tableau.thead}>
+                    <tr>
+                      <th className={tableau.th}>Référence</th>
+                      <th className={tableau.th}>Statut</th>
+                      <th className={tableau.th}>Créée</th>
+                      {voirCoutsAffectations ? <th className={`${tableau.th} text-right`}>Montant</th> : null}
+                    </tr>
+                  </thead>
+                  <tbody className={tableau.tbody}>
+                    {affectations.map((a) => {
+                      const badge = estStatutAffectation(a.statut) ? statutAffectation(a.statut) : { label: a.statut, ton: 'neutre' as const };
+                      return (
+                        <tr key={a.id} className={tableau.tr}>
+                          <td className={tableau.td}>
+                            <Link href="/admin/affectations" className="font-medium tabular-nums hover:underline">
+                              {a.reference}
+                            </Link>
+                            <p className="text-xs text-neutral-500">{a.commande?.reference ?? a.objet}</p>
+                          </td>
+                          <td className={tableau.td}>
+                            <Badge ton={badge.ton}>{badge.label}</Badge>
+                          </td>
+                          <td className={tableau.td}>{dateCourte(a.cree_le)}</td>
+                          {voirCoutsAffectations ? (
+                            <td className={tableau.nombre}>
+                              {fcfa(a.montant_fcfa)}
+                              <p className="text-xs font-normal text-neutral-500">{libelleSourceTarif(a.tarif_source)}</p>
+                            </td>
+                          ) : null}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Carte>
+
           <Carte id="informations" titre="Informations">
             <Definitions
               elements={[

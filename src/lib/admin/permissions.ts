@@ -78,6 +78,14 @@ export const MATRICE = {
   /** Comptes d'un atelier : inviter un responsable (rattachement d'une fiche), désactiver un accès. */
   'partenaires.comptes': ['admin'],
 
+  /** Affectations (Lot 2) : proposer un travail à un atelier. */
+  'affectations.voir': TOUS,
+  'affectations.gerer': ['admin', 'commercial', 'atelier'],
+  /** Annuler une proposition ou une affectation acceptée. */
+  'affectations.annuler': ['admin', 'commercial', 'atelier'],
+  /** Montants négociés, montant manuel ou provisoire (confidentiels, comme les tarifs). */
+  'affectations.couts': ['admin', 'finance'],
+
   'clients.voir': ['admin', 'commercial', 'finance'],
   'clients.modifier': ['admin', 'commercial'],
   'clients.facturation': ['admin', 'commercial', 'finance'],

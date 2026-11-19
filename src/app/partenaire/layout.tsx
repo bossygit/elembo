@@ -10,6 +10,7 @@ import { deconnecter } from './actions';
 /** Rubriques du dossier, affichées selon le droit du rôle. */
 const RUBRIQUES: { href: string; libelle: string; droit: DroitPartenaire }[] = [
   { href: '/partenaire', libelle: 'Mon dossier', droit: 'entreprise.voir' },
+  { href: '/partenaire/travaux', libelle: 'Travaux', droit: 'travaux.voir' },
   { href: '/partenaire/entreprise', libelle: 'Entreprise', droit: 'entreprise.voir' },
   { href: '/partenaire/machines', libelle: 'Machines', droit: 'machines.voir' },
   { href: '/partenaire/capacites', libelle: 'Capacités', droit: 'capacites.voir' },

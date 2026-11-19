@@ -8,6 +8,7 @@ import { ROLES_PARTENAIRE, peutPartenaire, type DroitPartenaire } from '@/lib/pa
 import { soumissionPossible, statutPartenaire } from '@/lib/partenaires/statuts';
 import { exigerPartenaire } from '@/server/partenaires/acces';
 import { resumeDossier } from '@/server/partenaires/dossier';
+import { mesAffectations } from '@/server/partenaires/travaux';
 import { soumettreDossierAction } from './dossier-actions';
 
 // La page partage le segment du layout : le modèle de titre du layout ne s'y applique pas.
@@ -33,6 +34,7 @@ const TONS_STATUT = {
 
 /** Rubriques du dossier, selon le droit du rôle. */
 const RUBRIQUES: { titre: string; texte: string; href?: string; droit?: DroitPartenaire }[] = [
+  { titre: 'Mes travaux', texte: 'Travaux proposés par Smart Vision : à confirmer, en cours, terminés.', href: '/partenaire/travaux', droit: 'travaux.voir' },
   { titre: 'Mon entreprise', texte: 'Identité, coordonnées, conditions de travail.', href: '/partenaire/entreprise' },
   { titre: 'Mes machines', texte: 'Équipements, dimensions maximales, état de fonctionnement.', href: '/partenaire/machines' },
   { titre: 'Mes capacités', texte: 'Ce que vous produisez, en quelles quantités et quels délais.', href: '/partenaire/capacites' },
@@ -50,6 +52,8 @@ export default async function PageDossierPartenaire({
   const session = await exigerPartenaire('entreprise.voir');
   const { ok, refus } = await searchParams;
   const dossier = await resumeDossier(session);
+  const travaux = peutPartenaire(session.role, 'travaux.voir', session.statutPartenaire) ? await mesAffectations() : [];
+  const aConfirmer = travaux.filter((t) => t.statut === 'PROPOSEE').length;
   const statut = statutPartenaire(session.statutPartenaire);
   const role = ROLES_PARTENAIRE.find((r) => r.id === session.role)?.label ?? session.role;
 
@@ -73,6 +77,13 @@ export default async function PageDossierPartenaire({
       </div>
 
       {ok && MESSAGES[ok] ? <Alerte ton="succes">{MESSAGES[ok]}</Alerte> : null}
+      {aConfirmer > 0 ? (
+        <Alerte ton="attention">
+          <Link href="/partenaire/travaux" className="font-medium underline underline-offset-4">
+            {aConfirmer === 1 ? '1 travail attend votre réponse' : `${aConfirmer} travaux attendent votre réponse`}
+          </Link>
+        </Alerte>
+      ) : null}
       {refus ? <Alerte ton="attention">Votre rôle ne permet pas cette action. Adressez-vous au responsable de votre atelier.</Alerte> : null}
 
       <Carte titre="État du dossier">

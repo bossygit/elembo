@@ -1,6 +1,6 @@
 # Elembo Partners — Lot 2 : affectation des travaux et exécution par les ateliers
 
-**Statut : cadrage validé le 19 novembre 2026 — sous-lots 2.1 à 2.5 livrés et testés en local ; reste la recette finale et la mise en production.**
+**Statut : cadrage validé le 19 novembre 2026 — sous-lots 2.1 à 2.5 livrés et testés en local ; migration `0013` appliquée en staging et en production le 20/11/2026 ; reste la recette finale.**
 Références : `docs/elembo-partners.md` (Lot 1), `docs/banderoles-grand-format.md`, code de `main`
 au commit `618f4fa` (Lot 1 fusionné et déployé ; migrations `0001` → `0012` appliquées en staging
 et en production).
@@ -112,7 +112,7 @@ Le chiffrage du §8 reste celui de cette version : **17 à 22 jours ouvrés**, h
 
 | Élément | Constat |
 |---|---|
-| Migrations | `0001` → `0012` appliquées en staging **et** en production (vérifié le 19/11/2026) ; `0013` écrite et appliquée sur la base **locale** uniquement (19/11/2026) |
+| Migrations | `0001` → `0012` appliquées en staging **et** en production (vérifié le 19/11/2026) ; `0013` écrite et appliquée sur la base **locale** (19/11/2026), puis sur **staging** et en **production** (20/11/2026) |
 | Lot 1 | Sous-lots `1.1` à `1.6` livrés, fusionnés et déployés ; portail et back-office fonctionnels |
 | Affectation actuelle | `travaux_production.partenaire_id` + `interne`, `demandes_grand_format.partenaire_id`, contrôlés par `verifierAffectation` ; aucune trace d'acceptation |
 | Tarifs | `partenaire_tarifs` versionnés par lignée, paliers contigus, versions validées ; pas d'instantané ailleurs |
@@ -725,8 +725,42 @@ partenaire et le compte Auth sont conservés. Tests : `partenairesPurge.test.ts`
 `npx tsc --noEmit`, `npx vitest run` (833 tests) et `next build`.
 
 **Les cinq sous-lots du Lot 2 sont livrés en local.** Restent la **recette finale** (2 jours), la
-configuration Resend (notifications), l'application de la migration `0013` en staging puis en
-production **avant** tout déploiement du code, et une passe de recette navigateur.
+configuration Resend (notifications) et une passe de recette navigateur. La migration `0013`
+est appliquée en staging et en production (20/11/2026).
+
+**Staging (20/11/2026)** : `0013` appliquée sur elembo-staging (`wbbvpslpagptvlnvhiqo`) par
+`supabase db push --remote`, après vérification du `dry-run` (seule `20261119120000` en attente)
+et sauvegarde du schéma et des données :
+
+```text
+backups/schema-wbbvpslpagptvlnvhiqo-20261120T164121Z.sql
+SHA-256 : b3e258c579c01eee04ce9c1efa41ed65501cbfcf900fe3f496fa810c8f8fc47b
+backups/donnees-wbbvpslpagptvlnvhiqo-20261120T164256Z.sql
+SHA-256 : c9f483e2ba70b91de2d1d0add2225482899a5ef2d9607527aeeea9397d6de6a9
+```
+
+`migration list --remote` aligné de `0001` à `0013`. `supabase/tests/affectations.sql` exécuté à
+distance (`db query --remote`) : toutes les assertions passent, rien ne subsiste après le
+`rollback` (aucun compte `@exemple.invalid`, tables d'affectation vides). Contrôles en lecture
+seule : `affectations_production`, `affectations_evenements` et `affectation_fichiers` sous RLS,
+aucun droit `anon`, `authenticated` en lecture seule. Le script de retour arrière n'a pas été
+rejoué sur une copie.
+
+**Production (20/11/2026)** : `0013` appliquée sur elembo-production (`ogshtnmbeequefisqwcz`) par
+`supabase db push --remote`, après `dry-run` (seule `20261119120000` en attente) et sauvegarde :
+
+```text
+backups/schema-ogshtnmbeequefisqwcz-20261120T165339Z.sql
+SHA-256 : b3e258c579c01eee04ce9c1efa41ed65501cbfcf900fe3f496fa810c8f8fc47b (identique au staging en 0012)
+backups/donnees-ogshtnmbeequefisqwcz-20261120T165339Z.sql
+SHA-256 : 705b754cfa441e301b1cac858bbf967c5a89f38349b669ab013df1611e253512
+```
+
+`migration list --remote` aligné de `0001` à `0013`. Script de test **non exécuté** (il crée des
+comptes fictifs) ; contrôles en lecture seule : les trois tables d'affectation sous RLS, aucune
+table `public` sans RLS (41/41), aucun droit `anon`, `authenticated` en lecture seule ; seules
+`mes_affectations` et `mon_affectation` sont exécutables par `authenticated`, aucune fonction
+exécutable par `anon`. Le CLI a été relié de nouveau au staging après l'opération.
 
 ---
 

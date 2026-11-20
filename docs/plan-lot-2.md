@@ -1,6 +1,6 @@
 # Elembo Partners — Lot 2 : affectation des travaux et exécution par les ateliers
 
-**Statut : cadrage validé le 19 novembre 2026 — sous-lots 2.1 à 2.4 livrés et testés en local, suite au 2.5.**
+**Statut : cadrage validé le 19 novembre 2026 — sous-lots 2.1 à 2.5 livrés et testés en local ; reste la recette finale et la mise en production.**
 Références : `docs/elembo-partners.md` (Lot 1), `docs/banderoles-grand-format.md`, code de `main`
 au commit `618f4fa` (Lot 1 fusionné et déployé ; migrations `0001` → `0012` appliquées en staging
 et en production).
@@ -681,7 +681,7 @@ Deux ateliers A et B, un compte sans entreprise, un compte staff, un compte susp
 | **2.2 — Affectation côté Smart Vision** | Formulaire de proposition (production + banderoles), instantané tarifaire, permissions, écran `/admin/affectations`, onglet fiche partenaire | Pages, actions, modules `src/lib/partenaires/affectations.ts`, `src/server/admin/affectations.ts`, tests | 5–6 j — ✅ 19/11 |
 | **2.3 — Portail atelier** | `/partenaire/travaux`, fiche, accepter/refuser/terminer, montants masqués, navigation, tableau de bord | Pages, actions, DAL, tests composants | 4–5 j — ✅ 19/11 |
 | **2.4 — Notifications et fichiers** | File de notifications, envoi immédiat, rappels, partage sélectif de fichiers, audit de téléchargement | Module notifications, route de téléchargement, tests | 3–4 j — ✅ 20/11 |
-| **2.5 — Purge et finitions** | Archivage des `BROUILLON` > 90 j, expiration des propositions, intégration au cron existant, doc et guide | Fonctions + route cron, tests, doc | 1–2 j |
+| **2.5 — Purge et finitions** | Archivage des `BROUILLON` > 90 j, expiration des propositions, intégration au cron existant, doc et guide | Fonctions + route cron, tests, doc | 1–2 j — ✅ 20/11 |
 
 Dépendances : 2.2 et 2.3 dépendent de 2.1 ; 2.4 peut démarrer en parallèle de 2.3 ; 2.5 clôt.
 
@@ -717,8 +717,16 @@ URL signée 60 s, fichier vérifié, accès limité aux affectations `PROPOSEE`/
 audit `AFFECTATION_FICHIER_TELECHARGE`. Tests : `affectationsNotifications.test.ts`. Vérifié :
 `npx tsc --noEmit`, `npx vitest run` (829 tests) et `next build`.
 
-**Aucune application sur staging ni en production.** **Reste : le sous-lot 2.5 (1 à 2 jours),
-puis la recette finale (2 jours).**
+**Avancement du 2.5 (20/11/2026)** : purge des dossiers `BROUILLON` issus d'une inscription, jamais
+soumis et inactifs depuis plus de 90 jours, branchée dans le cron existant. Ordre strict :
+suppression des objets du bucket `partenaires`, puis archivage (`archiver_brouillon`), désactivation
+des accès et suppression des lignes de fichiers ; audit `PARTENAIRE_BROUILLON_PURGE`. La fiche
+partenaire et le compte Auth sont conservés. Tests : `partenairesPurge.test.ts`. Vérifié :
+`npx tsc --noEmit`, `npx vitest run` (833 tests) et `next build`.
+
+**Les cinq sous-lots du Lot 2 sont livrés en local.** Restent la **recette finale** (2 jours), la
+configuration Resend (notifications), l'application de la migration `0013` en staging puis en
+production **avant** tout déploiement du code, et une passe de recette navigateur.
 
 ---
 

@@ -851,7 +851,9 @@ d'accès, message explicatif. Données de recette supprimées.
 Supabase Auth (§10) et installation des modèles d'e-mail ; déploiement du code (branche à fusionner
 après `feature/banderoles-grand-format`).
 
-**Lot 2** : cadrage, décisions à valider et découpage dans [`docs/plan-lot-2.md`](plan-lot-2.md).
+**Lot 2** : cadrage validé et sous-lots `2.1` à `2.5` livrés en local (affectations, portail
+travaux, notifications, fichiers, purge) — voir [`docs/plan-lot-2.md`](plan-lot-2.md). La recette
+finale et l'application distante de la migration `0013` restent à faire.
 
 ### 8.1 Tests unitaires
 Transitions de statut (entreprise, validation, tarif), paliers (contiguïté, chevauchement,

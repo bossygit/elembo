@@ -10,6 +10,7 @@
  */
 
 import type { SessionPartenaire } from '@/lib/partenaires/compte';
+import { notifierEvenementAffectation } from '@/server/affectations/notifications';
 import { creerClientAuthServeur } from '@/server/auth/session';
 import { supabaseAdmin } from '@/server/supabase/client';
 import { ErreurIntrouvable, ErreurMetier } from './ecriture';
@@ -102,6 +103,7 @@ export async function repondreAffectation(
     p_motif: decision === 'REFUSEE' ? (motif ?? '').trim().slice(0, 1000) : null,
   });
   if (error) traduire(error);
+  await notifierEvenementAffectation(id, decision, { motif: decision === 'REFUSEE' ? motif : null });
 }
 
 export async function terminerAffectation(session: SessionPartenaire, id: string): Promise<void> {
@@ -110,4 +112,27 @@ export async function terminerAffectation(session: SessionPartenaire, id: string
     p_utilisateur: session.userId,
   });
   if (error) traduire(error);
+  await notifierEvenementAffectation(id, 'TERMINEE');
+}
+
+/** Trace le téléchargement d'un fichier partagé, sans bloquer la livraison. */
+export async function journaliserTelechargement(
+  session: SessionPartenaire,
+  affectationId: string,
+  fichierId: string,
+  nom: string,
+): Promise<void> {
+  try {
+    const { error } = await db().from('journal_audit').insert({
+      acteur: session.userId,
+      acteur_email: session.email,
+      action: 'AFFECTATION_FICHIER_TELECHARGE',
+      entite: 'affectation',
+      entite_id: affectationId,
+      apres: { fichier_id: fichierId, nom },
+    });
+    if (error) console.error('Audit téléchargement non enregistré :', error.code ?? error.message);
+  } catch (erreur) {
+    console.error('Audit téléchargement non enregistré :', erreur instanceof Error ? erreur.message : erreur);
+  }
 }

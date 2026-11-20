@@ -154,6 +154,27 @@ export default async function PageTravail({
         </Carte>
       ) : null}
 
+      {a.fichiers.length ? (
+        <Carte titre="Fichiers partagés">
+          <ul className="space-y-3">
+            {a.fichiers.map((f) => (
+              <li key={f.fichier_id} className="flex flex-wrap items-center justify-between gap-3 border-b border-filet pb-3 last:border-0 last:pb-0">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{f.nom}</p>
+                  <p className="text-xs text-attenue">
+                    {f.type_mime} · {(f.taille_octets / 1024 / 1024).toFixed(2)} Mo
+                  </p>
+                </div>
+                <a href={`/partenaire/travaux/${a.id}/fichiers/${f.fichier_id}`} className={bouton('secondaire')}>
+                  Télécharger
+                </a>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-attenue">Lien sécurisé valable 60 secondes ; chaque téléchargement est journalisé.</p>
+        </Carte>
+      ) : null}
+
       {a.motif_refus ? <Alerte ton="attention">Refus : {a.motif_refus}</Alerte> : null}
       {a.motif_annulation ? <Alerte ton="attention">Annulation : {a.motif_annulation}</Alerte> : null}
 

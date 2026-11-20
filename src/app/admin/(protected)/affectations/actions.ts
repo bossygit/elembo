@@ -1,12 +1,14 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
 
 import { entierChamp, estDateIso, estUuid, texteChamp } from '@/lib/admin/format';
 import { peut } from '@/lib/admin/permissions';
 import { OBJETS_AFFECTATION, PRIORITES_AFFECTATION, SOURCES_TARIF } from '@/lib/partenaires/affectations';
 import { exigerAcces } from '@/server/admin/acces';
 import { annulerAffectation, proposerAffectation, relancerAffectation } from '@/server/admin/affectations';
+import { traiterNotifications } from '@/server/devis/notifications';
 import { echec, succes } from '@/server/admin/retour';
 
 const LISTE = '/admin/affectations';
@@ -28,6 +30,7 @@ export async function annulerAffectationAction(formData: FormData): Promise<void
   } catch (erreur) {
     echec(LISTE, erreur);
   }
+  after(() => traiterNotifications(20).catch(() => undefined));
   rafraichir(id);
   succes(LISTE, 'annulee');
 }
@@ -41,6 +44,7 @@ export async function relancerAffectationAction(formData: FormData): Promise<voi
   } catch (erreur) {
     echec(LISTE, erreur);
   }
+  after(() => traiterNotifications(20).catch(() => undefined));
   rafraichir(id);
   succes(LISTE, 'relancee');
 }
@@ -123,6 +127,7 @@ export async function proposerAffectationAction(formData: FormData): Promise<voi
   } catch (erreur) {
     echec(suite, erreur);
   }
+  after(() => traiterNotifications(20).catch(() => undefined));
   revalidatePath(LISTE);
   revalidatePath(suite);
   revalidatePath('/admin/production');

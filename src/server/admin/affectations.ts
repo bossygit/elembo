@@ -9,6 +9,7 @@
  */
 
 import { dateLimiteValide, calculerMontant, estPrioriteAffectation, tarifsAffectables, type ObjetAffectation, type PrioriteAffectation, type SourceTarif, type TarifAffectation } from '@/lib/partenaires/affectations';
+import { notifierEvenementAffectation } from '@/server/affectations/notifications';
 import type { Staff } from './acces';
 import { journaliser } from './audit';
 import { listerPartenaires, verifierAffectation } from './production';
@@ -322,6 +323,7 @@ export async function proposerAffectation(staff: Staff, champs: PropositionAffec
       fichiers,
     },
   });
+  await notifierEvenementAffectation(id, 'PROPOSEE');
   return id;
 }
 
@@ -338,6 +340,7 @@ export async function annulerAffectation(staff: Staff, id: string, motif: string
   });
   if (error) traduire(error);
   await journaliser({ staff, action: 'AFFECTATION_ANNULEE', entite: 'affectation', entiteId: id, apres: { motif: texte } });
+  await notifierEvenementAffectation(id, 'ANNULEE', { motif: texte });
 }
 
 /**
@@ -351,4 +354,5 @@ export async function relancerAffectation(staff: Staff, id: string): Promise<voi
   if (!data) throw new ErreurIntrouvable('Affectation introuvable.');
   if (data.statut !== 'PROPOSEE') throw new ErreurMetier('Seule une proposition en attente peut être relancée.');
   await journaliser({ staff, action: 'AFFECTATION_RELANCEE', entite: 'affectation', entiteId: id });
+  await notifierEvenementAffectation(id, 'RELANCE');
 }

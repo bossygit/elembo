@@ -7,8 +7,10 @@
  */
 
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
 import { redirect } from 'next/navigation';
 
+import { traiterNotifications } from '@/server/devis/notifications';
 import { exigerPartenaire } from '@/server/partenaires/acces';
 import { ErreurIntrouvable, ErreurMetier } from '@/server/partenaires/ecriture';
 import { repondreAffectation, terminerAffectation } from '@/server/partenaires/travaux';
@@ -41,6 +43,7 @@ export async function accepterAffectationAction(formData: FormData): Promise<voi
   } catch (erreur) {
     redirect(`/partenaire/travaux/${id}?erreur=` + encodeURIComponent(message(erreur)));
   }
+  after(() => traiterNotifications(20).catch(() => undefined));
   rafraichir(id);
   redirect(`/partenaire/travaux/${id}?ok=acceptee`);
 }
@@ -56,6 +59,7 @@ export async function refuserAffectationAction(formData: FormData): Promise<void
   } catch (erreur) {
     redirect(`/partenaire/travaux/${id}?erreur=` + encodeURIComponent(message(erreur)));
   }
+  after(() => traiterNotifications(20).catch(() => undefined));
   rafraichir(id);
   redirect(`/partenaire/travaux/${id}?ok=refusee`);
 }
@@ -69,6 +73,7 @@ export async function terminerAffectationAction(formData: FormData): Promise<voi
   } catch (erreur) {
     redirect(`/partenaire/travaux/${id}?erreur=` + encodeURIComponent(message(erreur)));
   }
+  after(() => traiterNotifications(20).catch(() => undefined));
   rafraichir(id);
   redirect(`/partenaire/travaux/${id}?ok=terminee`);
 }

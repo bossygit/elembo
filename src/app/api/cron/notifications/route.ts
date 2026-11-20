@@ -1,4 +1,5 @@
 import { expirerAffectationsEtNotifier, programmerRappelsAffectations } from '@/server/affectations/entretien';
+import { purgerBrouillonsAbandonnes } from '@/server/partenaires/entretien';
 import { traiterNotifications } from '@/server/devis/notifications';
 import { jsonErreur } from '@/server/security/http';
 
@@ -19,8 +20,9 @@ export async function GET(request: Request) {
     // Expiration et rappels d'abord : ils alimentent la file, envoyée juste après.
     const expiration = await expirerAffectationsEtNotifier();
     const rappels = await programmerRappelsAffectations();
+    const purge = await purgerBrouillonsAbandonnes();
     const resultat = await traiterNotifications(50);
-    return Response.json({ ...resultat, ...expiration, ...rappels }, { headers: { 'Cache-Control': 'no-store' } });
+    return Response.json({ ...resultat, ...expiration, ...rappels, purge }, { headers: { 'Cache-Control': 'no-store' } });
   } catch {
     return jsonErreur('Traitement indisponible.', 503);
   }

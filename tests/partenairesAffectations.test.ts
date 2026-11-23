@@ -20,6 +20,7 @@ import {
   dateLimiteValide,
   libelleSourceTarif,
   statutAffectation,
+  suiviAffectations,
   tarifEnVigueur,
   tarifsAffectables,
   transitionAffectationPermise,
@@ -194,5 +195,31 @@ describe('permissions staff des affectations', () => {
     expect(peut('commercial', 'affectations.couts')).toBe(false);
     expect(peut('admin', 'affectations.voir')).toBe(true);
     expect(peut('finance', 'affectations.voir')).toBe(true);
+  });
+});
+
+describe('suivi des affectations d’un travail', () => {
+  const a = (statut: string, cree_le: string) => ({ statut, cree_le, reference: `${statut}-${cree_le}` });
+
+  it('sans affectation : rien à suivre', () => {
+    expect(suiviAffectations([])).toEqual({ active: null, derniere: null });
+  });
+
+  it('garde visible un refus récent au lieu de le faire disparaître', () => {
+    const s = suiviAffectations([a('EXPIREE', '2026-11-20T10:00:00Z'), a('REFUSEE', '2026-11-23T10:00:00Z')]);
+    expect(s.active).toBeNull();
+    expect(s.derniere?.statut).toBe('REFUSEE');
+  });
+
+  it('l’affectation active prime sur un refus plus ancien', () => {
+    const s = suiviAffectations([a('REFUSEE', '2026-11-23T09:00:00Z'), a('PROPOSEE', '2026-11-23T10:00:00Z')]);
+    expect(s.active?.statut).toBe('PROPOSEE');
+    expect(s.derniere?.statut).toBe('PROPOSEE');
+  });
+
+  it('une fin signalée est la dernière affectation, sans affectation active', () => {
+    const s = suiviAffectations([a('TERMINEE', '2026-11-23T10:00:00Z'), a('ANNULEE', '2026-11-22T10:00:00Z')]);
+    expect(s.active).toBeNull();
+    expect(s.derniere?.statut).toBe('TERMINEE');
   });
 });

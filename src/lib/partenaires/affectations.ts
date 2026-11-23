@@ -56,6 +56,19 @@ export function affectationActive(statut: StatutAffectation): boolean {
   return statut === 'PROPOSEE' || statut === 'ACCEPTEE';
 }
 
+/**
+ * Suivi d'un travail (tâche ou banderole) à partir de toutes ses affectations : celle qui
+ * l'occupe encore, et la plus récente — pour montrer au staff un refus, une expiration, une
+ * annulation ou une fin signalée au lieu de les faire disparaître.
+ */
+export function suiviAffectations<T extends { statut: string; cree_le: string }>(
+  affectations: readonly T[],
+): { active: T | null; derniere: T | null } {
+  const triees = [...affectations].sort((a, b) => b.cree_le.localeCompare(a.cree_le));
+  const active = triees.find((a) => estStatutAffectation(a.statut) && affectationActive(a.statut)) ?? null;
+  return { active, derniere: active ?? triees[0] ?? null };
+}
+
 /* ------------------------------------------------------------- priorité -- */
 
 export type PrioriteAffectation = 'NORMALE' | 'URGENTE';

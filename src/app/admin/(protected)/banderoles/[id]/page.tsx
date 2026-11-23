@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { PropositionAffectation } from '@/components/admin/PropositionAffectation';
+import { SuiviAffectation } from '@/components/admin/SuiviAffectation';
 import { Badge, Carte, Definitions, EnTete, Flash, Vide, bouton, champ, libelle, tableau } from '@/components/admin/ui';
 import ApercuBanderole from '@/components/grand-format/ApercuBanderole';
 import { dateCourte, dateHeure, estUuid, fcfa, pourcentage } from '@/lib/admin/format';
@@ -19,6 +20,7 @@ import {
   supportParId,
   surfaceM2,
 } from '@/lib/grand-format/catalogue';
+import { suiviAffectations } from '@/lib/partenaires/affectations';
 import { MESSAGES_SANS_ESTIMATION, type RaisonSansEstimation } from '@/lib/grand-format/estimation';
 import { modelePrincipal } from '@/lib/grand-format/modeles';
 import {
@@ -107,11 +109,27 @@ export default async function PageBanderole({
   const contact = d.devis.contact_snapshot as Record<string, unknown>;
   const surfacePiece = surfaceM2(d.largeur_m, d.hauteur_m);
   const partenaire = partenaires.find((p) => p.id === d.partenaire_id) ?? null;
-  const affectationActive = affectations.find(
-    (a) => a.devis_id === id && (a.statut === 'PROPOSEE' || a.statut === 'ACCEPTEE'),
-  );
   const peutAffecter = peut(staff.role, 'affectations.gerer');
   const peutCoutsAffectation = peut(staff.role, 'affectations.couts');
+  const suiviBanderole = suiviAffectations(affectations.filter((a) => a.devis_id === id));
+  const formulaireBanderole = d.commande ? (
+    <PropositionAffectation
+      objet="BANDEROLE"
+      commandeId={d.commande.id}
+      devisId={id}
+      libelle={`Impression ${libelleSupport(d.support)} — ${d.devis.reference}`}
+      support={d.support}
+      quantite={d.quantite}
+      unite="PIECE"
+      surfaceM2={d.surface_totale_m2}
+      dateFinPrevue={d.production_prevue_le}
+      suite={`/admin/banderoles/${id}`}
+      partenaires={partenaires.map((p) => ({ id: p.id, nom: p.nom }))}
+      tarifs={tarifsAffectation}
+      fichiers={fichiersAffectation.map((f) => ({ id: f.id, nom: f.nom, type_fichier: f.type_fichier }))}
+      peutCouts={peutCoutsAffectation}
+    />
+  ) : null;
   // Coût d'impression : tarif négocié VALIDÉ et en vigueur (Elembo Partners), sinon ancien prix de la fiche.
   const tarifsImpression = voirCouts && partenaire ? await tarifsImpressionValides(partenaire.id) : [];
   const tarifRetenu = tarifImpression(tarifsImpression, d.support, new Date().toISOString().slice(0, 10));
@@ -492,33 +510,22 @@ export default async function PageBanderole({
           {/* ---------------------------------------------------- production ---- */}
           {d.commande ? (
             <Carte titre="6 · Production chez l’imprimeur" id="production">
-              {affectationActive ? (
-                <p className="mb-3 text-xs text-neutral-600">
-                  Affectation <span className="tabular-nums">{affectationActive.reference}</span> ·{' '}
-                  {affectationActive.statut === 'PROPOSEE' ? 'en attente de réponse' : 'acceptée'}
-                  {affectationActive.partenaire ? ` · ${affectationActive.partenaire.nom}` : ''} ·{' '}
-                  <Link href="/admin/affectations" className="underline underline-offset-2">
-                    suivre
-                  </Link>
-                </p>
-              ) : chiffrer && peutAffecter ? (
-                <PropositionAffectation
-                  objet="BANDEROLE"
-                  commandeId={d.commande.id}
-                  devisId={id}
-                  libelle={`Impression ${libelleSupport(d.support)} — ${d.devis.reference}`}
-                  support={d.support}
-                  quantite={d.quantite}
-                  unite="PIECE"
-                  surfaceM2={d.surface_totale_m2}
-                  dateFinPrevue={d.production_prevue_le}
-                  suite={`/admin/banderoles/${id}`}
-                  partenaires={partenaires.map((p) => ({ id: p.id, nom: p.nom }))}
-                  tarifs={tarifsAffectation}
-                  fichiers={fichiersAffectation.map((f) => ({ id: f.id, nom: f.nom, type_fichier: f.type_fichier }))}
-                  peutCouts={peutCoutsAffectation}
-                />
+              {suiviBanderole.derniere ? (
+                <div className="mb-3">
+                  <SuiviAffectation
+                    affectation={suiviBanderole.derniere}
+                    consigneFin="contrôlez la banderole puis faites avancer la commande."
+                  />
+                </div>
               ) : null}
+              {suiviBanderole.active || !chiffrer || !peutAffecter ? null : suiviBanderole.derniere?.statut === 'TERMINEE' ? (
+                <details className="mb-3 print:hidden">
+                  <summary className="cursor-pointer text-xs font-medium text-neutral-600">Proposer à nouveau à un atelier</summary>
+                  {formulaireBanderole}
+                </details>
+              ) : (
+                formulaireBanderole
+              )}
               {chiffrer ? (
                 <form action={planifierProductionAction} className="mb-4 grid gap-3 sm:grid-cols-3">
                   <input type="hidden" name="devis_id" value={id} />

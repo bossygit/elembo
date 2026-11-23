@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic';
 
 const MESSAGES = {
   annulee: 'Affectation annulée. La tâche ou la banderole est libérée.',
-  relancee: 'Proposition relancée (trace d’audit ; l’e-mail part avec les notifications du Lot 2.4).',
+  relancee: 'Proposition relancée : un rappel est envoyé à l’atelier.',
 } as const;
 
 function lienTravail(a: LigneAffectation): string | null {
@@ -126,6 +126,7 @@ export default async function PageAffectations({
               const badge = estStatutAffectation(a.statut) ? statutAffectation(a.statut) : { label: a.statut, ton: 'neutre' as const };
               const enRetard = a.statut === 'PROPOSEE' && new Date(a.date_limite_reponse).getTime() < maintenant;
               const href = lienTravail(a);
+              const motif = a.statut === 'REFUSEE' ? a.motif_refus : a.statut === 'ANNULEE' ? a.motif_annulation : null;
               return (
                 <tr key={a.id} className={tableau.tr}>
                   <td className={tableau.td}>
@@ -158,10 +159,24 @@ export default async function PageAffectations({
                   <td className={tableau.td}>
                     <Badge ton={badge.ton}>{badge.label}</Badge>
                     {a.priorite === 'URGENTE' ? <p className="mt-1 text-xs text-orange-800">Urgente</p> : null}
+                    {motif ? <p className="mt-1 max-w-56 whitespace-pre-wrap text-xs text-neutral-600">Motif : {motif}</p> : null}
                   </td>
                   <td className={tableau.td}>
-                    <span className={enRetard ? 'font-medium text-red-700' : ''}>{dateCourte(a.date_limite_reponse)}</span>
-                    {enRetard ? <p className="text-xs font-medium text-red-700">En retard</p> : null}
+                    {a.statut === 'PROPOSEE' ? (
+                      <>
+                        <span className={enRetard ? 'font-medium text-red-700' : ''}>{dateCourte(a.date_limite_reponse)}</span>
+                        <p className={`text-xs ${enRetard ? 'font-medium text-red-700' : 'text-neutral-500'}`}>
+                          {enRetard ? 'Réponse en retard' : 'Réponse attendue'}
+                        </p>
+                      </>
+                    ) : a.date_fin_prevue ? (
+                      <>
+                        {dateCourte(a.date_fin_prevue)}
+                        <p className="text-xs text-neutral-500">Fin prévue</p>
+                      </>
+                    ) : (
+                      '—'
+                    )}
                   </td>
                   {voirCouts ? (
                     <td className={`${tableau.nombre}`}>

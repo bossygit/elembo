@@ -4,10 +4,12 @@ import { notFound } from 'next/navigation';
 
 import { BoutonImprimer } from '@/components/admin/BoutonImprimer';
 import { PropositionAffectation } from '@/components/admin/PropositionAffectation';
+import { SuiviAffectation } from '@/components/admin/SuiviAffectation';
 import { Badge, Carte, Definitions, EnTete, Flash, Vide, bouton, champ, libelle, tableau } from '@/components/admin/ui';
 import { aujourdhui, dateCourte, dateHeure, estUuid, fcfa, libelleEtape, taille } from '@/lib/admin/format';
 import { peut } from '@/lib/admin/permissions';
 import { STATUTS_PRODUCTION, libelleCommande, libelleProduction } from '@/lib/admin/statuts';
+import { suiviAffectations } from '@/lib/partenaires/affectations';
 import { exigerAcces } from '@/server/admin/acces';
 import {
   affectationsDeCommande,
@@ -253,7 +255,22 @@ export default async function PageDossierProduction({
               {c.travaux.map((t) => {
                 const s = libelleProduction(t.statut);
                 const retard = t.date_prevue && t.date_prevue < jour && ['A_FAIRE', 'EN_COURS', 'BLOQUE'].includes(t.statut);
-                const aff = affectations.find((a) => a.tache_id === t.id && (a.statut === 'PROPOSEE' || a.statut === 'ACCEPTEE'));
+                const suivi = suiviAffectations(affectations.filter((a) => a.tache_id === t.id));
+                const tacheCloturee = t.statut === 'TERMINE' || t.statut === 'ANNULE';
+                const formulaire = (
+                  <PropositionAffectation
+                    objet="TACHE_PRODUCTION"
+                    commandeId={c.id}
+                    tacheId={t.id}
+                    libelle={`${libelleEtape(t.etape)} — ${c.reference}`}
+                    dateFinPrevue={t.date_prevue}
+                    suite={`/admin/production/${c.id}`}
+                    partenaires={partenaires.map((p) => ({ id: p.id, nom: p.nom }))}
+                    tarifs={tarifsAffectation}
+                    fichiers={fichiersAffectation.map((f) => ({ id: f.id, nom: f.nom, type_fichier: f.type_fichier }))}
+                    peutCouts={peutCoutsAffectation}
+                  />
+                );
                 return (
                   <li key={t.id} className="rounded-lg border border-neutral-200 p-3">
                     <div className="flex items-start justify-between gap-2">
@@ -272,29 +289,21 @@ export default async function PageDossierProduction({
                     </div>
                     {t.instructions ? <p className="mt-2 whitespace-pre-wrap text-sm">{t.instructions}</p> : null}
                     {t.cout_fcfa ? <p className="mt-1 text-xs text-neutral-500">Coût : {fcfa(t.cout_fcfa)}</p> : null}
-                    {aff ? (
-                      <p className="mt-2 text-xs text-neutral-600">
-                        Affectation <span className="tabular-nums">{aff.reference}</span> ·{' '}
-                        {aff.statut === 'PROPOSEE' ? 'en attente de réponse' : 'acceptée'}
-                        {aff.partenaire ? ` · ${aff.partenaire.nom}` : ''} ·{' '}
-                        <Link href="/admin/affectations" className="underline underline-offset-2">
-                          suivre
-                        </Link>
-                      </p>
-                    ) : peutAffecter ? (
-                      <PropositionAffectation
-                        objet="TACHE_PRODUCTION"
-                        commandeId={c.id}
-                        tacheId={t.id}
-                        libelle={`${libelleEtape(t.etape)} — ${c.reference}`}
-                        dateFinPrevue={t.date_prevue}
-                        suite={`/admin/production/${c.id}`}
-                        partenaires={partenaires.map((p) => ({ id: p.id, nom: p.nom }))}
-                        tarifs={tarifsAffectation}
-                        fichiers={fichiersAffectation.map((f) => ({ id: f.id, nom: f.nom, type_fichier: f.type_fichier }))}
-                        peutCouts={peutCoutsAffectation}
+                    {suivi.derniere ? (
+                      <SuiviAffectation
+                        affectation={suivi.derniere}
+                        consigneFin={tacheCloturee ? 'tâche clôturée.' : 'contrôlez le travail puis passez la tâche à « Terminé ».'}
+                        cloture={tacheCloturee}
                       />
                     ) : null}
+                    {suivi.active || tacheCloturee || !peutAffecter ? null : suivi.derniere?.statut === 'TERMINEE' ? (
+                      <details className="mt-2 print:hidden">
+                        <summary className="cursor-pointer text-xs font-medium text-neutral-600">Proposer à nouveau à un atelier</summary>
+                        {formulaire}
+                      </details>
+                    ) : (
+                      formulaire
+                    )}
                     {peutModifier ? (
                       <details className="mt-2 print:hidden">
                         <summary className="cursor-pointer text-xs font-medium text-neutral-600">Modifier</summary>

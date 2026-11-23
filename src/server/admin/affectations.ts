@@ -57,6 +57,8 @@ export type LigneAffectation = {
   tarif_version: number | null;
   cree_le: string;
   acceptee_le: string | null;
+  motif_refus: string | null;
+  motif_annulation: string | null;
   commande_id: string;
   tache_id: string | null;
   devis_id: string | null;
@@ -68,7 +70,7 @@ export type LigneAffectation = {
 const SELECTION =
   'id, reference, objet, statut, libelle, support, quantite, unite, surface_m2, priorite, ' +
   'date_debut_prevue, date_fin_prevue, date_limite_reponse, montant_fcfa, tarif_source, ' +
-  'tarif_nom, tarif_version, cree_le, acceptee_le, commande_id, tache_id, devis_id, ' +
+  'tarif_nom, tarif_version, cree_le, acceptee_le, motif_refus, motif_annulation, commande_id, tache_id, devis_id, ' +
   'partenaire:partenaires(id, nom), commande:commandes(reference), tache:travaux_production(etape)';
 
 const ORDRE: Record<string, number> = { PROPOSEE: 0, ACCEPTEE: 1, TERMINEE: 2, REFUSEE: 3, EXPIREE: 4, ANNULEE: 5 };
@@ -137,6 +139,15 @@ export type AffectationCourte = {
   tache_id: string | null;
   devis_id: string | null;
   statut: string;
+  cree_le: string;
+  date_limite_reponse: string;
+  acceptee_le: string | null;
+  refusee_le: string | null;
+  annulee_le: string | null;
+  expiree_le: string | null;
+  terminee_le: string | null;
+  motif_refus: string | null;
+  motif_annulation: string | null;
   partenaire: { nom: string } | null;
 };
 
@@ -144,7 +155,10 @@ export async function affectationsDeCommande(commandeId: string): Promise<Affect
   verifierId(commandeId, 'Commande');
   const { data, error } = await db()
     .from('affectations_production')
-    .select('id, reference, tache_id, devis_id, statut, partenaire:partenaires(nom)')
+    .select(
+      'id, reference, tache_id, devis_id, statut, cree_le, date_limite_reponse, acceptee_le, refusee_le, ' +
+        'annulee_le, expiree_le, terminee_le, motif_refus, motif_annulation, partenaire:partenaires(nom)',
+    )
     .eq('commande_id', commandeId)
     .order('cree_le', { ascending: false });
   if (error) throw new Error(error.message);

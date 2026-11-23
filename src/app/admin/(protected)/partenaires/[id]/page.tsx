@@ -408,6 +408,11 @@ export default async function PagePartenaire({
                           </td>
                           <td className={tableau.td}>
                             <Badge ton={badge.ton}>{badge.label}</Badge>
+                            {a.statut === 'REFUSEE' && a.motif_refus ? (
+                              <p className="mt-1 whitespace-pre-wrap text-xs text-neutral-600">Motif : {a.motif_refus}</p>
+                            ) : a.statut === 'ANNULEE' && a.motif_annulation ? (
+                              <p className="mt-1 whitespace-pre-wrap text-xs text-neutral-600">Motif : {a.motif_annulation}</p>
+                            ) : null}
                           </td>
                           <td className={tableau.td}>{dateCourte(a.cree_le)}</td>
                           {voirCoutsAffectations ? (

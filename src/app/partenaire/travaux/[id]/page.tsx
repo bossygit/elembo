@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 
 import { Definitions, EnTeteRubrique, MessageOk, PageDossier, Pastille } from '@/components/partenaire/affichage';
 import { Alerte, Carte, bouton, champ, libelle } from '@/components/partenaire/ui';
-import { dateCourte, dateHeure, estUuid } from '@/lib/admin/format';
+import { dateCourte, dateHeure, estUuid, taille } from '@/lib/admin/format';
 import { OBJETS_AFFECTATION, estStatutAffectation, statutAffectation } from '@/lib/partenaires/affectations';
 import { peutPartenaire } from '@/lib/partenaires/droits';
 import { exigerPartenaire } from '@/server/partenaires/acces';
@@ -162,7 +162,7 @@ export default async function PageTravail({
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{f.nom}</p>
                   <p className="text-xs text-attenue">
-                    {f.type_mime} · {(f.taille_octets / 1024 / 1024).toFixed(2)} Mo
+                    {f.type_mime} · {taille(f.taille_octets)}
                   </p>
                 </div>
                 <a href={`/partenaire/travaux/${a.id}/fichiers/${f.fichier_id}`} className={bouton('secondaire')}>

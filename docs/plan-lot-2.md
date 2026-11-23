@@ -762,6 +762,34 @@ table `public` sans RLS (41/41), aucun droit `anon`, `authenticated` en lecture 
 `mes_affectations` et `mon_affectation` sont exécutables par `authenticated`, aucune fonction
 exécutable par `anon`. Le CLI a été relié de nouveau au staging après l'opération.
 
+**Recette navigateur (23/11/2026)** — application locale (`next dev`) branchée sur elembo-staging,
+390 px et 1 280 px, comptes et données marqués (run `HAA9Y75F`) : admin, staff `atelier`, atelier A
+(`RESPONSABLE` + `PRODUCTION`), atelier B. Vérifié : proposition d'une tâche (tarif validé,
+6 m² → 12 000 FCFA figé, fichier partagé) et d'une banderole (3 m² → 6 000 FCFA) ; acceptation
+(la tâche et la banderole passent à l'atelier) ; refus bloqué sans motif puis motivé ;
+réaffectation à B ; expiration par `expirer_affectations()` ; fin signalée puis clôture staff ;
+annulation motivée ; relance ; téléchargement (URL signée, audit, 404 sur un fichier non partagé) ;
+`PRODUCTION` sans montant ni décision ; staff `atelier` sans coûts (montant forcé refusé par le
+serveur) ; isolation A/B à l'écran (404) et par l'API (RPC, tables, écriture refusée) ; immuabilité
+(mise à jour SQL directe refusée) ; historique et file de notifications (e-mails en `ECHEC` faute
+de Resend, attendu).
+
+Défauts trouvés et corrigés : (1) le dossier de production et la fiche banderole faisaient
+disparaître une affectation refusée, expirée, annulée ou terminée et réaffichaient le formulaire,
+même sur une tâche clôturée ; le motif de refus n'apparaissait nulle part au back-office — ajout de
+`SuiviAffectation` (dernier état, motif, consigne après une fin signalée), formulaire masqué sur
+une tâche `TERMINE`/`ANNULE` et replié derrière « Proposer à nouveau » après une fin signalée,
+motifs dans la liste et sur la fiche partenaire ; (2) message de relance qui citait « Lot 2.4 » ;
+(3) colonne « Échéance » : date limite de réponse en attente, fin prévue ensuite ; (4) taille
+« 0.00 Mo » des petits fichiers au portail. Revérifié sur les mêmes données. Données, comptes et
+fichier de recette supprimés ensuite (staging revenu à vide).
+
+Points ouverts : les alertes staff (acceptation, refus, fin) ne partent que si
+`DEVIS_NOTIFY_EMAIL` ou `TELEGRAM_CHAT_ID` est défini — à vérifier dans Vercel (production) ; le
+coût accepté reste dans l'affectation et n'alimente pas `travaux_production.cout_fcfa` (marges).
+Non couverts : envoi réel des e-mails (Resend), route cron appelée de bout en bout, back-office
+mobile.
+
 ---
 
 ## 9. Tests

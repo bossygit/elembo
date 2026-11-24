@@ -82,9 +82,20 @@ défilement horizontal. Trois pièges Konva relevés, à reprendre dès le lot 2
 - Les banderoles sont confiées aux ateliers par **affectation** (Lot 2 Partners) : le visuel courant et son PDF
   devront être partagés avec l'atelier par ce canal (fichiers partagés d'une affectation), pas par un envoi à part.
 
-## 6. À trancher avant le lot 1
+## 6. Décisions du §10 — validées le 24 novembre 2026
 
-Les huit décisions du §10 de l'audit restent ouvertes ; le spike en éclaire deux :
+| # | Sujet | Décision retenue |
+|---|---|---|
+| 1 | Prestation commerciale | Le Studio est rattaché à `FICHIER_PRET`, sans frais de création automatiques ; requalification par le staff si besoin. Ni la grille ni les contraintes CHECK ne changent. |
+| 2 | Plafond en libre-service | 12 pages, 100 m², 20 m de long ; au-delà, devis manuel. Les limites commerciales 0,2–50 m restent inchangées. |
+| 3 | Couleur | PDF RVB (sRGB) en v1, conversion CMJN par l'imprimeur, BAT recommandé et test d'impression. |
+| 4 | Polices | TTF statiques pour chaque famille utilisée par les modèles ; ajout de 2 à 3 familles événementielles (Great Vibes, Cinzel, éventuellement Cormorant) ; couverture des caractères locaux vérifiée. |
+| 5 | Aperçu | JPEG 1 600 px généré par le navigateur, SVG pur pour les vignettes ; pas de rasteriseur serveur. |
+| 6 | Reprise | Locale avant le devis ; par la session de suivi du devis ensuite ; pas de brouillon anonyme multi-appareil en v1. |
+| 7 | Modèles | 10 modèles (1 à 2 par catégorie), noms et lieux fictifs, sans photo tierce, relus par Smart Vision. |
+| 8 | Imprimeur pilote | **En attente** : à désigner par le service commercial. Requis pour imprimer les essais 3 × 1 m et 6 × 1 m et clore le lot 0. |
+
+Le spike éclaire deux de ces décisions :
 
 - **Décision 4 (polices)** : il faut des TTF statiques pour chaque famille utilisée par les modèles, et choisir des
   familles qui couvrent les caractères locaux si les modèles en ont besoin (Anton couvre `ɛ ɔ ŋ`, Bebas Neue et DM

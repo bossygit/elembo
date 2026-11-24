@@ -1,0 +1,17 @@
+{
+  "anton": {
+    "famille": "Anton",
+    "ascendante": 1.17626953125,
+    "descendante": -0.3291015625
+  },
+  "bebas-neue": {
+    "famille": "Bebas Neue",
+    "ascendante": 0.9,
+    "descendante": -0.3
+  },
+  "dm-serif-display": {
+    "famille": "DM Serif Display",
+    "ascendante": 1.036,
+    "descendante": -0.335
+  }
+}

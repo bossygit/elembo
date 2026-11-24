@@ -1,0 +1,192 @@
+{
+  "schema": "elembo.banner",
+  "version": 1,
+  "id": "spike-hommage",
+  "nom": "Hommage — essai lot 0",
+  "support": "BANDEROLE",
+  "categorie": "DEUIL",
+  "dimensions": {
+    "largeurMm": 3000,
+    "hauteurMm": 1000
+  },
+  "contraintes": {
+    "margeSecuriteMm": 50,
+    "fondPerduMm": 0
+  },
+  "fond": {
+    "type": "couleur",
+    "couleur": "#0D0B10"
+  },
+  "assets": [
+    {
+      "id": "portrait",
+      "nom": "tableau-interieur.jpg",
+      "mime": "image/jpeg",
+      "largeurPx": 1600,
+      "hauteurPx": 2844
+    },
+    {
+      "id": "logo",
+      "nom": "logo-transparent.png",
+      "mime": "image/png",
+      "largeurPx": 900,
+      "hauteurPx": 900
+    }
+  ],
+  "elements": [
+    {
+      "id": "cadre",
+      "type": "forme",
+      "xMm": 1500,
+      "yMm": 500,
+      "largeurMm": 2920,
+      "hauteurMm": 920,
+      "rotationDeg": 0,
+      "opacite": 1,
+      "forme": {
+        "nature": "rect",
+        "fond": null,
+        "contour": "#D9C08A",
+        "epaisseurMm": 6,
+        "rayonMm": 0
+      }
+    },
+    {
+      "id": "portrait",
+      "type": "image",
+      "xMm": 550,
+      "yMm": 500,
+      "largeurMm": 620,
+      "hauteurMm": 780,
+      "rotationDeg": 0,
+      "opacite": 1,
+      "image": {
+        "assetId": "portrait",
+        "recadrage": {
+          "x": 0.1,
+          "y": 0.2,
+          "l": 0.8,
+          "h": 0.6
+        },
+        "ajustement": "cover"
+      }
+    },
+    {
+      "id": "surtitre",
+      "type": "texte",
+      "xMm": 1739.9999999999998,
+      "yMm": 200,
+      "largeurMm": 1800,
+      "hauteurMm": 90,
+      "rotationDeg": 0,
+      "opacite": 1,
+      "texte": {
+        "contenu": "HOMMAGE À NOTRE REGRETTÉ",
+        "policeId": "bebas-neue",
+        "corpsMm": 75,
+        "couleur": "#D9C08A",
+        "alignement": "center",
+        "interlettrageEm": 0.18,
+        "interligne": 1
+      }
+    },
+    {
+      "id": "nom",
+      "type": "texte",
+      "xMm": 1739.9999999999998,
+      "yMm": 430,
+      "largeurMm": 1860,
+      "hauteurMm": 240,
+      "rotationDeg": 0,
+      "opacite": 1,
+      "texte": {
+        "contenu": "Papa Joseph Malonga",
+        "policeId": "dm-serif-display",
+        "corpsMm": 200,
+        "couleur": "#FBF7EE",
+        "alignement": "center",
+        "interlettrageEm": 0,
+        "interligne": 1.05
+      }
+    },
+    {
+      "id": "filet",
+      "type": "forme",
+      "xMm": 1739.9999999999998,
+      "yMm": 600,
+      "largeurMm": 1080,
+      "hauteurMm": 5,
+      "rotationDeg": 0,
+      "opacite": 1,
+      "forme": {
+        "nature": "rect",
+        "fond": "#D9C08A",
+        "contour": null,
+        "epaisseurMm": 0,
+        "rayonMm": 0
+      }
+    },
+    {
+      "id": "dates",
+      "type": "texte",
+      "xMm": 1739.9999999999998,
+      "yMm": 750,
+      "largeurMm": 1800,
+      "hauteurMm": 200,
+      "rotationDeg": 0,
+      "opacite": 1,
+      "texte": {
+        "contenu": "1951 — 2026\n« Tu resteras à jamais dans nos cœurs »",
+        "policeId": "dm-serif-display",
+        "corpsMm": 70,
+        "couleur": "#E9E2D2",
+        "alignement": "center",
+        "interlettrageEm": 0,
+        "interligne": 1.25
+      }
+    },
+    {
+      "id": "logo",
+      "type": "image",
+      "xMm": 2780,
+      "yMm": 240,
+      "largeurMm": 240,
+      "hauteurMm": 240,
+      "rotationDeg": 12,
+      "opacite": 0.9,
+      "image": {
+        "assetId": "logo",
+        "recadrage": {
+          "x": 0,
+          "y": 0,
+          "l": 1,
+          "h": 1
+        },
+        "ajustement": "contain"
+      }
+    },
+    {
+      "id": "mention",
+      "type": "texte",
+      "xMm": 2780,
+      "yMm": 820,
+      "largeurMm": 500,
+      "hauteurMm": 80,
+      "rotationDeg": -8,
+      "opacite": 1,
+      "texte": {
+        "contenu": "Famille Malonga",
+        "policeId": "anton",
+        "corpsMm": 55,
+        "couleur": "#E87A2E",
+        "alignement": "center",
+        "interlettrageEm": 0.04,
+        "interligne": 1
+      }
+    }
+  ],
+  "meta": {
+    "versionRendu": 1,
+    "origine": "spike-lot0"
+  }
+}

@@ -726,7 +726,10 @@ partenaire et le compte Auth sont conservés. Tests : `partenairesPurge.test.ts`
 
 **Les cinq sous-lots du Lot 2 sont livrés en local.** La migration `0013` est appliquée en staging
 et en production (20/11/2026), la recette navigateur est faite (23/11/2026) et Resend est configuré
-(24/11/2026, voir `docs/elembo-partners.md` §10.1).
+(24/11/2026, voir `docs/elembo-partners.md` §10.1). Le guide d'utilisation
+(`docs/guide-utilisation-elembo.html` et `.pdf`, édition du 24/11/2026) décrit désormais les
+banderoles (chapitre 12) et Elembo Partners (partie C : référencement, affectations, espace
+partenaires), avec des captures faites sur un jeu de démonstration fictif, supprimé ensuite.
 
 **Staging (20/11/2026)** : `0013` appliquée sur elembo-staging (`wbbvpslpagptvlnvhiqo`) par
 `supabase db push --remote`, après vérification du `dry-run` (seule `20261119120000` en attente)

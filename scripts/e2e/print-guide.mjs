@@ -23,7 +23,7 @@ try {
 
   const footer = `
     <div style="width:100%;padding:0 60px;font-family:Helvetica,Arial,sans-serif;font-size:7px;line-height:1.4;color:#d9480f;display:flex;justify-content:space-between;align-items:center;">
-      <span>elembo. — Guide d’utilisation · Personnalisation T-shirt &amp; mug · Tableau de bord</span>
+      <span>elembo. — Guide d’utilisation · Studio · Tableau de bord · Banderoles · Elembo Partners</span>
       <span><span class="pageNumber"></span> / <span class="totalPages"></span></span>
     </div>`;
 

@@ -111,9 +111,8 @@ Lot 2 ou sont hors périmètre.
    oublié partent par le SMTP de Supabase. Le SMTP intégré est fortement limité en débit et
    réservé aux tests : **un SMTP personnalisé (Resend, déjà utilisé) doit être configuré sur les
    projets hébergés**, avec des modèles d'e-mail en français pointant vers
-   `/partenaire/auth/confirmer` (flux `token_hash`). **État au 16/11/2026 : Resend n'est pas
-   configuré dans Supabase Auth.** C'est un prérequis bloquant pour l'ouverture du portail
-   (pas pour le développement ni pour les tests).
+   `/partenaire/auth/confirmer` (flux `token_hash`). **Fait le 24/11/2026** : Resend configuré
+   dans Supabase Auth sur staging et production (§10).
 
 3. **`partenaires.tarifs` (jsonb) est lu par le back-office Banderoles**
    (`src/app/admin/(protected)/banderoles/[id]/page.tsx`, lignes 103, 295, 661) pour estimer le
@@ -847,9 +846,8 @@ d'une fiche créée au back-office par invitation d'un responsable → responsab
 invitation ouverte avec un autre compte → refus, déconnexion proposée ; opérateur désactivé → plus
 d'accès, message explicatif. Données de recette supprimées.
 
-**Lot 1 terminé.** Prérequis restant avant ouverture en production : configuration de Resend dans
-Supabase Auth (§10) et installation des modèles d'e-mail ; déploiement du code (branche à fusionner
-après `feature/banderoles-grand-format`).
+**Lot 1 terminé.** Les prérequis d'ouverture (Resend dans Supabase Auth, modèles d'e-mail) sont
+faits depuis le 24/11/2026 (§10).
 
 **Lot 2** : cadrage validé et sous-lots `2.1` à `2.5` livrés en local (affectations, portail
 travaux, notifications, fichiers, purge) — voir [`docs/plan-lot-2.md`](plan-lot-2.md). Migration
@@ -907,6 +905,8 @@ production atelier et connexion back-office vérifiés après chaque sous-lot.
 
 ## 10. Prérequis d'exploitation avant l'ouverture du portail
 
+Points 1 à 4 **faits le 24/11/2026** sur staging et production (détail en §10.1).
+
 1. **SMTP personnalisé dans Supabase Auth** (staging puis production) : Resend, hôte
    `smtp.resend.com`, port 465, utilisateur `resend`, mot de passe = une clé API Resend dédiée,
    expéditeur sur un domaine vérifié dans Resend.
@@ -919,3 +919,24 @@ production atelier et connexion back-office vérifiés après chaque sous-lot.
    à installer seulement une fois le code du sous-lot 1.2 déployé.
 5. ~~Application des migrations `0011` et `0012` en staging puis en production~~ — fait le
    16/11/2026 (§8, sous-lot 1.1).
+
+### 10.1 Configuration Resend (24/11/2026)
+
+- **Domaine** `smartvision.cg` vérifié dans Resend (région eu-west-1). Zone DNS chez PlanetHoster :
+  TXT `resend._domainkey` (DKIM), CNAME `rsend` et `send` (SPF et retours d'envoi Resend). Le MX et
+  le SPF de `smartvision.cg` (messagerie existante) ne sont pas modifiés. DMARC `_dmarc`
+  (`v=DMARC1; p=none;`) recommandé, à ajouter.
+- **Expéditeur** : `Elembo <notifications@smartvision.cg>`.
+- **Application (Vercel, Production)** : `RESEND_API_KEY` et `DEVIS_EMAIL_FROM`, puis redéploiement.
+- **Supabase Auth** (staging et production) : SMTP `smtp.resend.com:465`, utilisateur `resend`,
+  expéditeur ci-dessus, sujets et modèles français, URLs de redirection (`localhost:3000` en
+  staging, `https://elembo.vercel.app` en production). L'**URL du site** de la production valait
+  `http://localhost:3000` : elle est passée à `https://elembo.vercel.app` (sinon les liens de
+  confirmation menaient à `localhost`). Le staging garde `http://localhost:3000` (recette locale).
+- **Méthode** : `supabase config push --workdir <dossier>` avec un `config.toml` minimal qui ne
+  déclare que ces réglages (`config diff` avant et après : rien d'autre modifié). **Ne jamais
+  pousser le `supabase/config.toml` du dépôt** vers un projet hébergé : ses URLs sont locales.
+  Clés gardées dans `.env.resend.local` (ignoré par Git).
+- **Vérifié** : envoi API (HTTP 200) ; inscription d'essai sur le staging → e-mail « Confirmez
+  votre adresse — Espace partenaires Elembo » reçu en boîte de réception (pas en spam), expéditeur
+  et modèle corrects ; compte d'essai supprimé.

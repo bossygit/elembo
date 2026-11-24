@@ -724,9 +724,9 @@ des accès et suppression des lignes de fichiers ; audit `PARTENAIRE_BROUILLON_P
 partenaire et le compte Auth sont conservés. Tests : `partenairesPurge.test.ts`. Vérifié :
 `npx tsc --noEmit`, `npx vitest run` (833 tests) et `next build`.
 
-**Les cinq sous-lots du Lot 2 sont livrés en local.** Restent la **recette finale** (2 jours), la
-configuration Resend (notifications) et une passe de recette navigateur. La migration `0013`
-est appliquée en staging et en production (20/11/2026).
+**Les cinq sous-lots du Lot 2 sont livrés en local.** La migration `0013` est appliquée en staging
+et en production (20/11/2026), la recette navigateur est faite (23/11/2026) et Resend est configuré
+(24/11/2026, voir `docs/elembo-partners.md` §10.1).
 
 **Staging (20/11/2026)** : `0013` appliquée sur elembo-staging (`wbbvpslpagptvlnvhiqo`) par
 `supabase db push --remote`, après vérification du `dry-run` (seule `20261119120000` en attente)
@@ -853,9 +853,9 @@ MoMo et portail partenaire vérifiés après chaque sous-lot.
 6. **Prérequis d'exploitation** :
    - **notifications atelier** : `RESEND_API_KEY` et `DEVIS_EMAIL_FROM` configurés dans Vercel
      (staging puis production), sinon les propositions restent visibles au portail mais aucun
-     e-mail ne part ;
+     e-mail ne part — **fait le 24/11/2026 en production** ;
    - **inscription** : Resend configuré dans Supabase Auth et modèles d'e-mail installés,
-     confirmation d'e-mail activée ;
+     confirmation d'e-mail activée — **fait le 24/11/2026** (staging et production) ;
    - cron : ne pas ajouter de troisième entrée Vercel (plan Hobby) — l'expiration, les rappels et
      la purge sont branchés dans la route `/api/cron/notifications` existante ;
    - vérifier `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` pour les alertes staff.

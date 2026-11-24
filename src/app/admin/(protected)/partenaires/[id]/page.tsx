@@ -385,48 +385,39 @@ export default async function PagePartenaire({
             {affectations.length === 0 ? (
               <Vide>Aucun travail proposé à cet atelier.</Vide>
             ) : (
-              <div className={tableau.conteneur}>
-                <table className={tableau.table}>
-                  <thead className={tableau.thead}>
-                    <tr>
-                      <th className={tableau.th}>Référence</th>
-                      <th className={tableau.th}>Statut</th>
-                      <th className={tableau.th}>Créée</th>
-                      {voirCoutsAffectations ? <th className={`${tableau.th} text-right`}>Montant</th> : null}
-                    </tr>
-                  </thead>
-                  <tbody className={tableau.tbody}>
-                    {affectations.map((a) => {
-                      const badge = estStatutAffectation(a.statut) ? statutAffectation(a.statut) : { label: a.statut, ton: 'neutre' as const };
-                      return (
-                        <tr key={a.id} className={tableau.tr}>
-                          <td className={tableau.td}>
-                            <Link href="/admin/affectations" className="font-medium tabular-nums hover:underline">
-                              {a.reference}
-                            </Link>
-                            <p className="text-xs text-neutral-500">{a.commande?.reference ?? a.objet}</p>
-                          </td>
-                          <td className={tableau.td}>
-                            <Badge ton={badge.ton}>{badge.label}</Badge>
-                            {a.statut === 'REFUSEE' && a.motif_refus ? (
-                              <p className="mt-1 whitespace-pre-wrap text-xs text-neutral-600">Motif : {a.motif_refus}</p>
-                            ) : a.statut === 'ANNULEE' && a.motif_annulation ? (
-                              <p className="mt-1 whitespace-pre-wrap text-xs text-neutral-600">Motif : {a.motif_annulation}</p>
-                            ) : null}
-                          </td>
-                          <td className={tableau.td}>{dateCourte(a.cree_le)}</td>
+              // Liste plutôt que tableau : la carte occupe la colonne étroite de la fiche, où quatre
+              // colonnes ne tiennent pas (le montant était coupé).
+              <ul className="divide-y divide-neutral-100">
+                {affectations.map((a) => {
+                  const badge = estStatutAffectation(a.statut) ? statutAffectation(a.statut) : { label: a.statut, ton: 'neutre' as const };
+                  const motif = a.statut === 'REFUSEE' ? a.motif_refus : a.statut === 'ANNULEE' ? a.motif_annulation : null;
+                  const travail = a.objet === 'BANDEROLE' ? 'Banderole' : (a.tache?.etape ?? 'Tâche de production');
+                  return (
+                    <li key={a.id} className="py-3 first:pt-0 last:pb-0">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <Link href="/admin/affectations" className="font-medium tabular-nums hover:underline">
+                            {a.reference}
+                          </Link>
+                          <p className="text-xs text-neutral-500">
+                            {a.commande?.reference ?? '—'} · {travail} · {dateCourte(a.cree_le)}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <Badge ton={badge.ton}>{badge.label}</Badge>
                           {voirCoutsAffectations ? (
-                            <td className={tableau.nombre}>
+                            <p className="mt-1 text-sm font-medium tabular-nums">
                               {fcfa(a.montant_fcfa)}
-                              <p className="text-xs font-normal text-neutral-500">{libelleSourceTarif(a.tarif_source)}</p>
-                            </td>
+                              <span className="block text-xs font-normal text-neutral-500">{libelleSourceTarif(a.tarif_source)}</span>
+                            </p>
                           ) : null}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                        </div>
+                      </div>
+                      {motif ? <p className="mt-1 whitespace-pre-wrap text-xs text-neutral-600">Motif : {motif}</p> : null}
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </Carte>
 

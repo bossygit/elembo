@@ -36,11 +36,28 @@ Le poids du PDF est dominé par la photo d'origine (1 600 × 2 844 px), embarqu�
 
 ### 2.2 Fidélité éditeur ↔ PDF
 
-Le même document rendu par Konva (1 200 px de large, soit 400 px par mètre) et par le PDF (rasterisé par PDFKit à
-la même largeur) se superposent : mêmes positions, mêmes coupures de lignes, même interlettrage, même rotation.
-Écart moyen **6,25 / 255**, **3,7 %** de pixels au-delà du seuil, tous sur les bords des caractères (lissage
-différent des deux moteurs). La mise en page partagée suffit : la table de métriques précalculée envisagée au §4.4
-n'est pas nécessaire en v1.
+> **Rectification du 25 novembre 2026.** La première version de cette note concluait que les deux rendus se
+> superposaient et que tous les écarts étaient « sur les bords des caractères ». C'était faux : le **crénage**
+> diffère. Le navigateur l'applique, `pdf-lib` (`widthOfTextAtSize`, `drawText`) ne l'applique pas.
+
+| Texte (document de référence) | Navigateur | pdf-lib | Écart |
+|---|---|---|---|
+| « Papa Joseph Malonga », DM Serif Display, corps 200 mm | 1 868,2 mm | 1 891,0 mm | **+22,8 mm (1,2 %)** |
+| « Tu resteras à jamais… », DM Serif Display, corps 70 mm | 1 218,1 mm (fontkit, avec crénage) | 1 227,5 mm | +9,3 mm (0,8 %) |
+| « HOMMAGE À NOTRE REGRETTÉ », Bebas Neue, corps 75 mm | 668,0 mm (fontkit, avec crénage) | 667,7 mm | −0,3 mm |
+| « Famille Malonga », Anton, corps 55 mm | 360,9 mm (fontkit, avec crénage) | 360,9 mm | 0 |
+
+Mesuré en navigateur pour la première ligne seulement, TTF et WOFF2 donnant la même largeur (1 868,2 mm avec
+crénage, 1 891,0 mm sans). `fontkit` avec crénage (`font.layout().positions[].xAdvance`) donne **exactement** la
+largeur du navigateur.
+
+**Conséquence, à traiter au lot 5** : le PDF doit placer les glyphes avec les avances crénées de `font.layout()` et
+non avec `drawText` seul ; un test de parité doit comparer les largeurs au 0,1 mm. L'éditeur garde le crénage. La
+mise en page (`lignesTexte`) ne change pas : c'est la mesure injectée côté serveur qui doit être crénée.
+
+Le reste concorde (positions, coupures de lignes, rotation, recadrage). Comparaison d'images à 400 px par mètre :
+écart moyen 6,25 / 255, 3,7 % de pixels au-delà du seuil. Cette mesure inclut le crénage, le lissage, le filet de
+5 mm (2 px) et un demi-pixel retiré au recadrage ; elle ne permet pas de les séparer.
 
 ### 2.3 Éditeur
 
@@ -59,6 +76,7 @@ défilement horizontal. Trois pièges Konva relevés, à reprendre dès le lot 2
 |---|---|---|
 | Moteur d'édition | **Konva** confirmé | Projection fidèle du document, rotation et transformation natives, texte maîtrisé par `Konva.Shape` |
 | PDF | **pdf-lib + @pdf-lib/fontkit** confirmés | Dimensions exactes, boîtes, sous-ensembles, `UserUnit`, rendu déterministe, ~150 ms par bannière |
+| Crénage | **À appliquer dans le PDF** (rectification du 25/11) | Sans lui, un titre imprimé est jusqu'à 1,2 % plus large qu'à l'écran (§2.2) |
 | Polices | **TTF statiques obligatoires** pour le PDF | Les WOFF2 du site sont découpés par plage (`latin` 283 glyphes / `latin-ext`) et leur mise en sous-ensemble **plante** fontkit (`RangeError`). Les WOFF2 restent pour l'affichage. |
 | Grands formats | **Panneaux par défaut** au-delà de 5 080 mm, `UserUnit` en option par profil | Les deux fonctionnent ; le choix dépend du RIP de l'imprimeur |
 | Couleur | **RVB** en v1, BAT recommandé | L'orange de marque diffère déjà entre le navigateur et Aperçu : la gestion de couleur doit être validée à l'impression |

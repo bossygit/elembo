@@ -2,10 +2,11 @@
  * Banner Studio — mise en page partagée (audit §4.4), en mm, relative au centre de l'élément.
  *
  * L'éditeur Konva, l'aperçu SVG et le PDF serveur consomment ces fonctions : mêmes lignes,
- * même ligne de base, même placement d'image. Le lot 0 a vérifié la fidélité éditeur ↔ PDF
- * avec cette formule (docs/spike-banner-studio-lot0.md §2.2).
+ * même ligne de base, même placement d'image.
  *
- * La mesure d'une ligne est injectée : le navigateur mesure au canvas, le serveur avec fontkit.
+ * La mesure d'une ligne est injectée et doit être **crénée** des deux côtés : canvas dans le
+ * navigateur, `font.layout()` de fontkit sur le serveur (`widthOfTextAtSize` de pdf-lib ignore le
+ * crénage : jusqu'à 1,2 % d'écart, docs/spike-banner-studio-lot0.md §2.2).
  */
 
 import type { Asset, ElementImage, ElementTexte } from './model';

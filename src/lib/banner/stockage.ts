@@ -91,13 +91,91 @@ export async function enregistrerProjet(doc: DocumentBanner): Promise<boolean> {
   ]);
 }
 
+async function tout(magasin: Magasin): Promise<Ligne[]> {
+  const db = await ouvrir();
+  const locales = [...memoire[magasin].values()];
+  if (!db) return locales;
+  return new Promise((fini) => {
+    try {
+      const r = db.transaction(magasin).objectStore(magasin).getAll();
+      r.onsuccess = () => fini([...(r.result as Ligne[]).filter((l) => !memoire[magasin].has(l.id)), ...locales]);
+      r.onerror = () => fini(locales);
+    } catch {
+      fini(locales);
+    }
+  });
+}
+
+async function effacer(lignes: { magasin: Magasin; id: string }[]): Promise<void> {
+  for (const { magasin, id } of lignes) memoire[magasin].delete(id);
+  const db = await ouvrir();
+  if (!db) return;
+  await new Promise<void>((fini) => {
+    try {
+      const t = db.transaction([...new Set(lignes.map((l) => l.magasin))], 'readwrite');
+      for (const { magasin, id } of lignes) t.objectStore(magasin).delete(id);
+      t.oncomplete = t.onabort = t.onerror = () => fini();
+    } catch {
+      fini();
+    }
+  });
+}
+
+export async function lireProjet(id: string): Promise<ResultatLecture | null> {
+  const ligne = await lire('projets', id);
+  return ligne ? lireDocument(ligne.document) : null;
+}
+
 /** Dernier projet ouvert : `null` s'il n'y en a pas, sinon le résultat de la lecture tolérante. */
 export async function lireProjetCourant(): Promise<ResultatLecture | null> {
   const courant = await lire('meta', 'courant');
-  if (typeof courant?.projet !== 'string') return null;
-  const ligne = await lire('projets', courant.projet);
-  return ligne ? lireDocument(ligne.document) : null;
+  return typeof courant?.projet === 'string' ? lireProjet(courant.projet) : null;
 }
+
+export const poserCourant = (projet: string) => ecrire([{ magasin: 'meta', ligne: { id: 'courant', projet } }]);
+
+export type Envoi = { reference: string; le: string };
+export type ResumeProjet = { id: string; nom: string; modifieLe: string; document: DocumentBanner | null; envoi: Envoi | null };
+
+/** Projets de l'appareil, du plus récent au plus ancien ; un projet illisible reste listé. */
+export async function listerProjets(): Promise<ResumeProjet[]> {
+  const [projets, meta] = await Promise.all([tout('projets'), tout('meta')]);
+  const texte = (v: unknown) => (typeof v === 'string' ? v : '');
+  return projets
+    .map((p) => {
+      const r = lireDocument(p.document);
+      const brut = (p.document ?? {}) as Record<string, unknown>;
+      const envoi = meta.find((m) => m.id === `envoi:${p.id}`);
+      return {
+        id: p.id,
+        nom: r.ok ? r.document.nom : texte(brut.nom) || 'Projet illisible',
+        modifieLe: r.ok ? r.document.modifieLe : texte(brut.modifieLe),
+        document: r.ok ? r.document : null,
+        envoi: envoi ? { reference: texte(envoi.reference), le: texte(envoi.le) } : null,
+      };
+    })
+    .sort((a, b) => b.modifieLe.localeCompare(a.modifieLe));
+}
+
+export async function supprimerProjet(id: string): Promise<void> {
+  const courant = await lire('meta', 'courant');
+  await effacer([
+    { magasin: 'projets', id },
+    { magasin: 'meta', id: `paquet:${id}` },
+    { magasin: 'meta', id: `envoi:${id}` },
+    ...(courant?.projet === id ? [{ magasin: 'meta' as const, id: 'courant' }] : []),
+  ]);
+}
+
+/** Aperçu produit dans le Studio au moment de finaliser, avec la version du document qu'il montre. */
+export type Paquet = { modifieLe: string; apercu: Blob };
+export const enregistrerPaquet = (projet: string, p: Paquet) => ecrire([{ magasin: 'meta', ligne: { id: `paquet:${projet}`, ...p } }]);
+export async function lirePaquet(projet: string): Promise<Paquet | null> {
+  const l = await lire('meta', `paquet:${projet}`);
+  return l?.apercu instanceof Blob && typeof l.modifieLe === 'string' ? { modifieLe: l.modifieLe, apercu: l.apercu } : null;
+}
+
+export const marquerEnvoye = (projet: string, reference: string) => ecrire([{ magasin: 'meta', ligne: { id: `envoi:${projet}`, reference, le: new Date().toISOString() } }]);
 
 export const enregistrerAsset = (id: string, blob: Blob) => ecrire([{ magasin: 'assets', ligne: { id, blob, cree: Date.now() } }]);
 

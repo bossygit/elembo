@@ -1,7 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-
 import { DIMENSION_MAX_MM, DIMENSION_MIN_MM, FORMATS, finitionsApplicables } from '@/lib/banner/formats';
 import { couleursDocument } from '@/lib/banner/edition';
 import { DECORATIONS } from '@/lib/banner/formes';
@@ -9,7 +7,6 @@ import type { DistanceLecture, FinitionStudio, SupportStudio } from '@/lib/banne
 import { dpiFond, seuils } from '@/lib/banner/quality';
 import { FINITIONS, SUPPORTS } from '@/lib/grand-format/catalogue';
 
-import { Apercu } from './Apercu';
 import { Bouton, BoutonFichier, ChampChoix, ChampCouleur, ChampNombre, Groupe } from './champs';
 import { useActions, useImportImage, useStudio } from './contexte';
 
@@ -26,6 +23,7 @@ export function PanneauAjouter({ apres }: { apres?: () => void }) {
   return (
     <>
       <Groupe titre="Ajouter">
+        <Bouton icone="format" libelle="Choisir un modèle" texte="Choisir un modèle" className={LARGE} onClick={() => a.ouvrirFenetre('modeles')} />
         <Bouton icone="texte" libelle="Ajouter un texte" texte="Texte" className={LARGE} onClick={faire(a.ajouterTexte)} />
         <BoutonFichier icone="image" libelle="Importer une image" texte="Image (JPEG, PNG, WEBP)" testid="import-image" className={LARGE} onFichier={(f) => void importer(f).then(apres)} />
       </Groupe>
@@ -162,7 +160,6 @@ export function PanneauControles() {
   const a = useActions();
   const alertes = useStudio((e) => e.alertes);
   const reperes = useStudio((e) => e.reperes);
-  const [apercu, setApercu] = useState(false);
   return (
     <Groupe titre="Contrôles avant impression">
       {alertes.length ? (
@@ -185,9 +182,9 @@ export function PanneauControles() {
         <div className="mt-2 flex flex-wrap gap-2 text-encre">
           <Bouton libelle={reperes ? 'Masquer les repères' : 'Afficher les repères'} texte={reperes ? 'Masquer les repères' : 'Afficher les repères'} className="border border-bordure" onClick={a.basculerReperes} />
           {/* Sur ordinateur, l'aperçu est dans la barre du haut. */}
-          <Bouton libelle="Aperçu" texte="Aperçu" className="border border-bordure lg:hidden" onClick={() => setApercu(true)} />
+          <Bouton libelle="Finaliser ma demande" texte="Finaliser ma demande" className="bg-orange-action text-white hover:bg-orange-action/90 lg:hidden" onClick={() => a.ouvrirFenetre('finaliser')} />
+          <Bouton libelle="Aperçu" texte="Aperçu" className="border border-bordure lg:hidden" onClick={() => a.ouvrirFenetre('apercu')} />
         </div>
-        {apercu ? <Apercu fermer={() => setApercu(false)} /> : null}
       </div>
     </Groupe>
   );

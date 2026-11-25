@@ -178,6 +178,7 @@ export type CodeAlerte =
   | 'HORS_FORMAT' | 'ZONE_SECURITE' | 'OURLET' | 'OEILLET' | 'FOURREAU'
   | 'IMAGE_MANQUANTE' | 'IMAGE_DPI_INSUFFISANT' | 'IMAGE_DPI_FAIBLE'
   | 'POLICE_GLYPHES' | 'POLICE_INDISPONIBLE' | 'PLIURE_PANNEAU' | 'PLACEHOLDER'
+  | 'TEXTE_EXEMPLE'
   | 'PROFIL_A_VALIDER' | 'FOND_PERDU_NON_COUVERT' | 'FORMAT_SUR_DEVIS' | 'HORS_LAIZE' | 'HORS_LONGUEUR';
 
 export type Alerte = { code: CodeAlerte; severite: Severite; elementId: string | null; message: string };
@@ -194,13 +195,15 @@ export type ContexteEvaluation = {
   assetsDisponibles?: ReadonlySet<string>;
   /** Polices dont le fichier est présent (côté serveur). */
   policesDisponibles?: ReadonlySet<string>;
+  /** Textes d'un modèle restés à leur exemple (nom, date, lieu). */
+  textesExemple?: ReadonlySet<string>;
   /** Caractères absents de la police (côté serveur, avec fontkit). */
   glyphesManquants?: (policeId: string, texte: string) => string[];
 };
 
-/** Un texte resté sans nom propre se reconnaît à son contenu. */
+/** Un texte se reconnaît à ce qu'il dit, pas au nom de son calque. */
 const libelle = (e: Element) => {
-  if (e.type !== 'texte' || e.nom !== 'Texte') return `« ${e.nom} »`;
+  if (e.type !== 'texte') return `« ${e.nom} »`;
   const c = e.texte.contenu.replace(/\s+/g, ' ').trim();
   return `« ${c.length > 28 ? `${c.slice(0, 27).trimEnd()}…` : c || 'Texte'} »`;
 };
@@ -237,10 +240,11 @@ export function evaluer(doc: DocumentBanner, ctx: ContexteEvaluation = {}): Aler
     alertes.push({ code: 'PROFIL_A_VALIDER', severite: 'info', elementId: null, message: 'Contraintes d’impression à confirmer par l’imprimeur.' });
   }
   if (doc.fond.type === 'image') {
-    if (!disponible(doc.fond.assetId)) alertes.push({ code: 'IMAGE_MANQUANTE', severite: 'critique', elementId: null, message: 'L’image de fond est introuvable.' });
-    else if (assets.get(doc.fond.assetId)!.placeholder) alertes.push({ code: 'PLACEHOLDER', severite: 'critique', elementId: null, message: 'L’image de fond du modèle doit être remplacée.' });
     const asset = assets.get(doc.fond.assetId);
-    if (asset && disponible(asset.id)) {
+    // Une image d'exemple n'existe nulle part : elle est à remplacer, pas « introuvable ».
+    if (asset?.placeholder) alertes.push({ code: 'PLACEHOLDER', severite: 'critique', elementId: null, message: 'L’image de fond du modèle doit être remplacée.' });
+    else if (!disponible(doc.fond.assetId)) alertes.push({ code: 'IMAGE_MANQUANTE', severite: 'critique', elementId: null, message: 'L’image de fond est introuvable.' });
+    if (asset && !asset.placeholder && disponible(asset.id)) {
       const dpi = dpiFond(doc, asset);
       const niveau = niveauQualite(dpi, seuils(doc.qualite.distanceLectureM, doc.contraintes));
       if (niveau === 'INSUFFISANTE') alertes.push({ code: 'IMAGE_DPI_INSUFFISANT', severite: 'avertissement', elementId: null, message: `L’image de fond sera floue (${dpi} dpi).` });
@@ -274,17 +278,23 @@ export function evaluer(doc: DocumentBanner, ctx: ContexteEvaluation = {}): Aler
     }
     if (e.type === 'image') {
       const asset = assets.get(e.image.assetId);
+      if (asset?.placeholder) {
+        alertes.push({ code: 'PLACEHOLDER', severite: 'critique', elementId: e.id, message: `${libelle(e)} est une image d’exemple : remplacez-la ou retirez-la.` });
+        continue;
+      }
       if (!asset || !disponible(asset.id)) {
         alertes.push({ code: 'IMAGE_MANQUANTE', severite: 'critique', elementId: e.id, message: `L’image de ${libelle(e)} est introuvable.` });
         continue;
       }
-      if (asset.placeholder) alertes.push({ code: 'PLACEHOLDER', severite: 'critique', elementId: e.id, message: `${libelle(e)} est une image d’exemple : remplacez-la.` });
       const dpi = dpiEffectif(e, asset);
       const niveau = niveauQualite(dpi, seuils(doc.qualite.distanceLectureM, doc.contraintes));
       if (niveau === 'INSUFFISANTE') alertes.push({ code: 'IMAGE_DPI_INSUFFISANT', severite: 'avertissement', elementId: e.id, message: `${libelle(e)} sera floue (${dpi} dpi).` });
       else if (niveau === 'FAIBLE') alertes.push({ code: 'IMAGE_DPI_FAIBLE', severite: 'info', elementId: e.id, message: `${libelle(e)} est juste en définition (${dpi} dpi).` });
     }
     if (e.type === 'texte') {
+      if (ctx.textesExemple?.has(e.id)) {
+        alertes.push({ code: 'TEXTE_EXEMPLE', severite: 'avertissement', elementId: e.id, message: `${libelle(e)} est un texte d’exemple du modèle : mettez le vôtre.` });
+      }
       if (ctx.policesDisponibles && !ctx.policesDisponibles.has(e.texte.policeId)) {
         alertes.push({ code: 'POLICE_INDISPONIBLE', severite: 'critique', elementId: e.id, message: `La police de ${libelle(e)} est indisponible.` });
       } else if (ctx.glyphesManquants) {

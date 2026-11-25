@@ -15,13 +15,13 @@ export async function POST(request: Request) {
   return traiterCreationDevis(request, (corps) => {
     const validation = validerDemandeGrandFormat(corps);
     if (!validation.ok) return { ok: false, erreurs: validation.erreurs };
-    const { devis, parametres } = validation.valeur;
+    const { devis, parametres, studio } = validation.valeur;
     return {
       ok: true,
       demande: devis,
       creer: async (options) => {
         const estimation = await estimationServeur(parametres);
-        const demande = { ...devis, specifications: specificationsLisibles(parametres, estimation) };
+        const demande = { ...devis, specifications: specificationsLisibles(parametres, estimation, studio) };
         return creerDemandeGrandFormat(demande, parametres, estimation, options);
       },
     };

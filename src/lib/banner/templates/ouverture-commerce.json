@@ -1,0 +1,223 @@
+{
+  "id": "ouverture-commerce",
+  "nom": "Ouverture de commerce",
+  "categorie": "PUBLICITE",
+  "description": "Un message, une offre, un numéro : lisible en passant.",
+  "variables": [
+    {
+      "id": "annonce",
+      "libelle": "Annonce",
+      "exemple": "OUVERTURE",
+      "max": 16
+    },
+    {
+      "id": "commerce",
+      "libelle": "Nom du commerce",
+      "exemple": "Boutique Étoile du Marché",
+      "max": 40,
+      "personnel": true
+    },
+    {
+      "id": "offre",
+      "libelle": "Offre courte",
+      "exemple": "Cadeau\nde bienvenue",
+      "max": 30,
+      "multiligne": true
+    },
+    {
+      "id": "contact",
+      "libelle": "Adresse et téléphone",
+      "exemple": "Avenue des Palmiers · 06 000 00 00",
+      "max": 70,
+      "personnel": true
+    }
+  ],
+  "document": {
+    "schema": "elembo.banner",
+    "version": 1,
+    "id": "modele-ouverture-commerce",
+    "nom": "Ouverture de commerce",
+    "creeLe": "2026-11-25T00:00:00.000Z",
+    "modifieLe": "2026-11-25T00:00:00.000Z",
+    "support": "BANDEROLE",
+    "categorie": "PUBLICITE",
+    "modeleId": "ouverture-commerce",
+    "dimensions": {
+      "largeurMm": 3000,
+      "hauteurMm": 1000
+    },
+    "finition": "OURLETS_OEILLETS",
+    "profil": null,
+    "contraintes": {
+      "margeSecuriteMm": 50,
+      "ourletMm": 50,
+      "fondPerduMm": 0,
+      "laizeMaxMm": null,
+      "longueurMaxMm": null,
+      "oeillets": {
+        "actifs": true,
+        "diametreMm": 20,
+        "espacementMm": 500,
+        "margeMm": 30
+      },
+      "fourreaux": {
+        "hautMm": 0,
+        "basMm": 0
+      },
+      "dpiMin": 72,
+      "dpiRecommande": 150,
+      "pageMaxMm": 5080,
+      "modeGrandFormat": "PANNEAUX"
+    },
+    "fond": {
+      "type": "couleur",
+      "couleur": "#18181A"
+    },
+    "assets": [],
+    "elements": [
+      {
+        "id": "e1",
+        "nom": "Bandeau",
+        "xMm": 1500,
+        "yMm": 840,
+        "largeurMm": 3000,
+        "hauteurMm": 320,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "rect",
+          "fond": "#E87A2E",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e2",
+        "nom": "Éclat",
+        "xMm": 2490,
+        "yMm": 400,
+        "largeurMm": 640,
+        "hauteurMm": 640,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "eclat",
+          "fond": "#FFD23F",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e3",
+        "nom": "Annonce",
+        "xMm": 1060,
+        "yMm": 290,
+        "largeurMm": 1750,
+        "hauteurMm": 379.5,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{annonce}}",
+          "policeId": "anton",
+          "corpsMm": 330,
+          "couleur": "#FFFFFF",
+          "alignement": "left",
+          "graisse": 400,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.15
+        }
+      },
+      {
+        "id": "e4",
+        "nom": "Commerce",
+        "xMm": 1060,
+        "yMm": 560,
+        "largeurMm": 1750,
+        "hauteurMm": 156,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{commerce}}",
+          "policeId": "montserrat",
+          "corpsMm": 125,
+          "couleur": "#E87A2E",
+          "alignement": "left",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e5",
+        "nom": "Offre",
+        "xMm": 2490,
+        "yMm": 400,
+        "largeurMm": 470,
+        "hauteurMm": 230,
+        "rotationDeg": -8,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{offre}}",
+          "policeId": "anton",
+          "corpsMm": 87,
+          "couleur": "#18181A",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.15
+        }
+      },
+      {
+        "id": "e6",
+        "nom": "Contact",
+        "xMm": 1500,
+        "yMm": 820,
+        "largeurMm": 2700,
+        "hauteurMm": 144,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{contact}}",
+          "policeId": "montserrat",
+          "corpsMm": 120,
+          "couleur": "#18181A",
+          "alignement": "center",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      }
+    ],
+    "qualite": {
+      "distanceLectureM": 3
+    },
+    "meta": {
+      "versionRendu": 1,
+      "createur": "modele"
+    }
+  }
+}

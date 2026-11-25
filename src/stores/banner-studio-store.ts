@@ -16,6 +16,7 @@ import {
 } from '@/lib/banner/model';
 import { glyphesManquants, POLICES, type Mesureur } from '@/lib/banner/polices';
 import { BORNES, type ResultatLecture } from '@/lib/banner/schema';
+import { textesExemple } from '@/lib/banner/templates';
 import { ajuster, contenir, zoomer, type Cadre, type Vue } from '@/lib/banner/vue';
 
 export const AUTOSAVE_MS = 800;
@@ -28,6 +29,8 @@ export type Dependances = {
   id?: () => string;
   maintenant?: () => number;
 };
+
+export type FenetreStudio = 'modeles' | 'projets' | 'finaliser' | 'apercu';
 
 export type EtatStudio = {
   document: DocumentBanner;
@@ -50,14 +53,20 @@ export type EtatStudio = {
   proportions: { image: boolean; forme: boolean };
   /** Image en cours de recadrage. */
   recadrage: string | null;
+  fenetre: FenetreStudio | null;
   /** Non nul quand l'utilisateur demande à modifier le texte sélectionné (double-clic). */
   demandeTexte: number;
 
   ouvrir: (lecture: ResultatLecture | null) => void;
+  /** Document vierge, pas encore enregistré. */
   nouveau: () => void;
+  /** Remplace la composition par celle d'un modèle : une seule étape d'annulation. */
+  installerModele: (doc: DocumentBanner) => void;
+  ouvrirFenetre: (f: FenetreStudio | null) => void;
   annoncer: (message: string | null) => void;
   declarerImage: (id: string) => void;
   declarerPolice: (policeId: string, ok: boolean) => void;
+  chargementCommence: () => void;
   chargementFini: () => void;
 
   selectionner: (id: string | null) => void;
@@ -101,6 +110,8 @@ export type EtatStudio = {
   ajusterVue: () => void;
   basculerReperes: () => void;
   enregistrerMaintenant: () => Promise<void>;
+  /** Avant de changer de projet : rien ne doit rester non écrit. */
+  enregistrerSiModifie: () => Promise<void>;
 };
 
 const MESSAGES: Record<Exclude<Extract<ResultatLecture, { ok: false }>['erreur'], never>, string> = {
@@ -127,6 +138,7 @@ export function creerStudio({ mesurer, enregistrer: persister, id = () => global
         assetsDisponibles: disponibles ?? undefined,
         policesDisponibles: new Set(POLICES.map((p) => p.id).filter((p) => !echouees.has(p))),
         glyphesManquants,
+        textesExemple: textesExemple(d),
       });
     /** Place pour une image de plus ? Une image déjà dans le document ne compte pas. */
     const place = (asset: Asset, elements = 0) => {
@@ -141,11 +153,12 @@ export function creerStudio({ mesurer, enregistrer: persister, id = () => global
 
     /** Remplace le document sans toucher à l'historique (annuler, rétablir). */
     const installer = (doc: DocumentBanner, reste: Partial<EtatStudio> = {}) => {
-      const { selection, disponibles, cadre, vue, vueAjustee, document } = get();
+      const { selection, disponibles, charge, cadre, vue, vueAjustee, document } = get();
       const memeFormat = document.dimensions.largeurMm === doc.dimensions.largeurMm && document.dimensions.hauteurMm === doc.dimensions.hauteurMm;
       set({
         document: doc,
-        alertes: preflight(doc, disponibles),
+        // Pendant le chargement, une image pas encore lue n'est pas une image manquante.
+        alertes: preflight(doc, charge ? disponibles : null),
         selection: op.trouver(doc, reste.selection === undefined ? selection : reste.selection) ? (reste.selection === undefined ? selection : reste.selection) : null,
         sauvegarde: 'modifie',
         ...(memeFormat && !vueAjustee ? { vue } : { vue: ajuster(cadre, doc.dimensions), vueAjustee: true }),
@@ -181,6 +194,7 @@ export function creerStudio({ mesurer, enregistrer: persister, id = () => global
       charge: false,
       proportions: { image: true, forme: false },
       recadrage: null,
+      fenetre: null,
       demandeTexte: 0,
 
       ouvrir: (lecture) => {
@@ -191,13 +205,18 @@ export function creerStudio({ mesurer, enregistrer: persister, id = () => global
           return;
         }
         const d = lecture.document;
-        set({ document: d, selection: null, historique: historiqueVide(), alertes: preflight(d, get().disponibles), sauvegarde: 'enregistre', vue: ajuster(get().cadre, d.dimensions), vueAjustee: true });
+        if (minuterie) clearTimeout(minuterie);
+        minuterie = null;
+        set({ document: d, selection: null, message: null, recadrage: null, historique: historiqueVide(), alertes: preflight(d, get().charge ? get().disponibles : null), sauvegarde: 'enregistre', vue: ajuster(get().cadre, d.dimensions), vueAjustee: true });
       },
       nouveau: () => {
+        if (minuterie) clearTimeout(minuterie);
+        minuterie = null;
         const d = documentInitial(id);
-        set({ historique: historiqueVide(), selection: null, vueAjustee: true });
-        installer(d, { selection: null });
+        set({ document: d, historique: historiqueVide(), selection: null, message: null, recadrage: null, sauvegarde: 'vierge', alertes: preflight(d, get().disponibles), vue: ajuster(get().cadre, d.dimensions), vueAjustee: true });
       },
+      installerModele: (doc) => appliquer((d) => ({ ...doc, id: d.id, creeLe: d.creeLe }), { selection: null }),
+      ouvrirFenetre: (fenetre) => set({ fenetre }),
       annoncer: (message) => set({ message }),
       declarerImage: (idImage) => {
         const disponibles = new Set(get().disponibles ?? []).add(idImage);
@@ -211,6 +230,7 @@ export function creerStudio({ mesurer, enregistrer: persister, id = () => global
         else policesEchouees.add(policeId);
         set({ policesEchouees, alertes: preflight(get().document, get().charge ? get().disponibles : null, policesEchouees) });
       },
+      chargementCommence: () => set({ charge: false }),
       chargementFini: () => {
         const disponibles = get().disponibles ?? new Set<string>();
         set({ charge: true, disponibles, alertes: preflight(get().document, disponibles) });
@@ -313,6 +333,10 @@ export function creerStudio({ mesurer, enregistrer: persister, id = () => global
       ajusterVue: () => set({ vue: ajuster(get().cadre, get().document.dimensions), vueAjustee: true }),
       basculerReperes: () => set({ reperes: !get().reperes }),
 
+      enregistrerSiModifie: async () => {
+        if (get().sauvegarde === 'modifie') await get().enregistrerMaintenant();
+        else await ecriture;
+      },
       enregistrerMaintenant: () => {
         if (minuterie) clearTimeout(minuterie);
         minuterie = null;

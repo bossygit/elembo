@@ -1,0 +1,222 @@
+{
+  "id": "promotion",
+  "nom": "Promotion",
+  "categorie": "PUBLICITE",
+  "description": "Prix barrés, soldes ou fin de série : la promotion en très grand.",
+  "variables": [
+    {
+      "id": "titre",
+      "libelle": "Titre",
+      "exemple": "GRANDE PROMOTION",
+      "max": 24
+    },
+    {
+      "id": "produit",
+      "libelle": "Produits concernés",
+      "exemple": "Pagnes, tissus et prêt-à-porter",
+      "max": 60
+    },
+    {
+      "id": "dates",
+      "libelle": "Période",
+      "exemple": "Du 1er au 24 décembre",
+      "max": 40,
+      "personnel": true
+    },
+    {
+      "id": "contact",
+      "libelle": "Commerce et téléphone",
+      "exemple": "Maison Tissus d’Or · 06 000 00 00",
+      "max": 60,
+      "personnel": true
+    }
+  ],
+  "document": {
+    "schema": "elembo.banner",
+    "version": 1,
+    "id": "modele-promotion",
+    "nom": "Promotion",
+    "creeLe": "2026-11-25T00:00:00.000Z",
+    "modifieLe": "2026-11-25T00:00:00.000Z",
+    "support": "BANDEROLE",
+    "categorie": "PUBLICITE",
+    "modeleId": "promotion",
+    "dimensions": {
+      "largeurMm": 3000,
+      "hauteurMm": 1000
+    },
+    "finition": "OURLETS_OEILLETS",
+    "profil": null,
+    "contraintes": {
+      "margeSecuriteMm": 50,
+      "ourletMm": 50,
+      "fondPerduMm": 0,
+      "laizeMaxMm": null,
+      "longueurMaxMm": null,
+      "oeillets": {
+        "actifs": true,
+        "diametreMm": 20,
+        "espacementMm": 500,
+        "margeMm": 30
+      },
+      "fourreaux": {
+        "hautMm": 0,
+        "basMm": 0
+      },
+      "dpiMin": 72,
+      "dpiRecommande": 150,
+      "pageMaxMm": 5080,
+      "modeGrandFormat": "PANNEAUX"
+    },
+    "fond": {
+      "type": "couleur",
+      "couleur": "#FFE14D"
+    },
+    "assets": [],
+    "elements": [
+      {
+        "id": "e1",
+        "nom": "Aplat",
+        "xMm": 1500,
+        "yMm": 330,
+        "largeurMm": 3000,
+        "hauteurMm": 660,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "rect",
+          "fond": "#B3261E",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e2",
+        "nom": "Flèche",
+        "xMm": 290,
+        "yMm": 790,
+        "largeurMm": 225,
+        "hauteurMm": 150,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "fleche",
+          "fond": "#B3261E",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e3",
+        "nom": "Titre",
+        "xMm": 1500,
+        "yMm": 302,
+        "largeurMm": 2760,
+        "hauteurMm": 391,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{titre}}",
+          "policeId": "anton",
+          "corpsMm": 340,
+          "couleur": "#FFE14D",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.15
+        }
+      },
+      {
+        "id": "e4",
+        "nom": "Produits",
+        "xMm": 1500,
+        "yMm": 555,
+        "largeurMm": 2760,
+        "hauteurMm": 120,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{produit}}",
+          "policeId": "montserrat",
+          "corpsMm": 100,
+          "couleur": "#FFFFFF",
+          "alignement": "center",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e5",
+        "nom": "Période",
+        "xMm": 1670,
+        "yMm": 745,
+        "largeurMm": 2320,
+        "hauteurMm": 129.6,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{dates}}",
+          "policeId": "anton",
+          "corpsMm": 108,
+          "couleur": "#B3261E",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e6",
+        "nom": "Contact",
+        "xMm": 1670,
+        "yMm": 855,
+        "largeurMm": 2320,
+        "hauteurMm": 84,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{contact}}",
+          "policeId": "montserrat",
+          "corpsMm": 70,
+          "couleur": "#18181A",
+          "alignement": "center",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      }
+    ],
+    "qualite": {
+      "distanceLectureM": 3
+    },
+    "meta": {
+      "versionRendu": 1,
+      "createur": "modele"
+    }
+  }
+}

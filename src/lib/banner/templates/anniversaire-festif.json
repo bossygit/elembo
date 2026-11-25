@@ -1,0 +1,282 @@
+{
+  "id": "anniversaire-festif",
+  "nom": "Anniversaire festif",
+  "categorie": "ANNIVERSAIRE",
+  "description": "Couleurs vives et étoiles, pour petits et grands.",
+  "variables": [
+    {
+      "id": "titre",
+      "libelle": "Titre",
+      "exemple": "Joyeux anniversaire",
+      "max": 40
+    },
+    {
+      "id": "prenom",
+      "libelle": "Prénom",
+      "exemple": "Mélissa",
+      "max": 24,
+      "personnel": true
+    },
+    {
+      "id": "age",
+      "libelle": "Âge",
+      "exemple": "10 ans !",
+      "max": 16,
+      "personnel": true
+    },
+    {
+      "id": "message",
+      "libelle": "Message",
+      "exemple": "Que la fête commence",
+      "max": 50
+    }
+  ],
+  "document": {
+    "schema": "elembo.banner",
+    "version": 1,
+    "id": "modele-anniversaire-festif",
+    "nom": "Anniversaire festif",
+    "creeLe": "2026-11-25T00:00:00.000Z",
+    "modifieLe": "2026-11-25T00:00:00.000Z",
+    "support": "BANDEROLE",
+    "categorie": "ANNIVERSAIRE",
+    "modeleId": "anniversaire-festif",
+    "dimensions": {
+      "largeurMm": 2000,
+      "hauteurMm": 1000
+    },
+    "finition": "OEILLETS",
+    "profil": null,
+    "contraintes": {
+      "margeSecuriteMm": 50,
+      "ourletMm": 0,
+      "fondPerduMm": 0,
+      "laizeMaxMm": null,
+      "longueurMaxMm": null,
+      "oeillets": {
+        "actifs": true,
+        "diametreMm": 20,
+        "espacementMm": 500,
+        "margeMm": 30
+      },
+      "fourreaux": {
+        "hautMm": 0,
+        "basMm": 0
+      },
+      "dpiMin": 72,
+      "dpiRecommande": 150,
+      "pageMaxMm": 5080,
+      "modeGrandFormat": "PANNEAUX"
+    },
+    "fond": {
+      "type": "couleur",
+      "couleur": "#FF6B4A"
+    },
+    "assets": [],
+    "elements": [
+      {
+        "id": "e1",
+        "nom": "Éclat",
+        "xMm": 1570,
+        "yMm": 545,
+        "largeurMm": 520,
+        "hauteurMm": 520,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "eclat",
+          "fond": "#FFD23F",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e2",
+        "nom": "Étoile",
+        "xMm": 190,
+        "yMm": 230,
+        "largeurMm": 150,
+        "hauteurMm": 150,
+        "rotationDeg": -12,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "etoile",
+          "fond": "#FFD23F",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e3",
+        "nom": "Étoile",
+        "xMm": 330,
+        "yMm": 820,
+        "largeurMm": 110,
+        "hauteurMm": 110,
+        "rotationDeg": 15,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "etoile",
+          "fond": "#FFFFFF",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e4",
+        "nom": "Étoile",
+        "xMm": 1830,
+        "yMm": 180,
+        "largeurMm": 130,
+        "hauteurMm": 130,
+        "rotationDeg": 10,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "etoile",
+          "fond": "#FFFFFF",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e5",
+        "nom": "Étoile",
+        "xMm": 1130,
+        "yMm": 850,
+        "largeurMm": 90,
+        "hauteurMm": 90,
+        "rotationDeg": -8,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "etoile",
+          "fond": "#FFD23F",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e6",
+        "nom": "Titre",
+        "xMm": 900,
+        "yMm": 215,
+        "largeurMm": 1280,
+        "hauteurMm": 196,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{titre}}",
+          "policeId": "pacifico",
+          "corpsMm": 140,
+          "couleur": "#FFFFFF",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.4
+        }
+      },
+      {
+        "id": "e7",
+        "nom": "Prénom",
+        "xMm": 720,
+        "yMm": 570,
+        "largeurMm": 1080,
+        "hauteurMm": 360,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{prenom}}",
+          "policeId": "bangers",
+          "corpsMm": 300,
+          "couleur": "#3B1C8C",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": false,
+          "interlettrageEm": 0.03,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e8",
+        "nom": "Âge",
+        "xMm": 1570,
+        "yMm": 545,
+        "largeurMm": 400,
+        "hauteurMm": 180,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{age}}",
+          "policeId": "bangers",
+          "corpsMm": 144,
+          "couleur": "#3B1C8C",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e9",
+        "nom": "Message",
+        "xMm": 750,
+        "yMm": 845,
+        "largeurMm": 620,
+        "hauteurMm": 88.8,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{message}}",
+          "policeId": "montserrat",
+          "corpsMm": 52,
+          "couleur": "#FFFFFF",
+          "alignement": "center",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      }
+    ],
+    "qualite": {
+      "distanceLectureM": 3
+    },
+    "meta": {
+      "versionRendu": 1,
+      "createur": "modele"
+    }
+  }
+}

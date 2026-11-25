@@ -27,6 +27,7 @@ const TRACES = {
   fermer: 'M6 6l12 12M18 6 6 18',
   reglages: 'M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M8 14v6',
   retour: 'm14 6-6 6 6 6',
+  menu: 'M3 6h7l2 2h9v11H3z',
   recadrer: 'M6 2v16h16M2 6h16v16',
   remplacer: 'M4 8h13l-3-3M20 16H7l3 3',
   fond: 'M3 5h18v14H3zM3 12h18M9 5v14',

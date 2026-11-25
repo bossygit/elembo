@@ -8,6 +8,28 @@
  *    (`POST /api/devis/[reference]/fichiers`) avant de les rattacher au devis.
  */
 
+/** Réseau mobile instable : trois essais, espacés, avant d'abandonner un fichier. */
+async function deposer(url: string, fichier: File): Promise<boolean> {
+  for (let essai = 0; essai < 3; essai++) {
+    if (essai) await new Promise((r) => setTimeout(r, essai * 1500));
+    try {
+      const r = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': fichier.type || 'application/octet-stream', 'x-upsert': 'false' },
+        body: fichier,
+      });
+      if (r.ok) return true;
+      // L'objet existe déjà : un essai précédent était arrivé, seule sa réponse s'est perdue. Le
+      // serveur contrôle de toute façon les octets avant de rattacher le fichier.
+      if (essai && (r.status === 409 || (r.status === 400 && (await r.text()).includes('Duplicate')))) return true;
+      if (r.status < 500 && r.status !== 429) return false;
+    } catch {
+      // coupure réseau : nouvel essai
+    }
+  }
+  return false;
+}
+
 export type UploadSigne = { fichierId: string; nom: string; signedUrl: string };
 
 export async function envoyerFichiersDevis(options: {
@@ -22,12 +44,7 @@ export async function envoyerFichiersDevis(options: {
   for (const upload of uploads) {
     const fichier = fichiers.find((f) => f.name === upload.nom);
     if (!fichier) continue;
-    const envoi = await fetch(upload.signedUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': fichier.type || 'application/octet-stream', 'x-upsert': 'false' },
-      body: fichier,
-    });
-    if (!envoi.ok) throw new Error(`Envoi impossible pour ${upload.nom}.`);
+    if (!(await deposer(upload.signedUrl, fichier))) throw new Error(`Envoi impossible pour ${upload.nom}.`);
     envoyes += 1;
     surProgression?.(envoyes, uploads.length);
   }

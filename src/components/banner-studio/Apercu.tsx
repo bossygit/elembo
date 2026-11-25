@@ -7,7 +7,7 @@ import { dessinerDocument } from '@/lib/banner/peinture';
 import { Bouton } from './champs';
 import { useContexte } from './contexte';
 
-const LARGEUR_APERCU = 1600;
+export const LARGEUR_APERCU = 1600;
 
 /** Aperçu sans repères ; JPEG de 1 600 px sur le grand côté (décision 5). */
 export function Apercu({ fermer }: { fermer: () => void }) {

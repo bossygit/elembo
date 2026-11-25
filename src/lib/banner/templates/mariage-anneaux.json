@@ -1,0 +1,303 @@
+{
+  "id": "mariage-anneaux",
+  "nom": "Mariage aux anneaux",
+  "categorie": "MARIAGE",
+  "description": "Ivoire et or, prénoms calligraphiés : accueil ou fond de scène.",
+  "variables": [
+    {
+      "id": "surtitre",
+      "libelle": "Ligne du haut",
+      "exemple": "Bienvenue au mariage de",
+      "max": 80
+    },
+    {
+      "id": "prenoms",
+      "libelle": "Prénoms",
+      "exemple": "Grâce & Emmanuel",
+      "max": 40,
+      "personnel": true
+    },
+    {
+      "id": "date",
+      "libelle": "Date",
+      "exemple": "Samedi 20 décembre 2026",
+      "max": 50,
+      "personnel": true
+    },
+    {
+      "id": "lieu",
+      "libelle": "Lieu",
+      "exemple": "Salle des Palmiers",
+      "max": 60,
+      "personnel": true
+    }
+  ],
+  "document": {
+    "schema": "elembo.banner",
+    "version": 1,
+    "id": "modele-mariage-anneaux",
+    "nom": "Mariage aux anneaux",
+    "creeLe": "2026-11-25T00:00:00.000Z",
+    "modifieLe": "2026-11-25T00:00:00.000Z",
+    "support": "BANDEROLE",
+    "categorie": "MARIAGE",
+    "modeleId": "mariage-anneaux",
+    "dimensions": {
+      "largeurMm": 3000,
+      "hauteurMm": 1000
+    },
+    "finition": "SANS",
+    "profil": null,
+    "contraintes": {
+      "margeSecuriteMm": 50,
+      "ourletMm": 0,
+      "fondPerduMm": 0,
+      "laizeMaxMm": null,
+      "longueurMaxMm": null,
+      "oeillets": {
+        "actifs": false,
+        "diametreMm": 20,
+        "espacementMm": 500,
+        "margeMm": 30
+      },
+      "fourreaux": {
+        "hautMm": 0,
+        "basMm": 0
+      },
+      "dpiMin": 72,
+      "dpiRecommande": 150,
+      "pageMaxMm": 5080,
+      "modeGrandFormat": "PANNEAUX"
+    },
+    "fond": {
+      "type": "couleur",
+      "couleur": "#FBF6EA"
+    },
+    "assets": [],
+    "elements": [
+      {
+        "id": "e1",
+        "nom": "Cadre",
+        "xMm": 1500,
+        "yMm": 500,
+        "largeurMm": 2800,
+        "hauteurMm": 800,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "rect",
+          "fond": null,
+          "contour": "#B8924A",
+          "epaisseurMm": 6,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e2",
+        "nom": "Coin",
+        "xMm": 250,
+        "yMm": 250,
+        "largeurMm": 200,
+        "hauteurMm": 200,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "coin",
+          "fond": "#B8924A",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e3",
+        "nom": "Coin",
+        "xMm": 2750,
+        "yMm": 250,
+        "largeurMm": 200,
+        "hauteurMm": 200,
+        "rotationDeg": 90,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "coin",
+          "fond": "#B8924A",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e4",
+        "nom": "Coin",
+        "xMm": 2750,
+        "yMm": 750,
+        "largeurMm": 200,
+        "hauteurMm": 200,
+        "rotationDeg": 180,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "coin",
+          "fond": "#B8924A",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e5",
+        "nom": "Coin",
+        "xMm": 250,
+        "yMm": 750,
+        "largeurMm": 200,
+        "hauteurMm": 200,
+        "rotationDeg": -90,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "coin",
+          "fond": "#B8924A",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e6",
+        "nom": "Surtitre",
+        "xMm": 1500,
+        "yMm": 220,
+        "largeurMm": 2000,
+        "hauteurMm": 76.8,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{surtitre}}",
+          "policeId": "cinzel",
+          "corpsMm": 64,
+          "couleur": "#6B5326",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": false,
+          "interlettrageEm": 0.1,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e7",
+        "nom": "Prénoms",
+        "xMm": 1500,
+        "yMm": 440,
+        "largeurMm": 2200,
+        "hauteurMm": 375,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{prenoms}}",
+          "policeId": "great-vibes",
+          "corpsMm": 300,
+          "couleur": "#3A2C12",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.25
+        }
+      },
+      {
+        "id": "e8",
+        "nom": "Anneaux",
+        "xMm": 1500,
+        "yMm": 660,
+        "largeurMm": 183.3,
+        "hauteurMm": 110,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "anneaux",
+          "fond": "#B8924A",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e9",
+        "nom": "Date",
+        "xMm": 1500,
+        "yMm": 770,
+        "largeurMm": 2000,
+        "hauteurMm": 79.2,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{date}}",
+          "policeId": "cinzel",
+          "corpsMm": 66,
+          "couleur": "#6B5326",
+          "alignement": "center",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e10",
+        "nom": "Lieu",
+        "xMm": 1500,
+        "yMm": 848,
+        "largeurMm": 2000,
+        "hauteurMm": 64.8,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{lieu}}",
+          "policeId": "cormorant-garamond",
+          "corpsMm": 54,
+          "couleur": "#6B5326",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": true,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      }
+    ],
+    "qualite": {
+      "distanceLectureM": 3
+    },
+    "meta": {
+      "versionRendu": 1,
+      "createur": "modele"
+    }
+  }
+}

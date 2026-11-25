@@ -7,7 +7,8 @@
  * mêmes messages que le formulaire de devis général.
  */
 
-import { validerDemandeDevis } from '@/lib/devis/validation';
+import { LIMITES_PAQUET, NOM_APERCU, NOM_PROJET } from '@/lib/banner/paquet';
+import { LIMITES_FICHIERS_DEVIS, validerDemandeDevis, type LimitesFichiers } from '@/lib/devis/validation';
 import type { DemandeDevis } from '@/lib/devis/types';
 import {
   DELAIS,
@@ -176,7 +177,7 @@ export function libelleEstimation(estimation: Estimation | null): string {
  * Spécifications lisibles enregistrées sur le devis. Elles sont montrées telles quelles au
  * client (suivi) et à l'équipe : clés en français, valeurs simples, aucune donnée interne.
  */
-export function specificationsLisibles(p: ParametresGrandFormat, estimation: Estimation | null): Record<string, string> {
+export function specificationsLisibles(p: ParametresGrandFormat, estimation: Estimation | null, studio = false): Record<string, string> {
   const support = p.support === 'AUTRE' && p.supportPrecision ? `Autre : ${p.supportPrecision}` : libelleSupport(p.support);
   const finition = p.finition === 'AUTRE' && p.finitionPrecision ? `Autre : ${p.finitionPrecision}` : libelleFinition(p.finition);
   const delai = p.delai === 'DATE' && p.dateSouhaitee
@@ -191,17 +192,33 @@ export function specificationsLisibles(p: ParametresGrandFormat, estimation: Est
     Finition: finition,
     Délai: delai,
     Prestation: libellePrestation(p.prestation),
+    ...(studio ? { Visuel: 'Réalisé avec Elembo Banner Studio' } : {}),
     'Estimation en ligne': libelleEstimation(estimation),
   };
 }
 
 /** Texte « besoin » du devis : un résumé exploitable même sans ouvrir le détail. */
-export function besoinDepuisParametres(p: ParametresGrandFormat): string {
-  const resume = `${libelleSupport(p.support)} ${formatDimensions(p.largeurM, p.hauteurM)} × ${p.quantite} — ${libelleUsage(p.usage)} — ${libellePrestation(p.prestation)}.`;
+export function besoinDepuisParametres(p: ParametresGrandFormat, studio = false): string {
+  const resume = `${libelleSupport(p.support)} ${formatDimensions(p.largeurM, p.hauteurM)} × ${p.quantite} — ${libelleUsage(p.usage)} — ${libellePrestation(p.prestation)}.${studio ? ' Visuel réalisé avec Elembo Banner Studio.' : ''}`;
   return p.commentaire ? `${resume}\n\n${p.commentaire}` : resume;
 }
 
-export type DemandeGrandFormat = { devis: DemandeDevis; parametres: ParametresGrandFormat };
+export type DemandeGrandFormat = { devis: DemandeDevis; parametres: ParametresGrandFormat; studio: boolean };
+
+/** Demande venant du Studio : le projet JSON, son aperçu et ses images. Le formulaire ordinaire garde 5 fichiers / 50 Mo. */
+export const LIMITES_FICHIERS_STUDIO: LimitesFichiers = {
+  fichiers: LIMITES_PAQUET.fichiers,
+  total: LIMITES_PAQUET.octetsTotal,
+  types: { ...LIMITES_FICHIERS_DEVIS.types, 'application/json': 'JSON' },
+};
+
+/** Le seul JSON admis est le projet du Studio, une fois, avec son aperçu. */
+function paquetInvalide(devis: DemandeDevis): string | null {
+  const json = devis.fichiers.filter((f) => f.typeMime === 'application/json');
+  if (json.length !== 1 || json[0].nom !== NOM_PROJET) return 'Le projet du Studio est absent de la demande.';
+  if (json[0].tailleOctets > LIMITES_PAQUET.octetsJson) return 'Le projet du Studio est trop volumineux.';
+  return devis.fichiers.some((f) => f.nom === NOM_APERCU && f.typeMime === 'image/jpeg') ? null : 'L’aperçu du visuel est absent de la demande.';
+}
 
 /**
  * Valide le corps complet (paramètres + coordonnées + fichiers annoncés) et construit la
@@ -211,6 +228,7 @@ export type DemandeGrandFormat = { devis: DemandeDevis; parametres: ParametresGr
 export function validerDemandeGrandFormat(brut: unknown, aujourdhui = jourBrazzaville()): Resultat<DemandeGrandFormat> {
   const corps = (brut && typeof brut === 'object' ? brut : {}) as Record<string, unknown>;
   const parametres = validerParametres(corps, aujourdhui);
+  const studio = corps.studio === true;
 
   const contact = (corps.contact && typeof corps.contact === 'object' ? corps.contact : {}) as Record<string, unknown>;
   const devis = validerDemandeDevis({
@@ -220,13 +238,13 @@ export function validerDemandeGrandFormat(brut: unknown, aujourdhui = jourBrazza
     email: contact.email,
     telephone: contact.telephone,
     ville: contact.ville,
-    besoin: parametres.ok ? besoinDepuisParametres(parametres.valeur) : 'demande grand format',
+    besoin: parametres.ok ? besoinDepuisParametres(parametres.valeur, studio) : 'demande grand format',
     format: parametres.ok ? formatDimensions(parametres.valeur.largeurM, parametres.valeur.hauteurM) : undefined,
     quantite: parametres.ok ? parametres.valeur.quantite : undefined,
-    specifications: parametres.ok ? specificationsLisibles(parametres.valeur, null) : {},
+    specifications: parametres.ok ? specificationsLisibles(parametres.valeur, null, studio) : {},
     fichiers: corps.fichiers,
     consentement: corps.consentement,
-  });
+  }, studio ? LIMITES_FICHIERS_STUDIO : LIMITES_FICHIERS_DEVIS);
 
   const erreurs = { ...(parametres.ok ? {} : parametres.erreurs), ...(devis.ok ? {} : devis.erreurs) };
   // Les champs dérivés (besoin, format, quantité) n'existent pas dans le formulaire banderole :
@@ -234,8 +252,13 @@ export function validerDemandeGrandFormat(brut: unknown, aujourdhui = jourBrazza
   delete erreurs.besoin;
   delete erreurs.format;
   delete erreurs.famille;
+  if (studio && devis.ok) {
+    const refus = paquetInvalide(devis.valeur);
+    if (refus) erreurs.fichiers = refus;
+    if (parametres.ok && parametres.valeur.support === 'AUTRE') erreurs.support = 'Ce support ne vient pas du Studio.';
+  }
   if (!parametres.ok || !devis.ok || Object.keys(erreurs).length > 0) {
     return { ok: false, erreurs: Object.keys(erreurs).length ? erreurs : { formulaire: 'Demande invalide.' } };
   }
-  return { ok: true, valeur: { devis: devis.valeur, parametres: parametres.valeur } };
+  return { ok: true, valeur: { devis: devis.valeur, parametres: parametres.valeur, studio } };
 }

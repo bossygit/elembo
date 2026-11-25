@@ -14,6 +14,10 @@ const MAX_FICHIER = 25 * 1024 * 1024;
 const MAX_TOTAL = 50 * 1024 * 1024;
 const MAX_FICHIERS = 5;
 
+/** Limites des fichiers annoncés. Le formulaire général garde les siennes ; l'offre banderoles peut les élargir. */
+export type LimitesFichiers = { fichiers: number; total: number; types: Record<string, TypeFichierVerifie> };
+export const LIMITES_FICHIERS_DEVIS: LimitesFichiers = { fichiers: MAX_FICHIERS, total: MAX_TOTAL, types: MIME };
+
 export type ResultatValidation =
   | { ok: true; valeur: DemandeDevis }
   | { ok: false; erreurs: Record<string, string> };
@@ -40,10 +44,10 @@ export function normaliserTelephone(brut: string): string {
   return chiffres.length === 9 ? `242${chiffres}` : '';
 }
 
-function fichiersValides(brut: unknown): { ok: true; valeur: FichierAnnonce[] } | { ok: false; erreur: string } {
+function fichiersValides(brut: unknown, limites: LimitesFichiers): { ok: true; valeur: FichierAnnonce[] } | { ok: false; erreur: string } {
   if (brut === undefined || brut === null) return { ok: true, valeur: [] };
   if (!Array.isArray(brut)) return { ok: false, erreur: 'La liste des fichiers est invalide.' };
-  if (brut.length > MAX_FICHIERS) return { ok: false, erreur: `Maximum ${MAX_FICHIERS} fichiers.` };
+  if (brut.length > limites.fichiers) return { ok: false, erreur: `Maximum ${limites.fichiers} fichiers.` };
 
   const resultat: FichierAnnonce[] = [];
   let total = 0;
@@ -59,7 +63,7 @@ function fichiersValides(brut: unknown): { ok: true; valeur: FichierAnnonce[] } 
     if (!nom || noms.has(nom.toLowerCase())) {
       return { ok: false, erreur: 'Chaque fichier doit avoir un nom unique.' };
     }
-    const type = MIME[typeMime];
+    const type = limites.types[typeMime];
     if (!type) return { ok: false, erreur: `Type de fichier refusé : ${typeMime || 'inconnu'}.` };
     if (!nomFichierAcceptable(nom, [type])) {
       return { ok: false, erreur: `Nom de fichier refusé : ${nom}.` };
@@ -68,7 +72,7 @@ function fichiersValides(brut: unknown): { ok: true; valeur: FichierAnnonce[] } 
       return { ok: false, erreur: `Taille invalide pour ${nom} (max 25 MiB).` };
     }
     total += taille;
-    if (total > MAX_TOTAL) return { ok: false, erreur: 'Le volume total dépasse 50 Mo.' };
+    if (total > limites.total) return { ok: false, erreur: `Le volume total dépasse ${limites.total / 1024 / 1024} Mo.` };
 
     noms.add(nom.toLowerCase());
     resultat.push({ nom, typeMime, tailleOctets: taille });
@@ -77,7 +81,7 @@ function fichiersValides(brut: unknown): { ok: true; valeur: FichierAnnonce[] } 
   return { ok: true, valeur: resultat };
 }
 
-export function validerDemandeDevis(brut: unknown): ResultatValidation {
+export function validerDemandeDevis(brut: unknown, limites: LimitesFichiers = LIMITES_FICHIERS_DEVIS): ResultatValidation {
   const erreurs: Record<string, string> = {};
   if (!brut || typeof brut !== 'object') {
     return { ok: false, erreurs: { formulaire: 'Corps de demande invalide.' } };
@@ -125,7 +129,7 @@ export function validerDemandeDevis(brut: unknown): ResultatValidation {
     }
   }
 
-  const fichiers = fichiersValides(corps.fichiers);
+  const fichiers = fichiersValides(corps.fichiers, limites);
   if (!fichiers.ok) erreurs.fichiers = fichiers.erreur;
 
   if (corps.consentement !== true) {

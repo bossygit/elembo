@@ -6,7 +6,6 @@ import { useState } from 'react';
 import { pourcentage } from '@/lib/banner/vue';
 import type { EtatSauvegarde } from '@/stores/banner-studio-store';
 
-import { Apercu } from './Apercu';
 import { Bouton } from './champs';
 import { useActions, useStudio } from './contexte';
 
@@ -30,7 +29,6 @@ export function StudioTopBar({ compact, onControles }: { compact: boolean; onCon
   const critiques = useStudio((e) => e.alertes.filter((x) => x.severite === 'critique').length);
   const avertissements = useStudio((e) => e.alertes.filter((x) => x.severite === 'avertissement').length);
   const [brouillon, setBrouillon] = useState<string | null>(null);
-  const [apercu, setApercu] = useState(false);
   const signales = critiques + avertissements;
   const valider = () => {
     if (brouillon !== null) a.poserNom(brouillon);
@@ -67,11 +65,13 @@ export function StudioTopBar({ compact, onControles }: { compact: boolean; onCon
           <Bouton icone="plus" libelle="Zoomer" onClick={() => a.zoomer(1.25)} />
         </>
       )}
-      <Bouton icone="ajuster" libelle="Voir toute la banderole" onClick={a.ajusterVue} />
+      {compact ? null : <Bouton icone="ajuster" libelle="Voir toute la banderole" onClick={a.ajusterVue} />}
+      {compact ? <Bouton icone="menu" libelle="Projets" onClick={() => a.ouvrirFenetre('projets')} /> : null}
       {compact ? null : (
         <>
           <Bouton icone={reperes ? 'oeil' : 'cache'} libelle={reperes ? 'Masquer les repères' : 'Afficher les repères'} onClick={a.basculerReperes} />
-          <Bouton libelle="Aperçu" texte="Aperçu" onClick={() => setApercu(true)} className="border border-bordure" />
+          <Bouton icone="menu" libelle="Projets" texte="Projets" onClick={() => a.ouvrirFenetre('projets')} className="border border-bordure" />
+          <Bouton libelle="Aperçu" texte="Aperçu" onClick={() => a.ouvrirFenetre('apercu')} className="border border-bordure" />
         </>
       )}
       <Bouton
@@ -81,7 +81,7 @@ export function StudioTopBar({ compact, onControles }: { compact: boolean; onCon
         onClick={onControles}
         className={critiques ? 'text-red-700' : avertissements ? 'text-alerte' : 'text-succes'}
       />
-      {apercu ? <Apercu fermer={() => setApercu(false)} /> : null}
+      {compact ? null : <Bouton libelle="Finaliser ma demande" texte="Finaliser ma demande" onClick={() => a.ouvrirFenetre('finaliser')} className="ml-1 bg-orange-action whitespace-nowrap text-white hover:bg-orange-action/90" />}
     </header>
   );
 }

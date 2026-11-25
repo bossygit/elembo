@@ -2,42 +2,45 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 
-import { chargerPolice, chargerPolices, copieTravail, mesureurNavigateur } from '@/lib/banner/navigateur';
-import { enregistrerProjet, lireAsset, lireProjetCourant, menage } from '@/lib/banner/stockage';
+import { mesureurNavigateur } from '@/lib/banner/navigateur';
+import { ID_PROJET } from '@/lib/banner/paquet';
+import { enregistrerProjet, lireProjet, lireProjetCourant, menage, poserCourant } from '@/lib/banner/stockage';
 import { creerStudio, type StudioStore } from '@/stores/banner-studio-store';
 
+import { Apercu } from './Apercu';
 import { Bouton, type NomIcone } from './champs';
+import { chargerProjet } from './chargement';
 import { FournisseurStudio, Images, useActions, useContexte, useMedia, useSelection, useStudio } from './contexte';
+import { Finaliser } from './Finaliser';
+import { Galerie } from './Galerie';
 import { Inspecteur } from './Inspecteur';
 import { PanneauAjouter, PanneauCalques, PanneauControles, PanneauFond, PanneauFormat } from './Panneaux';
+import { Projets } from './Projets';
 import { Recadrage } from './Recadrage';
 import { EPAISSEUR_REGLE, Regle } from './Regles';
 import { StudioCanvas } from './StudioCanvas';
 import { StudioTopBar } from './StudioTopBar';
 
-/** Charge le dernier projet, ses polices et ses images, puis fait le ménage du stockage. */
-async function charger(store: StudioStore, images: Images, actif: () => boolean) {
-  const lecture = await lireProjetCourant();
+type Depart = { projet: string | null; modele?: string; categorie?: string };
+
+/** Paramètres d'adresse : projet à rouvrir, modèle ou catégorie à proposer. Lus une fois, puis retirés. */
+function lireDepart(): Depart {
+  const p = new URLSearchParams(window.location.search);
+  const projet = p.get('projet');
+  return { projet: projet && ID_PROJET.test(projet) ? projet : null, modele: p.get('modele') ?? undefined, categorie: p.get('categorie') ?? undefined };
+}
+
+/** Charge le projet demandé (ou le dernier), puis fait le ménage du stockage. */
+async function charger(store: StudioStore, images: Images, depart: Depart, actif: () => boolean) {
+  const demande = depart.projet ? await lireProjet(depart.projet) : null;
+  const lecture = demande ?? (await lireProjetCourant());
   if (!actif()) return;
-  store.getState().ouvrir(lecture);
-  const doc = store.getState().document;
-  await Promise.all([
-    // Police du prochain texte ajouté : prête avant sa première mesure.
-    chargerPolice({ policeId: 'montserrat', graisse: 700, contenu: '' }).then((ok) => store.getState().declarerPolice('montserrat', ok)),
-    chargerPolices(doc).then((echecs) => {
-      for (const p of echecs) store.getState().declarerPolice(p, false);
-      images.notifier();
-    }),
-    ...doc.assets.map(async (a) => {
-      const blob = await lireAsset(a.id);
-      const copie = blob ? await copieTravail(blob).catch(() => null) : null;
-      if (!copie || !actif()) return;
-      images.poser(a.id, copie.travail);
-      store.getState().declarerImage(a.id);
-    }),
-  ]);
+  await chargerProjet(store, images, lecture, actif);
   if (!actif()) return;
-  store.getState().chargementFini();
+  if (demande?.ok) await poserCourant(demande.document.id);
+  else if (depart.projet && !demande) store.getState().annoncer('Ce projet n’est pas sur cet appareil.');
+  if (depart.modele || depart.categorie) store.getState().ouvrirFenetre('modeles');
+  if (window.location.search) window.history.replaceState(null, '', window.location.pathname);
   void menage();
 }
 
@@ -70,11 +73,12 @@ function raccourci(store: StudioStore, ev: KeyboardEvent): boolean {
 
 export default function BannerStudio() {
   const [studio] = useState(() => ({ store: creerStudio({ mesurer: mesureurNavigateur, enregistrer: enregistrerProjet }), images: new Images() }));
+  const [depart] = useState(lireDepart);
   const { store, images } = studio;
 
   useEffect(() => {
     let actif = true;
-    void charger(store, images, () => actif);
+    void charger(store, images, depart, () => actif);
     const clavier = (ev: KeyboardEvent) => { if (!ev.defaultPrevented && raccourci(store, ev)) ev.preventDefault(); };
     // Fermeture ou changement d'onglet : on n'attend pas la temporisation.
     const quitter = () => { if (document.visibilityState === 'hidden' && store.getState().sauvegarde === 'modifie') void store.getState().enregistrerMaintenant(); };
@@ -95,11 +99,11 @@ export default function BannerStudio() {
       // Navigation interne (retour aux banderoles) : le composant disparaît sans événement de page.
       if (store.getState().sauvegarde === 'modifie') void store.getState().enregistrerMaintenant();
     };
-  }, [store, images]);
+  }, [store, images, depart]);
 
   return (
     <FournisseurStudio value={studio}>
-      <Coque />
+      <Coque depart={depart} />
     </FournisseurStudio>
   );
 }
@@ -113,13 +117,14 @@ const ONGLETS: { id: Exclude<Onglet, 'reglages'>; nom: string; icone: NomIcone }
   { id: 'controles', nom: 'Contrôles', icone: 'controles' },
 ];
 
-function Coque() {
+function Coque({ depart }: { depart: Depart }) {
   const large = useMedia('(min-width: 1024px)');
   // Téléphone couché : le panneau passe à côté du plan de travail, pas dessous.
   const couche = useMedia('(max-height: 520px)');
   const [gauche, setGauche] = useState<Exclude<Onglet, 'reglages'>>('ajouter');
   const [feuille, setFeuille] = useState<Onglet | null>(null);
   const message = useStudio((e) => e.message);
+  const fenetre = useStudio((e) => e.fenetre);
   const critiques = useStudio((e) => e.alertes.filter((x) => x.severite === 'critique').length);
   const vide = useStudio((e) => e.charge && e.document.elements.length === 0);
   const a = useActions();
@@ -137,6 +142,16 @@ function Coque() {
     return <Inspecteur />;
   };
 
+  const fenetres = (
+    <>
+      <Recadrage />
+      {fenetre === 'modeles' ? <Galerie depart={depart} /> : null}
+      {fenetre === 'projets' ? <Projets /> : null}
+      {fenetre === 'finaliser' ? <Finaliser /> : null}
+      {fenetre === 'apercu' ? <Apercu fermer={() => a.ouvrirFenetre(null)} /> : null}
+    </>
+  );
+
   const annonces = (
     <>
       <p className="sr-only" aria-live="polite">{critiques ? `${critiques} problème${critiques > 1 ? 's' : ''} critique${critiques > 1 ? 's' : ''} avant impression` : ''}</p>
@@ -151,9 +166,14 @@ function Coque() {
 
   const invite = vide ? (
     <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center px-4">
-      <p className="rounded-xl bg-encre/85 px-4 py-2 text-center text-sm text-creme">Ajoutez un texte, une image ou une forme. Glissez pour déplacer, tirez les poignées pour agrandir.</p>
+      <div className="pointer-events-auto max-w-md rounded-xl bg-encre/90 px-4 py-3 text-center text-sm text-creme">
+        <p>Partez d’un modèle, ou ajoutez un texte, une image, une forme. Glissez pour déplacer, tirez les poignées pour agrandir.</p>
+        <button type="button" onClick={() => a.ouvrirFenetre('modeles')} className="mt-2 min-h-11 rounded-lg bg-creme px-4 font-semibold text-encre focus-visible:outline-2 focus-visible:outline-orange lg:min-h-9">Voir les modèles</button>
+      </div>
     </div>
   ) : null;
+  // Sur mobile, « voir toute la banderole » flotte sur le plan de travail.
+  const ajuster = <Bouton icone="ajuster" libelle="Voir toute la banderole" onClick={a.ajusterVue} className="absolute right-2 top-2 bg-creme/90 shadow" />;
 
   if (large) {
     return (
@@ -188,7 +208,7 @@ function Coque() {
           </main>
           <aside aria-label="Propriétés" className="min-h-0 overflow-y-auto border-l border-filet bg-creme"><Inspecteur /></aside>
         </div>
-        <Recadrage />
+        {fenetres}
       </div>
     );
   }
@@ -199,7 +219,7 @@ function Coque() {
       {annonces}
       <div className={`flex min-h-0 flex-1 ${couche ? 'flex-row' : 'flex-col'}`}>
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <main className="relative min-h-0 flex-1 bg-sable"><StudioCanvas />{invite}</main>
+          <main className="relative min-h-0 flex-1 bg-sable"><StudioCanvas />{ajuster}{invite}</main>
           {feuille === 'reglages' ? null : <BarreElement ouvrir={() => setFeuille('reglages')} />}
         </div>
         {feuille ? (
@@ -214,7 +234,7 @@ function Coque() {
           <Bouton key={o.id} icone={o.icone} libelle={o.nom} texte={o.nom} actif={feuille === o.id} className="!min-h-14 flex-col !gap-0.5 !rounded-none !px-0 !text-xs" onClick={() => setFeuille(feuille === o.id ? null : o.id)} />
         ))}
       </nav>
-      <Recadrage />
+      {fenetres}
     </div>
   );
 }

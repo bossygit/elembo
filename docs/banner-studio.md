@@ -1,7 +1,8 @@
 # Banner Studio — moteur et éditeur
 
 Référence du moteur livré au **lot 1** (modèle, géométrie, contraintes, `src/lib/banner`) de l'éditeur
-livré au **lot 2** (§6) et de l'édition de contenu livrée au **lot 3** (§7). Cadre :
+livré au **lot 2** (§6) et de l'édition de contenu livrée au **lot 3** (§7), et des modèles et du passage à la commande livrés au **lot 4**
+(§8). Cadre :
 [`audit-banner-studio.md`](audit-banner-studio.md) ; preuve technique et décisions :
 [`spike-banner-studio-lot0.md`](spike-banner-studio-lot0.md).
 
@@ -130,8 +131,8 @@ images qu'aucun projet ne cite sont supprimées à l'ouverture, après 24 h.
 
 ### 6.5 Limites connues
 
-- Un seul projet à la fois, une seule sélection ; deux onglets : le dernier enregistrement gagne.
-- Lot 4 : modèles et passage au devis. Lot 5 : PDF (crénage à appliquer, voir la note de spike).
+- Une seule sélection ; deux onglets sur le même projet : le dernier enregistrement gagne.
+- Lot 5 : PDF (crénage à appliquer, voir la note de spike).
 - Vérifié dans Chrome (bureau et émulation 390 px). **Ni Safari, ni Firefox, ni un vrai téléphone**
   n'ont été essayés.
 
@@ -202,3 +203,71 @@ bout, 53 contrôles sur les fichiers et le document enregistrés :
 ```bash
 STUDIO_URL=http://localhost:3000 node scripts/e2e/banner-contenu.mjs
 ```
+
+## 8. Modèles, projets et passage à la commande (lot 4)
+
+### 8.1 Modèles
+
+Dix modèles JSON (`src/lib/banner/templates/`), au moins un par catégorie. Un modèle est un document ordinaire
+dont les textes citent des variables `{{nom}}` ; le cadre de chaque texte est la **place disponible**. Un texte plus
+long est réduit pour y tenir, jamais tronqué. Noms, lieux et organisations fictifs, aucune photo de tiers : les
+portraits sont des emplacements d'exemple (`placeholder`), dessinés en silhouette et bloquants à la finalisation.
+Une variable `personnel` (nom, date, lieu, contact) laissée à son exemple donne un avertissement `TEXTE_EXEMPLE`.
+
+> **À faire relire par Smart Vision** (décision 7) avant la mise en ligne : textes, versets, choix graphiques.
+
+Appliquer un modèle sur un projet non vide propose un **nouveau projet** (par défaut) ou le remplacement, annulable
+en une fois.
+
+### 8.2 Projets
+
+Plusieurs projets par appareil : liste, ouverture, copie, suppression confirmée. L'export est le JSON du document,
+**sans les images** ; l'import crée toujours un nouveau projet et propose de rattacher les images manquantes, par
+empreinte SHA-256 ou par nom et dimensions. Adresses : `?projet=`, `?modele=`, `?categorie=`.
+
+### 8.3 Passage à la commande
+
+« Finaliser ma demande » refuse les alertes critiques, demande un accord pour les avertissements, produit l'aperçu
+(JPEG 1 600 px) et ouvre `/banderoles/commander?studio=<projet>`. Le formulaire existant est réutilisé : support,
+format et finition y sont verrouillés, la prestation est `FICHIER_PRET` par défaut, sans frais de création.
+
+| Fichier déposé | Contenu |
+|---|---|
+| `projet-banner.json` | le document, 1 Mo au plus |
+| `apercu-banner.jpg` | l'aperçu |
+| `studio-<assetId>.jpg\|png` | chaque image, octet pour octet |
+
+Limites : 10 fichiers (8 images), 25 Mo par fichier, 80 Mo au total. Elles ne s'appliquent qu'aux demandes du
+Studio (`studio: true`) ; le formulaire ordinaire garde 5 fichiers et 50 Mo, et refuse le JSON. Le serveur vérifie
+le JSON déposé : nom, taille, UTF-8 strict, schéma complet, version, aucune image d'exemple. Un visuel modifié après
+sa préparation n'est pas envoyé.
+
+Corrigé au passage dans le parcours de commande (toutes les banderoles) : après une erreur du serveur, la page
+restait bloquée ; une coupure réseau annonçait à tort « demande enregistrée » ; le dépôt d'un fichier est réessayé
+trois fois ; un second essai après une réponse perdue ne laisse plus croire que les fichiers sont partis.
+
+### 8.4 Migration
+
+`20261125120000_banner_studio_fichiers.sql` : le bucket privé `devis` accepte `application/json`. Additive,
+idempotente, retour arrière fourni. **Appliquée en local seulement** : à appliquer en staging puis en production
+avant d'ouvrir le Studio, sinon le dépôt du projet est refusé par le stockage.
+
+### 8.5 Limites connues
+
+- Le serveur ne compare pas encore le document aux dimensions du devis : lot 5, avec le rendu du PDF.
+- Si l'envoi des fichiers échoue après l'enregistrement, ils ne peuvent pas être renvoyés depuis le site : reprise
+  au lot 7.
+- Les sources du client restent `NON_ANALYSE`, donc non téléchargeables au back-office (règle existante) ; le PDF
+  du lot 5 le sera.
+- La page n'est toujours liée nulle part.
+
+### 8.6 Tests
+
+`tests/bannerModeles.test.ts` (34 tests), `supabase/tests/banner_studio.sql`, et un essai de bout en bout de 53
+contrôles qui crée un vrai devis **en local** (Supabase et Redis locaux, refus de toute autre adresse) :
+
+```bash
+STUDIO_SUPABASE_URL=http://127.0.0.1:54321 STUDIO_SERVICE_ROLE_KEY=… node scripts/e2e/banner-commande.mjs
+```
+
+Le serveur a besoin de `REDIS_URL`, `DEVIS_SESSION_SECRET` et `APP_ORIGINS=http://localhost:3000`.

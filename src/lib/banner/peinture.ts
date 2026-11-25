@@ -27,6 +27,7 @@ export function dessinerElement(c: CanvasRenderingContext2D, e: Element, assets:
   }
   if (e.type === 'image') {
     const asset = assets.find((a) => a.id === e.image.assetId);
+    if (asset?.placeholder) return dessinerExemple(c, w, h);
     const source = asset ? r.image(asset.id) : null;
     if (!asset || !source) {
       c.fillStyle = '#E5E0D5';
@@ -84,6 +85,31 @@ export function dessinerElement(c: CanvasRenderingContext2D, e: Element, assets:
       c.stroke();
     }
   }
+  c.restore();
+}
+
+/** Silhouette neutre : emplacement d'une photo de modèle, jamais imprimée (alerte critique). */
+function dessinerExemple(c: CanvasRenderingContext2D, w: number, h: number) {
+  const u = Math.min(w, h);
+  c.save();
+  c.beginPath();
+  c.rect(-w / 2, -h / 2, w, h);
+  c.clip();
+  c.fillStyle = '#D8D1C4';
+  c.fillRect(-w / 2, -h / 2, w, h);
+  c.fillStyle = '#B3AA99';
+  c.beginPath();
+  c.arc(0, -u * 0.14, u * 0.19, 0, Math.PI * 2);
+  c.fill();
+  c.beginPath();
+  c.ellipse(0, u * 0.5, u * 0.36, u * 0.38, 0, 0, Math.PI * 2);
+  c.fill();
+  c.fillStyle = '#5D5964';
+  c.font = `600 ${u * 0.09}px sans-serif`;
+  c.textAlign = 'center';
+  c.textBaseline = 'alphabetic';
+  c.letterSpacing = '0px';
+  c.fillText('Votre photo', 0, h / 2 - u * 0.06);
   c.restore();
 }
 

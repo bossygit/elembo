@@ -1,0 +1,273 @@
+{
+  "id": "grande-croisade",
+  "nom": "Grande croisade",
+  "categorie": "EGLISE",
+  "description": "Titre très lisible de loin, pour une façade ou le bord d’une route.",
+  "variables": [
+    {
+      "id": "eglise",
+      "libelle": "Église ou ministère",
+      "exemple": "L’Église La Source de Vie présente",
+      "max": 80,
+      "personnel": true
+    },
+    {
+      "id": "titre",
+      "libelle": "Titre",
+      "exemple": "GRANDE CROISADE",
+      "max": 30
+    },
+    {
+      "id": "theme",
+      "libelle": "Thème",
+      "exemple": "Jésus-Christ est le même hier, aujourd’hui et éternellement",
+      "max": 120
+    },
+    {
+      "id": "dates",
+      "libelle": "Dates et heure",
+      "exemple": "Du 12 au 15 décembre · 16 h",
+      "max": 60,
+      "personnel": true
+    },
+    {
+      "id": "lieu",
+      "libelle": "Lieu",
+      "exemple": "Esplanade de la Lumière",
+      "max": 60,
+      "personnel": true
+    }
+  ],
+  "document": {
+    "schema": "elembo.banner",
+    "version": 1,
+    "id": "modele-grande-croisade",
+    "nom": "Grande croisade",
+    "creeLe": "2026-11-25T00:00:00.000Z",
+    "modifieLe": "2026-11-25T00:00:00.000Z",
+    "support": "BANDEROLE",
+    "categorie": "EGLISE",
+    "modeleId": "grande-croisade",
+    "dimensions": {
+      "largeurMm": 4000,
+      "hauteurMm": 1000
+    },
+    "finition": "OURLETS_OEILLETS",
+    "profil": null,
+    "contraintes": {
+      "margeSecuriteMm": 50,
+      "ourletMm": 50,
+      "fondPerduMm": 0,
+      "laizeMaxMm": null,
+      "longueurMaxMm": null,
+      "oeillets": {
+        "actifs": true,
+        "diametreMm": 20,
+        "espacementMm": 500,
+        "margeMm": 30
+      },
+      "fourreaux": {
+        "hautMm": 0,
+        "basMm": 0
+      },
+      "dpiMin": 72,
+      "dpiRecommande": 150,
+      "pageMaxMm": 5080,
+      "modeGrandFormat": "PANNEAUX"
+    },
+    "fond": {
+      "type": "couleur",
+      "couleur": "#171A7A"
+    },
+    "assets": [],
+    "elements": [
+      {
+        "id": "e1",
+        "nom": "Bandeau",
+        "xMm": 2000,
+        "yMm": 855,
+        "largeurMm": 4000,
+        "hauteurMm": 290,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "rect",
+          "fond": "#FFC83D",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e2",
+        "nom": "Filet",
+        "xMm": 2000,
+        "yMm": 702,
+        "largeurMm": 4000,
+        "hauteurMm": 16,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "rect",
+          "fond": "#FFFFFF",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e3",
+        "nom": "Croix",
+        "xMm": 420,
+        "yMm": 370,
+        "largeurMm": 308,
+        "hauteurMm": 440,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "croix",
+          "fond": "#FFC83D",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e4",
+        "nom": "Église",
+        "xMm": 2180,
+        "yMm": 148,
+        "largeurMm": 3100,
+        "hauteurMm": 84,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{eglise}}",
+          "policeId": "montserrat",
+          "corpsMm": 70,
+          "couleur": "#FFC83D",
+          "alignement": "center",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e5",
+        "nom": "Titre",
+        "xMm": 2180,
+        "yMm": 375,
+        "largeurMm": 3100,
+        "hauteurMm": 379.5,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{titre}}",
+          "policeId": "anton",
+          "corpsMm": 330,
+          "couleur": "#FFFFFF",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": false,
+          "interlettrageEm": 0.02,
+          "interligne": 1.15
+        }
+      },
+      {
+        "id": "e6",
+        "nom": "Thème",
+        "xMm": 2180,
+        "yMm": 605,
+        "largeurMm": 3100,
+        "hauteurMm": 100.8,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{theme}}",
+          "policeId": "playfair-display",
+          "corpsMm": 84,
+          "couleur": "#FFFFFF",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": true,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e7",
+        "nom": "Dates",
+        "xMm": 1050,
+        "yMm": 825,
+        "largeurMm": 1640,
+        "hauteurMm": 134.4,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{dates}}",
+          "policeId": "anton",
+          "corpsMm": 112,
+          "couleur": "#171A7A",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e8",
+        "nom": "Lieu",
+        "xMm": 2950,
+        "yMm": 825,
+        "largeurMm": 1640,
+        "hauteurMm": 134.4,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{lieu}}",
+          "policeId": "anton",
+          "corpsMm": 112,
+          "couleur": "#171A7A",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      }
+    ],
+    "qualite": {
+      "distanceLectureM": 3
+    },
+    "meta": {
+      "versionRendu": 1,
+      "createur": "modele"
+    }
+  }
+}

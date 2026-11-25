@@ -37,8 +37,10 @@ export async function POST(request: Request, contexte: Contexte) {
   } catch {
     return jsonErreur('Corps JSON invalide.', 400);
   }
+  // 5 fichiers pour un devis ordinaire, 10 pour un visuel du Banner Studio : la création du devis a
+  // déjà appliqué la bonne limite, ici on borne seulement le travail.
   const ids = Array.isArray(corps.fichierIds)
-    ? corps.fichierIds.filter((id): id is string => typeof id === 'string').slice(0, 5)
+    ? corps.fichierIds.filter((id): id is string => typeof id === 'string').slice(0, 10)
     : [];
   if (ids.length === 0) return jsonErreur('Aucun fichier à vérifier.', 422);
 

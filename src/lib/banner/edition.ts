@@ -180,6 +180,20 @@ export function poserTexte(doc: DocumentBanner, id: string, style: Partial<Style
   });
 }
 
+/**
+ * Remplit un texte de modèle : le cadre de départ est la **place disponible**. Trop long, le texte
+ * est réduit pour tenir en largeur et en hauteur ; plus court, il garde son corps.
+ */
+export function remplirTexte(e: ElementTexte, contenu: string, mesurer: Mesureur): ElementTexte {
+  const place = { l: e.largeurMm, h: e.hauteurMm };
+  const n = { ...e, texte: { ...e.texte, ...varianteDe(e.texte), contenu: nettoyerTexte(contenu) || ' ' } };
+  const enc = encombrementTexte(n, metriquesDe(n.texte), mesurer(n.texte));
+  const k = Math.min(1, place.l / Math.max(1, enc.largeurMm), place.h / Math.max(1, enc.hauteurMm));
+  // Arrondi vers le bas : le résultat tient vraiment dans la place.
+  const corpsMm = borner(Math.floor(n.texte.corpsMm * k * 10) / 10, CORPS_MIN_MM, CORPS_MAX_MM);
+  return ajusterCadre({ ...n, texte: { ...n.texte, corpsMm } }, mesurer);
+}
+
 /** Coupe les lignes plus larges que `largeurMm` ; un mot seul trop long reste entier. */
 export function couperLignes(contenu: string, largeurMm: number, mesure: (ligne: string) => number): string {
   return contenu
@@ -330,8 +344,10 @@ export function poserSupport(doc: DocumentBanner, support: SupportStudio, finiti
  */
 export function poserFormat(doc: DocumentBanner, largeurMm: number, hauteurMm: number, mesurer: Mesureur): DocumentBanner {
   if (!Number.isFinite(largeurMm) || !Number.isFinite(hauteurMm)) return doc;
-  const L = Math.round(borner(largeurMm, DIMENSION_MIN_MM, DIMENSION_MAX_MM));
-  const H = Math.round(borner(hauteurMm, DIMENSION_MIN_MM, DIMENSION_MAX_MM));
+  // Au centimètre, comme le devis : le format édité est exactement celui qui sera commandé.
+  const cm = (v: number) => borner(Math.round(v / 10) * 10, DIMENSION_MIN_MM, DIMENSION_MAX_MM);
+  const L = cm(largeurMm);
+  const H = cm(hauteurMm);
   const rx = L / doc.dimensions.largeurMm;
   const ry = H / doc.dimensions.hauteurMm;
   if (rx === 1 && ry === 1) return doc;

@@ -1,0 +1,262 @@
+{
+  "id": "retrait-de-deuil",
+  "nom": "Retrait de deuil",
+  "categorie": "DEUIL",
+  "description": "Fond clair et sobre, sans photo, pour annoncer une cérémonie.",
+  "variables": [
+    {
+      "id": "surtitre",
+      "libelle": "Ligne du haut",
+      "exemple": "Cérémonie de retrait de deuil",
+      "max": 80
+    },
+    {
+      "id": "nom",
+      "libelle": "Nom du défunt",
+      "exemple": "Maman Henriette Nkounkou",
+      "max": 80,
+      "personnel": true
+    },
+    {
+      "id": "citation",
+      "libelle": "Verset ou citation",
+      "exemple": "« Heureux les affligés, car ils seront consolés »",
+      "max": 140
+    },
+    {
+      "id": "lieu",
+      "libelle": "Date et lieu",
+      "exemple": "Samedi 6 décembre · 10 h · Domicile familial",
+      "max": 120,
+      "personnel": true
+    }
+  ],
+  "document": {
+    "schema": "elembo.banner",
+    "version": 1,
+    "id": "modele-retrait-de-deuil",
+    "nom": "Retrait de deuil",
+    "creeLe": "2026-11-25T00:00:00.000Z",
+    "modifieLe": "2026-11-25T00:00:00.000Z",
+    "support": "BANDEROLE",
+    "categorie": "DEUIL",
+    "modeleId": "retrait-de-deuil",
+    "dimensions": {
+      "largeurMm": 4000,
+      "hauteurMm": 1000
+    },
+    "finition": "OEILLETS",
+    "profil": null,
+    "contraintes": {
+      "margeSecuriteMm": 50,
+      "ourletMm": 0,
+      "fondPerduMm": 0,
+      "laizeMaxMm": null,
+      "longueurMaxMm": null,
+      "oeillets": {
+        "actifs": true,
+        "diametreMm": 20,
+        "espacementMm": 500,
+        "margeMm": 30
+      },
+      "fourreaux": {
+        "hautMm": 0,
+        "basMm": 0
+      },
+      "dpiMin": 72,
+      "dpiRecommande": 150,
+      "pageMaxMm": 5080,
+      "modeGrandFormat": "PANNEAUX"
+    },
+    "fond": {
+      "type": "couleur",
+      "couleur": "#F6F3EE"
+    },
+    "assets": [],
+    "elements": [
+      {
+        "id": "e1",
+        "nom": "Bande gauche",
+        "xMm": 150,
+        "yMm": 500,
+        "largeurMm": 14,
+        "hauteurMm": 760,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "rect",
+          "fond": "#5B3F8C",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e2",
+        "nom": "Bande droite",
+        "xMm": 3850,
+        "yMm": 500,
+        "largeurMm": 14,
+        "hauteurMm": 760,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "rect",
+          "fond": "#5B3F8C",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e3",
+        "nom": "Croix",
+        "xMm": 420,
+        "yMm": 500,
+        "largeurMm": 294,
+        "hauteurMm": 420,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "croix",
+          "fond": "#5B3F8C",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e4",
+        "nom": "Croix",
+        "xMm": 3580,
+        "yMm": 500,
+        "largeurMm": 294,
+        "hauteurMm": 420,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "croix",
+          "fond": "#5B3F8C",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e5",
+        "nom": "Surtitre",
+        "xMm": 2000,
+        "yMm": 190,
+        "largeurMm": 2700,
+        "hauteurMm": 93.6,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{surtitre}}",
+          "policeId": "cinzel",
+          "corpsMm": 78,
+          "couleur": "#5B3F8C",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": false,
+          "interlettrageEm": 0.08,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e6",
+        "nom": "Nom",
+        "xMm": 2000,
+        "yMm": 415,
+        "largeurMm": 2750,
+        "hauteurMm": 288,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{nom}}",
+          "policeId": "playfair-display",
+          "corpsMm": 210,
+          "couleur": "#1B1420",
+          "alignement": "center",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e7",
+        "nom": "Citation",
+        "xMm": 2000,
+        "yMm": 640,
+        "largeurMm": 2750,
+        "hauteurMm": 105.6,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{citation}}",
+          "policeId": "cormorant-garamond",
+          "corpsMm": 88,
+          "couleur": "#3A3242",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": true,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e8",
+        "nom": "Date et lieu",
+        "xMm": 2000,
+        "yMm": 815,
+        "largeurMm": 2750,
+        "hauteurMm": 93.6,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{lieu}}",
+          "policeId": "montserrat",
+          "corpsMm": 78,
+          "couleur": "#5B3F8C",
+          "alignement": "center",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      }
+    ],
+    "qualite": {
+      "distanceLectureM": 3
+    },
+    "meta": {
+      "versionRendu": 1,
+      "createur": "modele"
+    }
+  }
+}

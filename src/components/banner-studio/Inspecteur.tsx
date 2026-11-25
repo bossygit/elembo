@@ -14,6 +14,7 @@ import { BORNES } from '@/lib/banner/schema';
 
 import { Bouton, BoutonFichier, ChampCase, ChampChoix, ChampCouleur, ChampLigne, ChampNombre, ChampTexte, Groupe } from './champs';
 import { useActions, useContexte, useImportImage, useSelection, useStudio } from './contexte';
+import { PRIMAIRE } from './Fenetre';
 
 const ALIGNEMENTS: { mode: ModeAlignement; nom: string; court: string }[] = [
   { mode: 'gauche', nom: 'Aligner à gauche de la zone de sécurité', court: 'Gauche' },
@@ -182,7 +183,7 @@ function SectionImage({ e }: { e: ElementImage }) {
   const q = QUALITE[niveauQualite(dpi, s)];
   return (
     <Groupe titre="Image">
-      {asset && presente ? (
+      {asset?.placeholder ? <p className="text-sm">Photo d’exemple du modèle : <strong>remplacez-la par la vôtre</strong>, ou supprimez-la.</p> : asset && presente ? (
         <p className="text-sm" data-testid="qualite">
           Définition <strong className={q.classe}>{q.texte}</strong> : {dpi} dpi
           <span className="block text-xs text-attenue">
@@ -193,7 +194,7 @@ function SectionImage({ e }: { e: ElementImage }) {
       ) : <p role="alert" className="text-sm text-red-800">Image introuvable sur cet appareil : remplacez-la.</p>}
       <div className="flex flex-wrap gap-1.5">
         <Bouton icone="recadrer" libelle="Recadrer l’image" texte="Recadrer" className={BORD} disabled={bloque || !presente} onClick={() => a.ouvrirRecadrage(e.id)} />
-        <BoutonFichier icone="remplacer" libelle="Remplacer l’image" texte="Remplacer" testid="remplacer-image" className={BORD} disabled={bloque} onFichier={(f) => void importer(f, { vers: 'remplacer', id: e.id })} />
+        <BoutonFichier icone="remplacer" libelle="Remplacer l’image" texte="Remplacer" testid="remplacer-image" className={asset?.placeholder ? PRIMAIRE : BORD} disabled={bloque} onFichier={(f) => void importer(f, { vers: 'remplacer', id: e.id })} />
         <Bouton icone="fond" libelle="Utiliser comme fond" texte="Mettre en fond" className={BORD} disabled={bloque || !presente} onClick={() => a.mettreEnFond(e.id)} />
       </div>
       <ChampChoix<'cover' | 'contain'> libelle="Remplissage du cadre" valeur={e.image.ajustement} disabled={bloque} options={[{ valeur: 'cover', texte: 'Remplir le cadre (recadre)' }, { valeur: 'contain', texte: 'Image entière' }]} onValeur={(v) => a.poserAjustement(e.id, v)} />

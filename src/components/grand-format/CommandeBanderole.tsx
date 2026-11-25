@@ -302,6 +302,7 @@ export default function CommandeBanderole({ initialUsage, initialModele, initial
     if (Object.keys(e).length) return;
 
     setEnvoi('Enregistrement de votre demande…');
+    let enregistree = false;
     try {
       const r = await fetch('/api/banderoles', {
         method: 'POST',
@@ -316,11 +317,13 @@ export default function CommandeBanderole({ initialUsage, initialModele, initial
       const corps = (await r.json().catch(() => ({}))) as {
         reference?: string;
         uploads?: UploadSigne[];
+        dejaExistant?: boolean;
         csrfToken?: string;
         erreur?: string;
         details?: Record<string, string>;
       };
       if (!r.ok || !corps.reference) {
+        setEnvoi(null);
         if (corps.details) {
           setErreurs(corps.details);
           const premiere = Object.keys(corps.details).map((c) => ETAPE_DU_CHAMP[c] ?? 5).sort((a, b) => a - b)[0];
@@ -333,6 +336,14 @@ export default function CommandeBanderole({ initialUsage, initialModele, initial
               ? 'Le service est momentanément indisponible. Réessayez dans quelques minutes ou écrivez-nous sur WhatsApp.'
               : corps.erreur ?? 'La demande n’a pas pu être enregistrée.',
         );
+        return;
+      }
+      enregistree = true;
+      // Second essai après une réponse perdue : le serveur a déjà la demande et ne redonne pas d'URL
+      // d'envoi. Ne pas laisser croire que les fichiers sont partis.
+      if (corps.dejaExistant && fichiers.length) {
+        setErreurGlobale(`Votre demande ${corps.reference} est déjà enregistrée, mais ses fichiers ne peuvent pas être renvoyés d’ici. Donnez-nous cette référence :`);
+        setEnvoi(null);
         return;
       }
       if (corps.uploads?.length) {
@@ -349,9 +360,9 @@ export default function CommandeBanderole({ initialUsage, initialModele, initial
       router.push(`/devis/${corps.reference}`);
     } catch (erreur) {
       setErreurGlobale(
-        erreur instanceof Error
-          ? `${erreur.message} Votre demande est enregistrée : vous pourrez ajouter vos fichiers depuis le suivi ou nous les envoyer sur WhatsApp.`
-          : 'Erreur pendant l’envoi.',
+        enregistree
+          ? `${erreur instanceof Error ? erreur.message : 'Envoi interrompu.'} Votre demande est enregistrée, mais tous vos fichiers ne sont pas arrivés : envoyez-les-nous sur WhatsApp.`
+          : 'La demande n’a pas pu être envoyée. Vérifiez votre connexion, puis réessayez.',
       );
       setEnvoi(null);
     }

@@ -134,6 +134,9 @@ for pid, nom, categorie, dossier, droite, italique, graisses in CATALOGUE:
                 (ttf_dir / f'{pid}-{cle}.ttf').write_bytes(chemin.read_bytes())
             else:
                 reduire(police)
+                # Le sous-ensemble de @pdf-lib/fontkit suppose des glyphes alignés : sans cela, des lettres
+                # disparaissent du PDF (Cormorant Garamond, constaté le 25/11/2026).
+                police['glyf'].padding = 4
                 police.save(ttf_dir / f'{pid}-{cle}.ttf')
             police = TTFont(ttf_dir / f'{pid}-{cle}.ttf', recalcTimestamp=False)
             em, hhea = police['head'].unitsPerEm, police['hhea']

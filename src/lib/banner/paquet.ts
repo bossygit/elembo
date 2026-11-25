@@ -8,8 +8,8 @@
 import type { DocumentBanner } from './model';
 import { validerDocument } from './schema';
 
-/** Limites d'une demande venant du Studio ; le serveur applique les mêmes. */
-export const LIMITES_PAQUET = { fichiers: 10, octetsFichier: 25 * 1024 * 1024, octetsTotal: 80 * 1024 * 1024, octetsJson: 1024 * 1024 } as const;
+/** Limites d'une demande venant du Studio ; le serveur applique les mêmes. Le total laisse tenir le PDF dans 50 Mo. */
+export const LIMITES_PAQUET = { fichiers: 10, octetsFichier: 25 * 1024 * 1024, octetsTotal: 45 * 1024 * 1024, octetsJson: 1024 * 1024 } as const;
 export const NOM_PROJET = 'projet-banner.json';
 export const NOM_APERCU = 'apercu-banner.jpg';
 /** Identifiant de projet accepté dans une adresse. */
@@ -39,6 +39,6 @@ export function assemblerPaquet({ document, apercu, images }: Contenu): Resultat
   ];
   if (json.size > LIMITES_PAQUET.octetsJson) return { ok: false, erreur: 'Ce projet est trop volumineux pour être envoyé.' };
   if (fichiers.some((f) => f.size > LIMITES_PAQUET.octetsFichier)) return { ok: false, erreur: 'Une image dépasse 25 Mo.' };
-  if (fichiers.reduce((s, f) => s + f.size, 0) > LIMITES_PAQUET.octetsTotal) return { ok: false, erreur: 'Les images dépassent 80 Mo au total : allégez-en une.' };
+  if (fichiers.reduce((s, f) => s + f.size, 0) > LIMITES_PAQUET.octetsTotal) return { ok: false, erreur: 'Les images dépassent 45 Mo au total : allégez-en une.' };
   return { ok: true, fichiers };
 }

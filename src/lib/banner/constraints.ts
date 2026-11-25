@@ -124,6 +124,20 @@ export function panneaux(longueurMm: number, pageMaxMm: number, recouvrementMm =
   return Array.from({ length: n }, (_, i) => ({ debutMm: i * (l - recouvrementMm), longueurMm: l }));
 }
 
+/** Pages d'un document : une seule, ou des panneaux sur le grand côté. Commun à l'éditeur et au PDF. */
+export function decoupePages(doc: DocumentBanner): { axe: 'x' | 'y'; panneaux: { debutMm: number; longueurMm: number }[]; tientEnPage: boolean } {
+  const { largeurMm: L, hauteurMm: H } = doc.dimensions;
+  const { pageMaxMm, fondPerduMm, modeGrandFormat } = doc.contraintes;
+  const grand = Math.max(L, H);
+  const enPanneaux = modeGrandFormat === 'PANNEAUX';
+  return {
+    axe: L >= H ? 'x' : 'y',
+    // Le fond perdu prend sa place sur la page.
+    panneaux: enPanneaux ? panneaux(grand, pageMaxMm - 2 * fondPerduMm) : [{ debutMm: 0, longueurMm: grand }],
+    tientEnPage: !enPanneaux || Math.min(L, H) + 2 * fondPerduMm <= pageMaxMm,
+  };
+}
+
 export type Zones = {
   surface: Rect;
   zoneSure: Rect;
@@ -152,9 +166,8 @@ export function zones(doc: DocumentBanner): Zones {
   const oeillets = c.oeillets.actifs
     ? positionsOeillets(L, H, c.oeillets).map((p) => ({ ...p, rayon: c.oeillets.diametreMm / 2 + c.oeillets.margeMm }))
     : [];
-  const axe = L >= H ? 'x' : 'y';
-  const decoupe = c.modeGrandFormat === 'PANNEAUX' ? panneaux(Math.max(L, H), c.pageMaxMm) : [{ debutMm: 0, longueurMm: Math.max(L, H) }];
-  const plis = decoupe.slice(1).map((p, i) => ({ axe: axe as 'x' | 'y', debutMm: p.debutMm, finMm: decoupe[i].debutMm + decoupe[i].longueurMm }));
+  const { axe, panneaux: decoupe } = decoupePages(doc);
+  const plis = decoupe.slice(1).map((p, i) => ({ axe, debutMm: p.debutMm, finMm: decoupe[i].debutMm + decoupe[i].longueurMm }));
   // Fourreaux et ourlets s'ajoutent à la marge de sécurité.
   const inset = c.margeSecuriteMm + o;
   const sure = retrait(surface, inset);
@@ -213,9 +226,13 @@ export function alertesFormat(doc: DocumentBanner): Alerte[] {
   const { largeurMm: L, hauteurMm: H } = doc.dimensions;
   const c = doc.contraintes;
   const a: Alerte[] = [];
-  const pages = c.modeGrandFormat === 'PANNEAUX' ? panneaux(Math.max(L, H), c.pageMaxMm).length : 1;
+  const decoupe = decoupePages(doc);
+  const pages = decoupe.panneaux.length;
   if (pages > PLAFOND_LIBRE_SERVICE.pages || (L * H) / 1e6 > PLAFOND_LIBRE_SERVICE.surfaceM2 || Math.max(L, H) > PLAFOND_LIBRE_SERVICE.longueurMm) {
     a.push({ code: 'FORMAT_SUR_DEVIS', severite: 'critique', elementId: null, message: 'Ce format dépasse le libre-service (12 pages, 100 m², 20 m) : il sera chiffré sur devis.' });
+  }
+  if (!decoupe.tientEnPage) {
+    a.push({ code: 'FORMAT_SUR_DEVIS', severite: 'critique', elementId: null, message: 'Les deux côtés dépassent 5 m : ce format sera étudié sur devis.' });
   }
   if (c.laizeMaxMm && Math.min(L, H) > c.laizeMaxMm) {
     a.push({ code: 'HORS_LAIZE', severite: 'critique', elementId: null, message: `Les deux côtés dépassent la laize de l’imprimeur (${c.laizeMaxMm / 1000} m) : un assemblage ou un devis est nécessaire.` });

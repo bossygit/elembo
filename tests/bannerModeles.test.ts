@@ -205,7 +205,7 @@ describe('paquet', () => {
     vi.stubGlobal('File', class { size: number; constructor(p: { size?: number }[], public name: string) { this.size = p[0].size ?? 10; } });
     expect(erreur(avecImages(PHOTO), lourd)).toMatch(/25 Mo/);
     const quatre = neuf.slice(0, 4);
-    expect(erreur(avecImages(...quatre), new Map(quatre.map((a) => [a.id, { size: 21 * 1024 * 1024 } as Blob])))).toMatch(/80 Mo/);
+    expect(erreur(avecImages(...quatre), new Map(quatre.map((a) => [a.id, { size: 21 * 1024 * 1024 } as Blob])))).toMatch(/45 Mo/);
     vi.unstubAllGlobals();
     expect(erreur({ ...avecImages(), dimensions: { largeurMm: 3005, hauteurMm: 1000 } })).toMatch(/centimètre/);
     expect(erreur({ ...avecImages(), nom: '' })).toMatch(/invalides/);
@@ -235,11 +235,11 @@ describe('demande venant du Studio : contrôles serveur', () => {
     expect(r.ok && r.valeur.devis.specifications).toMatchObject({ Visuel: 'Réalisé avec Elembo Banner Studio' });
   });
 
-  it('dix fichiers et 80 Mo, pas davantage', () => {
+  it('dix fichiers et 45 Mo, pas davantage', () => {
     const huit = Array.from({ length: 8 }, (_, i) => img(i));
     expect(erreurs(demande(true, [JSON_OK, APERCU_OK, ...huit]))).toEqual({});
     expect(erreurs(demande(true, [JSON_OK, APERCU_OK, ...huit, img(9)])).fichiers).toMatch(/Maximum 10/);
-    expect(erreurs(demande(true, [JSON_OK, APERCU_OK, ...[1, 2, 3, 4].map((i) => img(i, 21 * 1024 * 1024))])).fichiers).toMatch(/80 Mo/);
+    expect(erreurs(demande(true, [JSON_OK, APERCU_OK, ...[1, 2, 3, 4].map((i) => img(i, 21 * 1024 * 1024))])).fichiers).toMatch(/45 Mo/);
   });
 
   it('exige un seul projet, bien nommé, et son aperçu', () => {

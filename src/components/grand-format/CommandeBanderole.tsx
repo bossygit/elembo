@@ -59,7 +59,7 @@ const MAX_FICHIER = 25 * 1024 * 1024;
 const MAX_TOTAL = 50 * 1024 * 1024;
 /** Avec un visuel du Studio (images, projet, aperçu) ; le serveur applique les mêmes limites. */
 const MAX_FICHIERS_STUDIO = 10;
-const MAX_TOTAL_STUDIO = 80 * 1024 * 1024;
+const MAX_TOTAL_STUDIO = 45 * 1024 * 1024;
 
 const FORMATS_RAPIDES: Record<string, [number, number][]> = {
   BANDEROLE: [[2, 1], [3, 1], [4, 1], [5, 1], [3, 1.5], [6, 1.5]],
@@ -381,6 +381,15 @@ export default function CommandeBanderole({ visuel, initialUsage, initialModele,
           fichiers: aEnvoyer,
           surProgression: (n, total) => setEnvoi(`Envoi de vos fichiers (${n}/${total})…`),
         });
+      }
+      if (visuel && corps.uploads?.length) {
+        setEnvoi('Préparation de votre fichier d’impression…');
+        // Sans gravité si cela échoue : la demande et le visuel sont enregistrés, l'équipe peut relancer.
+        await fetch(`/api/banderoles/${encodeURIComponent(corps.reference)}/visuel`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-csrf-token': corps.csrfToken ?? '' },
+          body: '{}',
+        }).catch(() => undefined);
       }
       setEnvoi('Demande enregistrée. Ouverture de votre suivi…');
       router.push(`/devis/${corps.reference}`);

@@ -81,7 +81,8 @@ function analyserJpeg(o: Uint8Array): Omit<Analyse, 'type'> {
     const debut = p + 4;
     const fin = p + 2 + taille;
     if (taille < 2 || fin > o.length) return r;
-    if (marque === 0xe1 && ascii(o, debut, 'Exif')) r.orientation = orientationTiff(o, debut + 6, fin);
+    // Plusieurs blocs EXIF possibles : le premier qui tourne l'image compte.
+    if (marque === 0xe1 && ascii(o, debut, 'Exif') && r.orientation === 1) r.orientation = orientationTiff(o, debut + 6, fin);
     else if (marque === 0xe2 && ascii(o, debut, 'ICC_PROFILE') && o[debut + 12] === 1) r.profilEtranger = !estSrgb(o, debut + 14, fin);
     else if (marque >= 0xc0 && marque <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marque)) r.cmjn = o[debut + 5] === 4;
     // Début des données : les informations utiles sont toutes passées.
@@ -113,6 +114,22 @@ export function analyserImage(o: Uint8Array): Analyse {
   if (type === 'image/png') return { type, ...analyserPng(o) };
   if (type === 'image/webp') return { type, ...droit, animee: ascii(o, 12, 'VP8X') && (o[20] & 0x02) !== 0 };
   return { type, ...droit };
+}
+
+/** Dimensions lues dans l'en-tête (serveur : sans décoder l'image). */
+export function dimensionsImage(o: Uint8Array): { largeur: number; hauteur: number } | null {
+  const type = typeReel(o);
+  if (type === 'image/png' && o.length >= 24) return { largeur: u32(o, 16), hauteur: u32(o, 20) };
+  if (type !== 'image/jpeg') return null;
+  let p = 2;
+  while (p + 9 <= o.length && o[p] === 0xff) {
+    const marque = o[p + 1];
+    if (marque === 0xff) { p++; continue; }
+    if (marque >= 0xc0 && marque <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marque)) return { largeur: u16(o, p + 7), hauteur: u16(o, p + 5) };
+    if (marque === 0xda) return null;
+    p += 2 + u16(o, p + 2);
+  }
+  return null;
 }
 
 /** L'image doit-elle être réécrite en sRVB droit pour que le PDF montre la même chose que l'écran ? */

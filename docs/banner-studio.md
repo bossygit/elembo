@@ -1,8 +1,8 @@
 # Banner Studio — moteur et éditeur
 
 Référence du moteur livré au **lot 1** (modèle, géométrie, contraintes, `src/lib/banner`) de l'éditeur
-livré au **lot 2** (§6) et de l'édition de contenu livrée au **lot 3** (§7), et des modèles et du passage à la commande livrés au **lot 4**
-(§8). Cadre :
+livré au **lot 2** (§6) et de l'édition de contenu livrée au **lot 3** (§7), des modèles et du passage à la commande livrés au **lot 4**
+(§8), et du PDF de production livré au **lot 5** (§9). Cadre :
 [`audit-banner-studio.md`](audit-banner-studio.md) ; preuve technique et décisions :
 [`spike-banner-studio-lot0.md`](spike-banner-studio-lot0.md).
 
@@ -132,7 +132,6 @@ images qu'aucun projet ne cite sont supprimées à l'ouverture, après 24 h.
 ### 6.5 Limites connues
 
 - Une seule sélection ; deux onglets sur le même projet : le dernier enregistrement gagne.
-- Lot 5 : PDF (crénage à appliquer, voir la note de spike).
 - Vérifié dans Chrome (bureau et émulation 390 px). **Ni Safari, ni Firefox, ni un vrai téléphone**
   n'ont été essayés.
 
@@ -237,7 +236,8 @@ format et finition y sont verrouillés, la prestation est `FICHIER_PRET` par dé
 | `apercu-banner.jpg` | l'aperçu |
 | `studio-<assetId>.jpg\|png` | chaque image, octet pour octet |
 
-Limites : 10 fichiers (8 images), 25 Mo par fichier, 80 Mo au total. Elles ne s'appliquent qu'aux demandes du
+Limites : 10 fichiers (8 images), 25 Mo par fichier, 45 Mo au total (pour que le
+PDF tienne dans 50 Mo ; l'audit proposait 80). Elles ne s'appliquent qu'aux demandes du
 Studio (`studio: true`) ; le formulaire ordinaire garde 5 fichiers et 50 Mo, et refuse le JSON. Le serveur vérifie
 le JSON déposé : nom, taille, UTF-8 strict, schéma complet, version, aucune image d'exemple. Un visuel modifié après
 sa préparation n'est pas envoyé.
@@ -254,20 +254,82 @@ avant d'ouvrir le Studio, sinon le dépôt du projet est refusé par le stockage
 
 ### 8.5 Limites connues
 
-- Le serveur ne compare pas encore le document aux dimensions du devis : lot 5, avec le rendu du PDF.
 - Si l'envoi des fichiers échoue après l'enregistrement, ils ne peuvent pas être renvoyés depuis le site : reprise
   au lot 7.
 - Les sources du client restent `NON_ANALYSE`, donc non téléchargeables au back-office (règle existante) ; le PDF
-  du lot 5 le sera.
+  du serveur l'est (§9).
 - La page n'est toujours liée nulle part.
 
 ### 8.6 Tests
 
-`tests/bannerModeles.test.ts` (34 tests), `supabase/tests/banner_studio.sql`, et un essai de bout en bout de 53
-contrôles qui crée un vrai devis **en local** (Supabase et Redis locaux, refus de toute autre adresse) :
+`tests/bannerModeles.test.ts` (34 tests), `supabase/tests/banner_studio.sql`, et un essai de bout en bout (62
+contrôles depuis le lot 5) qui crée un vrai devis **en local** (Supabase et Redis locaux, refus de toute autre adresse) :
 
 ```bash
 STUDIO_SUPABASE_URL=http://127.0.0.1:54321 STUDIO_SERVICE_ROLE_KEY=… node scripts/e2e/banner-commande.mjs
 ```
 
 Le serveur a besoin de `REDIS_URL`, `DEVIS_SESSION_SECRET` et `APP_ORIGINS=http://localhost:3000`.
+
+## 9. PDF de production (lot 5)
+
+### 9.1 Parcours
+
+Après l'envoi des fichiers, le formulaire appelle `POST /api/banderoles/[reference]/visuel` (session du devis, CSRF,
+10 appels par heure). Le navigateur ne désigne aucun fichier. Le serveur (`src/server/banner/finaliser.ts`) :
+
+1. relit le projet déposé et son empreinte, et le revalide ;
+2. **re-résout les contraintes** depuis le profil public : celles du navigateur sont ignorées ;
+3. réserve une version sous verrou du devis (`reserver_visuel_banderole`) : le même projet n'est rendu qu'une fois ;
+4. compare format, support et finition à la demande chiffrée ; contrôle chaque image (devis, empreinte, type,
+   dimensions, orientation, couleurs) ; refait tout le préflight ;
+5. rend le PDF, le **relit et le vérifie** (§9.3) ;
+6. dépose `visuel-banner-vN.pdf`, `projet-banner-vN.json` (canonique) et `fiche-production-vN.txt`, copie l'aperçu, et
+   enregistre le tout en une transaction (`terminer_visuel_banderole`).
+
+Une alerte critique ou un refus de rendu donne un visuel `A_REVOIR`, sans PDF, que l'équipe voit. Un incident donne
+`ECHEC`, sans fichier orphelin. Dans les deux cas la demande du client est conservée. Rien n'est rendu si le devis
+n'est plus `NOUVEAU` ou `EN_ANALYSE`.
+
+### 9.2 Rendu
+
+`rendu.ts` (pdf-lib 1.17.1, fontkit 1.1.1) partage avec l'éditeur `lignesTexte`, `placementImage`, `placementForme` et
+`decoupePages`. Texte vectoriel posé **glyphe par glyphe** avec les avances crénées ; JPEG repris octet pour octet ; PNG
+opaque repris sans décodage ; formes et décorations vectorielles ; aucun repère. RVB, sans profil ICC. Panneaux de
+5 m avec 20 mm de recouvrement, sur le grand côté ; `UserUnit` si le profil le demande. Octets identiques d'un rendu à
+l'autre. La fiche de production décrit le plan de pose, les contraintes, les images et les points signalés, sans prix
+ni coordonnées.
+
+**Fidélité mesurée le 25/11/2026** (éditeur dans Chrome contre PDF rendu par PDFKit, 1 600 px, tolérance d'un pixel) :
+entre 0,002 % et 0,17 % de pixels différents sur les dix modèles, 0,003 % sur un document de charge (rotations,
+opacités, recadrages, ligatures, accents combinants, interlettrage). Les écarts restants viennent de la gestion de
+couleur de PDFKit. Le PDF s'ouvre correctement dans Chrome (pdfium).
+
+### 9.3 Contrôles du PDF
+
+Pages, `MediaBox`, `BleedBox`, `TrimBox` à 0,2 pt ; polices embarquées ; images ; aucun contenu actif ni annotation. Et
+**le tracé de chaque lettre embarquée est comparé à celui de la police d'origine** : la comparaison visuelle avait
+révélé des lettres absentes (Cormorant Garamond), que ni les dimensions ni la présence des polices ne trahissaient. La
+cause (glyphes non alignés, mal découpés par fontkit) est corrigée dans `scripts/polices-banner.py`.
+
+### 9.4 Base
+
+`20261125130000_banner_studio_visuels.sql` : table `visuels_banderole` (versions, document canonique, préflight,
+empreintes), pointeur `demandes_grand_format.visuel_courant_id`, trois fonctions `service_role`, RLS (lecture du
+personnel), `text/plain` et 50 Mo pour le bucket `devis` (un fichier envoyé par un client reste refusé au-delà de
+25 Mo). Retour arrière fourni. **Appliquée en local seulement**, comme celle du lot 4.
+
+### 9.5 Limites et reste à faire
+
+- **Critère de sortie non atteint : test d'impression réel** (3 × 1 m et 6 × 1 m en panneaux). Il faut l'imprimeur
+  pilote. Acrobat n'a pas été essayé non plus.
+- Charge mesurée en local : 8 JPEG de 27 Mpx, 64 ms et +44 Mo ; un PNG transparent de 30 Mpx, 4,9 s et +500 Mo. Les PNG
+  transparents sont limités à 40 Mpx au total. Non mesuré sur Vercel.
+- Un PDF de plus de 50 Mo est mis `A_REVOIR`.
+- Carte visuel au back-office, relance d'un rendu, profils d'imprimeurs, archivage à la commande : lot 6. Affichage du
+  visuel dans le suivi du client : lot 7.
+
+### 9.6 Tests
+
+`tests/bannerRendu.test.ts` (39 tests, rendu réel), `supabase/tests/banner_studio.sql` et les contrôles serveur de
+`scripts/e2e/banner-commande.mjs`.

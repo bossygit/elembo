@@ -1,6 +1,7 @@
-# Banner Studio — moteur (`src/lib/banner`)
+# Banner Studio — moteur et éditeur
 
-Référence du moteur livré au **lot 1** (modèle, géométrie, contraintes). Cadre :
+Référence du moteur livré au **lot 1** (modèle, géométrie, contraintes, `src/lib/banner`) et de
+l'éditeur livré au **lot 2** (§6). Cadre :
 [`audit-banner-studio.md`](audit-banner-studio.md) ; preuve technique et décisions :
 [`spike-banner-studio-lot0.md`](spike-banner-studio-lot0.md).
 
@@ -80,3 +81,65 @@ hors zone sûre (info), logo à 95 dpi (faible). Aucune alerte critique.
 `bannerContraintes.test.ts`, `bannerCatalogue.test.ts` — 96 tests, dont des tests de propriétés
 sur 200 boîtes tirées par un générateur à graine fixe (rotation et aire, hit-test, clamp,
 symétrie des intersections).
+
+## 6. Éditeur (lot 2)
+
+Adresse : `/banderoles/studio`. Page **non liée et non indexée** jusqu'au raccordement au devis
+(lot 4) ; l'export GitHub Pages affiche un renvoi vers le formulaire.
+
+### 6.1 Découpage
+
+| Fichier | Rôle |
+|---|---|
+| `lib/banner/edition.ts` | Opérations pures sur le document (ajouter, déplacer, redimensionner, réordonner, changer de format…). Une opération sans effet rend **le même objet** : pas d'étape d'annulation vide |
+| `lib/banner/historique.ts` | Annuler/rétablir : 60 étapes, fusion des modifications de même nature à moins de 600 ms |
+| `lib/banner/vue.ts` | Zoom (25 % à 1 600 % de l'ajustement), déplacement de la vue, pas des règles |
+| `lib/banner/peinture.ts` | Dessin 2D du document en mm : plan de travail **et** aperçu |
+| `lib/banner/polices.ts`, `polices.generated.ts` | Polices du site et métriques `hhea` (générées par `scripts/generer-metriques-polices.mjs`) |
+| `lib/banner/images.ts` | Contrôle des fichiers : type lu dans les octets, 25 Mo, 200 px minimum, 50 Mpx |
+| `lib/banner/stockage.ts` | IndexedDB `elembo-banner`, séparée de celle du textile |
+| `lib/banner/navigateur.ts` | Mesure crénée, chargement des polices, copie de travail des images (2 048 px) |
+| `stores/banner-studio-store.ts` | Store zustand : source de vérité ; Konva n'en est qu'une projection |
+| `components/banner-studio/*` | Coque, plan de travail Konva, panneaux, propriétés |
+
+### 6.2 Règles de l'éditeur
+
+- **Texte** : pas de retour à la ligne automatique ; le cadre suit le texte mesuré, le bord
+  d'alignement reste fixe. Redimensionner un texte change son corps.
+- **Verrouillé** : l'élément laisse passer les clics et refuse toute modification, sauf le
+  déverrouillage (calques ou propriétés).
+- **Débordement** : ce qui sort du format est voilé, et signalé par le préflight en direct.
+- **Image** : l'original reste intact sur l'appareil ; le document ne contient qu'une référence.
+- **Poignées** : zone de prise de 44 px au doigt, développée vers l'extérieur quand l'élément est
+  petit, pour que son centre reste libre. Poignées de côté masquées sous 44 px (20 px à la souris).
+
+### 6.3 Raccourcis
+
+Flèches : 10 mm (Maj : 100 mm) · Suppr : retirer · Ctrl/Cmd Z, Maj Z ou Y : annuler, rétablir ·
+Ctrl/Cmd D : dupliquer · `[` `]` : reculer, avancer · Ctrl/Cmd + − 0 : zoom · Échap : désélectionner ·
+Ctrl/Cmd S : enregistrer. Inactifs pendant une saisie ou quand une fenêtre est ouverte.
+
+### 6.4 Sauvegarde
+
+Automatique, 800 ms après la dernière action, et sans attendre quand la page est masquée ou fermée.
+« Enregistré sur cet appareil » n'est affiché qu'une fois la transaction validée. Sans IndexedDB,
+l'édition continue en mémoire et l'éditeur le dit. Un projet illisible n'est jamais écrasé. Les
+images qu'aucun projet ne cite sont supprimées à l'ouverture, après 24 h.
+
+### 6.5 Limites connues
+
+- Un seul projet à la fois, une seule sélection ; deux onglets : le dernier enregistrement gagne.
+- Lot 3 : WEBP, orientation EXIF vérifiée, recadrage, arrondis, italique, fond en image.
+- Lot 4 : modèles et passage au devis. Lot 5 : PDF (crénage à appliquer, voir la note de spike).
+- Vérifié dans Chrome (bureau et émulation 390 px). **Ni Safari, ni Firefox, ni un vrai téléphone**
+  n'ont été essayés.
+
+### 6.6 Tests
+
+`tests/bannerEdition.test.ts`, `tests/bannerStudioStore.test.ts` (39 tests) et l'essai de bout en bout :
+
+```bash
+STUDIO_URL=http://localhost:3000 node scripts/e2e/banner-studio.mjs
+```
+
+48 contrôles, sans écriture côté serveur ; ils lisent le document **enregistré** dans IndexedDB.

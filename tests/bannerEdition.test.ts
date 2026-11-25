@@ -3,7 +3,7 @@
  * Mesure injectée : 0,5 em par caractère, donc des largeurs vérifiables à la main.
  */
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -12,8 +12,9 @@ import * as op from '../src/lib/banner/edition';
 import { annuler, enregistrer, FUSION_MS, HISTORIQUE_MAX, historiqueVide, retablir } from '../src/lib/banner/historique';
 import { IMAGE_MAX_OCTETS, nomFichier, refusDimensions, refusFichier, tailleTravail, typeReel } from '../src/lib/banner/images';
 import { creerDocument, creerForme, creerTexte, type DocumentBanner, type ElementTexte } from '../src/lib/banner/model';
-import { fontCss, graisseDisponible, metriquesDe, POLICES, type Mesureur } from '../src/lib/banner/polices';
+import { fontCss, metriquesDe, POLICES, varianteDe, type Mesureur } from '../src/lib/banner/polices';
 import { METRIQUES } from '../src/lib/banner/polices.generated';
+import { FONTS } from '../src/lib/fonts.generated';
 import { validerDocument } from '../src/lib/banner/schema';
 import { ajuster, contenir, pasRegle, pourcentage, ZOOM_MAX, ZOOM_MIN, zoomer } from '../src/lib/banner/vue';
 
@@ -208,6 +209,7 @@ describe('images', () => {
     expect(refusFichier(0, jpeg)).toMatch(/vide/);
     expect(refusFichier(IMAGE_MAX_OCTETS + 1, jpeg)).toMatch(/25 Mo/);
     expect(refusFichier(100, jpeg)).toBeNull();
+    expect(refusFichier(100, new TextEncoder().encode('....ftypheic'))).toMatch(/HEIC/);
     expect(refusDimensions(199, 900)).toMatch(/trop petite/);
     expect(refusDimensions(10_000, 5001)).toMatch(/trop grande/);
     expect(refusDimensions(4000, 3000)).toBeNull();
@@ -222,8 +224,21 @@ describe('images', () => {
 });
 
 describe('polices', () => {
-  it('chaque police du site a ses métriques, pour chacune de ses graisses', () => {
-    for (const p of POLICES) for (const g of p.graisses) expect(METRIQUES[p.id]?.[g], `${p.id} ${g}`).toBeDefined();
+  it('toutes les polices du site, plus celles des événements', () => {
+    const ids = POLICES.map((p) => p.id);
+    for (const f of FONTS) expect(ids).toContain(f.id);
+    expect(ids).toEqual(expect.arrayContaining(['great-vibes', 'cinzel', 'cormorant-garamond']));
+  });
+
+  it('chaque variante a ses métriques, son WOFF2 pour l’écran, son TTF pour le PDF et sa licence', () => {
+    for (const p of POLICES) {
+      expect(existsSync(join(process.cwd(), `assets/banner/polices/LICENCE-${p.id}.txt`))).toBe(true);
+      for (const v of p.variantes) {
+        expect(METRIQUES[p.id]?.[v], `${p.id} ${v}`).toBeDefined();
+        expect(existsSync(join(process.cwd(), `assets/banner/polices/${p.id}-${v}.ttf`)), `${p.id}-${v}.ttf`).toBe(true);
+        expect(existsSync(join(process.cwd(), `public/fonts/studio/${p.id}-${v}.woff2`)), `${p.id}-${v}.woff2`).toBe(true);
+      }
+    }
   });
 
   it('les métriques générées sont celles que fontkit lisait au lot 0', () => {
@@ -231,9 +246,14 @@ describe('polices', () => {
     expect(metriquesDe({ policeId: 'dm-serif-display', graisse: 400 })).toEqual({ ascendante: 1.036, descendante: -0.335 });
   });
 
-  it('pas de gras simulé : la graisse absente est remplacée', () => {
-    expect(graisseDisponible({ policeId: 'anton', graisse: 700 })).toBe(400);
-    expect(fontCss({ policeId: 'anton', graisse: 700 }, 50)).toBe('400 50px "Anton", sans-serif');
+  it('ni gras ni italique simulés : la variante absente est remplacée', () => {
+    const v = (policeId: string, graisse: 400 | 700, italique: boolean) => varianteDe({ policeId, graisse, italique });
+    expect(v('anton', 700, true)).toEqual({ graisse: 400, italique: false });
+    expect(v('oswald', 700, true)).toEqual({ graisse: 700, italique: false });
+    expect(v('dm-serif-display', 700, true)).toEqual({ graisse: 400, italique: true });
+    expect(v('montserrat', 700, true)).toEqual({ graisse: 700, italique: true });
+    expect(fontCss({ policeId: 'anton', graisse: 700, italique: true }, 50)).toBe('400 50px "Studio Anton", sans-serif');
+    expect(fontCss({ policeId: 'montserrat', graisse: 700, italique: true }, 50)).toBe('italic 700 50px "Studio Montserrat", sans-serif');
     expect(fontCss({ policeId: 'inconnue', graisse: 400 }, 50)).toBe('400 50px sans-serif');
   });
 });

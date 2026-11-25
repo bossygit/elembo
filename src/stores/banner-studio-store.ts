@@ -12,9 +12,9 @@ import type { ModeAlignement } from '@/lib/banner/geometry';
 import { annuler, enregistrer, historiqueVide, retablir, type Historique } from '@/lib/banner/historique';
 import {
   creerDocument, creerForme, creerImage, creerTexte,
-  type Asset, type DocumentBanner, type Element, type FinitionStudio, type NatureForme, type StyleTexte, type SupportStudio,
+  type Asset, type DistanceLecture, type DocumentBanner, type Element, type FinitionStudio, type NatureForme, type Recadrage, type StyleTexte, type SupportStudio,
 } from '@/lib/banner/model';
-import type { Mesureur } from '@/lib/banner/polices';
+import { glyphesManquants, POLICES, type Mesureur } from '@/lib/banner/polices';
 import { BORNES, type ResultatLecture } from '@/lib/banner/schema';
 import { ajuster, contenir, zoomer, type Cadre, type Vue } from '@/lib/banner/vue';
 
@@ -43,12 +43,21 @@ export type EtatStudio = {
   message: string | null;
   /** Images réellement disponibles (null tant que le chargement n'est pas fini). */
   disponibles: Set<string> | null;
+  /** Polices dont le fichier n'a pas pu être chargé. */
+  policesEchouees: ReadonlySet<string>;
   charge: boolean;
+  /** Le redimensionnement garde-t-il les proportions ? (préférence d'édition, par type) */
+  proportions: { image: boolean; forme: boolean };
+  /** Image en cours de recadrage. */
+  recadrage: string | null;
+  /** Non nul quand l'utilisateur demande à modifier le texte sélectionné (double-clic). */
+  demandeTexte: number;
 
   ouvrir: (lecture: ResultatLecture | null) => void;
   nouveau: () => void;
   annoncer: (message: string | null) => void;
   declarerImage: (id: string) => void;
+  declarerPolice: (policeId: string, ok: boolean) => void;
   chargementFini: () => void;
 
   selectionner: (id: string | null) => void;
@@ -58,6 +67,13 @@ export type EtatStudio = {
   ajouterTexte: () => void;
   ajouterForme: (nature: NatureForme) => void;
   ajouterImage: (asset: Asset) => boolean;
+  remplacerImage: (id: string, asset: Asset) => boolean;
+  poserRecadrage: (id: string, r: Recadrage, garderCadre: boolean) => void;
+  ouvrirRecadrage: (id: string | null) => void;
+  modifierTexte: (id: string) => void;
+  texteVu: () => void;
+  couperTexte: (id: string) => void;
+  basculerProportions: (type: 'image' | 'forme') => void;
   supprimer: (id?: string) => void;
   dupliquer: (id?: string) => void;
   reordonner: (id: string, vers: op.Ordre) => void;
@@ -70,6 +86,11 @@ export type EtatStudio = {
   poserForme: (id: string, f: Parameters<typeof op.poserForme>[2]) => void;
   poserAjustement: (id: string, a: 'cover' | 'contain') => void;
   poserFond: (couleur: string) => void;
+  poserImageFond: (asset: Asset) => boolean;
+  retirerImageFond: () => void;
+  poserAjustementFond: (a: 'cover' | 'contain') => void;
+  mettreEnFond: (id: string) => void;
+  poserDistance: (d: DistanceLecture) => void;
   poserNom: (nom: string) => void;
   poserSupport: (support: SupportStudio, finition: FinitionStudio) => void;
   poserFormat: (largeurMm: number, hauteurMm: number) => void;
@@ -100,8 +121,18 @@ export function creerStudio({ mesurer, enregistrer: persister, id = () => global
     let ecriture: Promise<void> = Promise.resolve();
 
     // Les profils publics ne sont pas validés par un imprimeur : le préflight le rappelle.
-    const preflight = (d: DocumentBanner, disponibles: Set<string> | null) =>
-      evaluer(d, { statutProfil: 'A_VALIDER', assetsDisponibles: disponibles ?? undefined });
+    const preflight = (d: DocumentBanner, disponibles: Set<string> | null, echouees: ReadonlySet<string> = get()?.policesEchouees ?? new Set()) =>
+      evaluer(d, {
+        statutProfil: 'A_VALIDER',
+        assetsDisponibles: disponibles ?? undefined,
+        policesDisponibles: new Set(POLICES.map((p) => p.id).filter((p) => !echouees.has(p))),
+        glyphesManquants,
+      });
+    /** Place pour une image de plus ? Une image déjà dans le document ne compte pas. */
+    const place = (asset: Asset, elements = 0) => {
+      const d = get().document;
+      return (d.assets.length < BORNES.assetsMax || d.assets.some((a) => a.id === asset.id)) && d.elements.length + elements <= BORNES.elementsMax;
+    };
 
     const programmer = () => {
       if (minuterie) clearTimeout(minuterie);
@@ -146,7 +177,11 @@ export function creerStudio({ mesurer, enregistrer: persister, id = () => global
       sauvegarde: 'vierge',
       message: null,
       disponibles: null,
+      policesEchouees: new Set(),
       charge: false,
+      proportions: { image: true, forme: false },
+      recadrage: null,
+      demandeTexte: 0,
 
       ouvrir: (lecture) => {
         if (!lecture) return;
@@ -167,6 +202,14 @@ export function creerStudio({ mesurer, enregistrer: persister, id = () => global
       declarerImage: (idImage) => {
         const disponibles = new Set(get().disponibles ?? []).add(idImage);
         set({ disponibles, alertes: preflight(get().document, get().charge ? disponibles : null) });
+      },
+      declarerPolice: (policeId, ok) => {
+        const avant = get().policesEchouees;
+        if (ok !== avant.has(policeId)) return;
+        const policesEchouees = new Set(avant);
+        if (ok) policesEchouees.delete(policeId);
+        else policesEchouees.add(policeId);
+        set({ policesEchouees, alertes: preflight(get().document, get().charge ? get().disponibles : null, policesEchouees) });
       },
       chargementFini: () => {
         const disponibles = get().disponibles ?? new Set<string>();
@@ -195,11 +238,11 @@ export function creerStudio({ mesurer, enregistrer: persister, id = () => global
       },
       ajouterImage: (asset) => {
         const d = get().document;
-        if (d.assets.length >= BORNES.assetsMax || d.elements.length >= BORNES.elementsMax) return false;
+        if (!place(asset, 1)) return false;
         const e = creerImage(d, asset, { id });
         // Une image très large est ramenée dans le format.
         const k = Math.min(1, (d.dimensions.largeurMm * 0.9) / e.largeurMm);
-        appliquer((x) => op.ajouter({ ...x, assets: [...x.assets, asset] }, {
+        appliquer((x) => op.ajouter(op.avecAsset(x, asset), {
           ...e,
           largeurMm: op.arrondir(e.largeurMm * k),
           hauteurMm: op.arrondir(e.hauteurMm * k),
@@ -208,6 +251,21 @@ export function creerStudio({ mesurer, enregistrer: persister, id = () => global
         }), { selection: e.id });
         return true;
       },
+      remplacerImage: (cible, asset) => {
+        if (!place(asset)) return false;
+        appliquer((d) => op.remplacerImage(d, cible, asset), { selection: cible });
+        return true;
+      },
+      poserRecadrage: (cible, r, garderCadre) => appliquer((d) => op.poserRecadrage(d, cible, r, garderCadre)),
+      ouvrirRecadrage: (cible) => {
+        const e = op.trouver(get().document, cible);
+        // Sans l'image sur cet appareil, il n'y a rien à recadrer.
+        set({ recadrage: e?.type === 'image' && !e.verrouille && get().disponibles?.has(e.image.assetId) ? e.id : null });
+      },
+      modifierTexte: (cible) => set({ selection: cible, demandeTexte: 1 }),
+      texteVu: () => set({ demandeTexte: 0 }),
+      couperTexte: (cible) => appliquer((d) => op.couperTexte(d, cible, zones(d).zoneSure, mesurer)),
+      basculerProportions: (type) => set({ proportions: { ...get().proportions, [type]: !get().proportions[type] } }),
       supprimer: (cible = get().selection ?? undefined) => cible && appliquer((d) => op.supprimer(d, cible)),
       dupliquer: (cible = get().selection ?? undefined) => {
         if (!cible) return;
@@ -229,7 +287,16 @@ export function creerStudio({ mesurer, enregistrer: persister, id = () => global
       poserTexte: (cible, style) => appliquer((d) => op.poserTexte(d, cible, style, mesurer), { fusion: `texte:${Object.keys(style).join(',')}:${cible}` }),
       poserForme: (cible, f) => appliquer((d) => op.poserForme(d, cible, f), { fusion: `forme:${cible}` }),
       poserAjustement: (cible, a) => appliquer((d) => op.poserAjustement(d, cible, a)),
-      poserFond: (couleur) => appliquer((d) => ({ ...d, fond: { type: 'couleur', couleur } }), { fusion: 'fond' }),
+      poserFond: (couleur) => appliquer((d) => op.poserCouleurFond(d, couleur), { fusion: 'fond' }),
+      poserImageFond: (asset) => {
+        if (!place(asset)) return false;
+        appliquer((d) => op.poserImageFond(d, asset));
+        return true;
+      },
+      retirerImageFond: () => appliquer(op.retirerImageFond),
+      poserAjustementFond: (a) => appliquer((d) => op.poserAjustementFond(d, a)),
+      mettreEnFond: (cible) => appliquer((d) => op.mettreEnFond(d, cible)),
+      poserDistance: (distance) => appliquer((d) => op.poserDistance(d, distance)),
       poserNom: (nom) => nom.trim() && appliquer((d) => ({ ...d, nom: nom.slice(0, BORNES.nomMax) }), { fusion: 'nom' }),
       poserSupport: (support, finition) => appliquer((d) => op.poserSupport(d, support, finition)),
       poserFormat: (l, h) => appliquer((d) => op.poserFormat(d, l, h, mesurer)),

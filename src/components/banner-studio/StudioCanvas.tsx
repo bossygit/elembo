@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react';
 import type { Severite } from '@/lib/banner/constraints';
 import { zones } from '@/lib/banner/constraints';
 import { decrire, redimensionne, tailleMax } from '@/lib/banner/edition';
+import { decoration } from '@/lib/banner/formes';
 import { coins } from '@/lib/banner/geometry';
 import type { Element } from '@/lib/banner/model';
 import { dessinerElement, dessinerFond } from '@/lib/banner/peinture';
@@ -117,6 +118,11 @@ export function StudioCanvas() {
       formes.set(e.id, f);
 
       f.on('mousedown touchstart', () => store.getState().selectionner(e.id));
+      f.on('dblclick dbltap', () => {
+        const x = element(f);
+        if (x.type === 'image') store.getState().ouvrirRecadrage(x.id);
+        if (x.type === 'texte') store.getState().modifierTexte(x.id);
+      });
       f.on('dragstart', () => store.getState().selectionner(e.id));
       f.on('dragmove', () => {
         const d = store.getState().document.dimensions;
@@ -150,7 +156,8 @@ export function StudioCanvas() {
           x: e.xMm, y: e.yMm, rotation: e.rotationDeg, scaleX: 1, scaleY: 1, opacity: e.opacite, visible: e.visible,
           // Un élément verrouillé laisse passer les clics ; un cadre vide ne se prend que par son trait.
           listening: !e.verrouille, fillEnabled: !creux, stroke: creux ? '#000000' : undefined,
-          hitStrokeWidth: creux ? Math.max(e.forme.epaisseurMm, 14 / s.vue.echelle) : 0,
+          // Le contour est dessiné à l'intérieur du cadre : la prise le couvre des deux côtés du bord.
+          hitStrokeWidth: creux ? Math.max(e.forme.epaisseurMm * 2, 14 / s.vue.echelle) : 0,
         });
         if (f.zIndex() !== i) f.zIndex(i);
       });
@@ -161,9 +168,10 @@ export function StudioCanvas() {
       const f = e && e.visible && !e.verrouille ? formes.get(e.id) : undefined;
       transfo.nodes(f ? [f] : []);
       if (!f || !e) return;
-      transfo.keepRatio(e.type !== 'forme');
+      const deco = e.type === 'forme' && decoration(e.forme.nature) !== null;
+      transfo.keepRatio(e.type === 'texte' || deco || s.proportions[e.type]);
       transfo.enabledAnchors(
-        e.type === 'texte' ? ['top-left', 'top-right', 'bottom-left', 'bottom-right']
+        e.type === 'texte' || deco ? ['top-left', 'top-right', 'bottom-left', 'bottom-right']
           : e.type === 'forme' && e.forme.nature === 'ligne' ? ['middle-left', 'middle-right']
             : ['top-left', 'top-center', 'top-right', 'middle-left', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right'],
       );
@@ -250,7 +258,7 @@ export function StudioCanvas() {
     const appliquer = (s: EtatStudio, p: EtatStudio | null) => {
       if (!p || s.cadre !== p.cadre) stage.size({ width: s.cadre.largeur, height: s.cadre.hauteur });
       if (!p || s.document !== p.document || s.vue.echelle !== p.vue.echelle) synchroniser(s);
-      if (!p || s.document !== p.document || s.selection !== p.selection) choisir(s);
+      if (!p || s.document !== p.document || s.selection !== p.selection || s.proportions !== p.proportions) choisir(s);
       if (!p || s.vue !== p.vue) placer(s.vue);
       stage.batchDraw();
     };

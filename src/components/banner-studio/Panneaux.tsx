@@ -1,22 +1,24 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
 import { DIMENSION_MAX_MM, DIMENSION_MIN_MM, FORMATS, finitionsApplicables } from '@/lib/banner/formats';
-import type { FinitionStudio, SupportStudio } from '@/lib/banner/model';
+import { couleursDocument } from '@/lib/banner/edition';
+import { DECORATIONS } from '@/lib/banner/formes';
+import type { DistanceLecture, FinitionStudio, SupportStudio } from '@/lib/banner/model';
+import { dpiFond, seuils } from '@/lib/banner/quality';
 import { FINITIONS, SUPPORTS } from '@/lib/grand-format/catalogue';
 
 import { Apercu } from './Apercu';
-import { Bouton, ChampChoix, ChampCouleur, ChampNombre, Groupe } from './champs';
+import { Bouton, BoutonFichier, ChampChoix, ChampCouleur, ChampNombre, Groupe } from './champs';
 import { useActions, useImportImage, useStudio } from './contexte';
 
 const LARGE = 'w-full justify-start border border-bordure bg-white';
+const CASE = 'border border-bordure bg-white !px-1';
 
 export function PanneauAjouter({ apres }: { apres?: () => void }) {
   const a = useActions();
   const importer = useImportImage();
-  const fichier = useRef<HTMLInputElement>(null);
-  const fond = useStudio((e) => e.document.fond.couleur);
   const faire = (f: () => void) => () => {
     f();
     apres?.();
@@ -25,31 +27,50 @@ export function PanneauAjouter({ apres }: { apres?: () => void }) {
     <>
       <Groupe titre="Ajouter">
         <Bouton icone="texte" libelle="Ajouter un texte" texte="Texte" className={LARGE} onClick={faire(a.ajouterTexte)} />
-        <Bouton icone="image" libelle="Importer une image" texte="Image (JPEG ou PNG)" className={LARGE} onClick={() => fichier.current?.click()} />
-        <input
-          ref={fichier}
-          type="file"
-          accept="image/jpeg,image/png"
-          className="sr-only"
-          tabIndex={-1}
-          aria-label="Fichier image à importer"
-          data-testid="import-image"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            e.target.value = '';
-            if (f) void importer(f).then(apres);
-          }}
-        />
-        <div className="grid grid-cols-3 gap-2">
-          <Bouton icone="rect" libelle="Ajouter un rectangle" className="border border-bordure bg-white" onClick={faire(() => a.ajouterForme('rect'))} />
-          <Bouton icone="ellipse" libelle="Ajouter une ellipse" className="border border-bordure bg-white" onClick={faire(() => a.ajouterForme('ellipse'))} />
-          <Bouton icone="ligne" libelle="Ajouter un filet" className="border border-bordure bg-white" onClick={faire(() => a.ajouterForme('ligne'))} />
+        <BoutonFichier icone="image" libelle="Importer une image" texte="Image (JPEG, PNG, WEBP)" testid="import-image" className={LARGE} onFichier={(f) => void importer(f).then(apres)} />
+      </Groupe>
+      <Groupe titre="Formes">
+        <div className="grid grid-cols-4 gap-2">
+          <Bouton icone="rect" libelle="Ajouter un rectangle" className={CASE} onClick={faire(() => a.ajouterForme('rect'))} />
+          <Bouton icone="ellipse" libelle="Ajouter une ellipse" className={CASE} onClick={faire(() => a.ajouterForme('ellipse'))} />
+          <Bouton icone="ligne" libelle="Ajouter un filet" className={CASE} onClick={faire(() => a.ajouterForme('ligne'))} />
+          {DECORATIONS.map((d) => (
+            <Bouton
+              key={d.id}
+              libelle={`Ajouter : ${d.nom}`}
+              className={CASE}
+              onClick={faire(() => a.ajouterForme(d.id))}
+              texte={<svg viewBox={`0 0 ${d.largeur} ${d.hauteur}`} className="h-5 w-7" aria-hidden="true"><path d={d.trace} fill="currentColor" /></svg>}
+            />
+          ))}
         </div>
       </Groupe>
-      <Groupe titre="Fond">
-        <ChampCouleur libelle="Couleur du fond" valeur={fond} onValeur={a.poserFond} />
-      </Groupe>
     </>
+  );
+}
+
+export function PanneauFond() {
+  const a = useActions();
+  const importer = useImportImage();
+  const document = useStudio((e) => e.document);
+  const { fond, assets } = document;
+  const asset = fond.type === 'image' ? assets.find((x) => x.id === fond.assetId) : undefined;
+  return (
+    <Groupe titre="Fond">
+      <ChampCouleur libelle="Couleur du fond" valeur={fond.couleur} suggestions={couleursDocument(document)} onValeur={a.poserFond} />
+      <div className="space-y-3 border-t border-filet pt-3">
+        {fond.type === 'image' ? (
+          <>
+            <p className="truncate text-sm" data-testid="fond-image">Image : {asset?.nom ?? 'introuvable'}{asset ? <span className="text-xs text-attenue"> · {dpiFond(document, asset)} dpi</span> : null}</p>
+            <ChampChoix<'cover' | 'contain'> libelle="Placement de l’image de fond" valeur={fond.ajustement} options={[{ valeur: 'cover', texte: 'Couvrir toute la banderole' }, { valeur: 'contain', texte: 'Image entière' }]} onValeur={a.poserAjustementFond} />
+          </>
+        ) : <p className="text-xs text-attenue">Une image de fond couvre toute la banderole, fond perdu compris.</p>}
+        <div className="flex flex-wrap gap-1.5">
+          <BoutonFichier icone="image" libelle={fond.type === 'image' ? 'Changer l’image de fond' : 'Choisir une image de fond'} texte={fond.type === 'image' ? 'Changer' : 'Choisir une image'} testid="import-fond" className="border border-bordure bg-white" onFichier={(f) => void importer(f, { vers: 'fond' })} />
+          {fond.type === 'image' ? <Bouton icone="supprimer" libelle="Retirer l’image de fond" texte="Retirer" className="border border-bordure bg-white text-red-800" onClick={a.retirerImageFond} /> : null}
+        </div>
+      </div>
+    </Groupe>
   );
 }
 
@@ -90,7 +111,9 @@ export function PanneauCalques() {
 
 export function PanneauFormat() {
   const a = useActions();
-  const { support, finition, dimensions } = useStudio((e) => e.document);
+  const { support, finition, dimensions, qualite, contraintes } = useStudio((e) => e.document);
+  // Le plus exigeant de la distance et du profil d'impression.
+  const seuil = seuils(qualite.distanceLectureM, contraintes);
   const finitions = finitionsApplicables(support);
   const min = DIMENSION_MIN_MM / 10;
   const max = DIMENSION_MAX_MM / 10;
@@ -118,6 +141,13 @@ export function PanneauFormat() {
         options={finitions.map((f) => ({ valeur: f, texte: FINITIONS.find((x) => x.id === f)?.nom ?? f }))}
         onValeur={(f) => a.poserSupport(support, f)}
       />
+      <ChampChoix<DistanceLecture>
+        libelle="Distance de lecture"
+        valeur={qualite.distanceLectureM}
+        options={[{ valeur: 1, texte: 'De près (1 m)' }, { valeur: 3, texte: 'Quelques mètres (3 m)' }, { valeur: 10, texte: 'De loin (10 m)' }]}
+        onValeur={a.poserDistance}
+      />
+      <p className="text-xs text-attenue" data-testid="seuils">Images : {seuil.min} dpi au moins, {seuil.recommande} conseillés pour cette impression.</p>
     </Groupe>
   );
 }

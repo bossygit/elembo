@@ -3,6 +3,7 @@
  * Utilisé par le plan de travail Konva et par l'aperçu : un seul dessin, donc un seul rendu.
  */
 
+import { placementForme } from './formes';
 import { lignesTexte, placementImage } from './layout';
 import type { Asset, DocumentBanner, Element } from './model';
 import { fontCss, metriquesDe, type Mesureur } from './polices';
@@ -50,19 +51,47 @@ export function dessinerElement(c: CanvasRenderingContext2D, e: Element, assets:
     return;
   }
   const f = e.forme;
-  c.beginPath();
-  if (f.nature === 'ellipse') c.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2);
-  else if (f.rayonMm > 0) c.roundRect(-w / 2, -h / 2, w, h, Math.min(f.rayonMm, w / 2, h / 2));
-  else c.rect(-w / 2, -h / 2, w, h);
-  if (f.fond) {
-    c.fillStyle = f.fond;
-    c.fill();
+  const p = placementForme(e);
+  const { x, y, largeur, hauteur } = p.cadre;
+  c.save();
+  if (p.decoration) {
+    const d = p.decoration;
+    c.translate(d.x, d.y);
+    c.scale(d.echelle, d.echelle);
+    c.lineWidth = p.epaisseurMm / d.echelle;
+    c.lineJoin = 'round';
+    const t = chemin(d.trace);
+    if (f.fond) {
+      c.fillStyle = f.fond;
+      c.fill(t);
+    }
+    if (f.contour && p.epaisseurMm > 0) {
+      c.strokeStyle = f.contour;
+      c.stroke(t);
+    }
+  } else {
+    c.beginPath();
+    if (f.nature === 'ellipse') c.ellipse(0, 0, largeur / 2, hauteur / 2, 0, 0, Math.PI * 2);
+    else if (p.rayonMm > 0) c.roundRect(x, y, largeur, hauteur, p.rayonMm);
+    else c.rect(x, y, largeur, hauteur);
+    if (f.fond) {
+      c.fillStyle = f.fond;
+      c.fill();
+    }
+    if (f.contour && p.epaisseurMm > 0) {
+      c.strokeStyle = f.contour;
+      c.lineWidth = p.epaisseurMm;
+      c.stroke();
+    }
   }
-  if (f.contour && f.epaisseurMm > 0) {
-    c.strokeStyle = f.contour;
-    c.lineWidth = f.epaisseurMm;
-    c.stroke();
-  }
+  c.restore();
+}
+
+const chemins = new Map<string, Path2D>();
+function chemin(trace: string): Path2D {
+  let p = chemins.get(trace);
+  if (!p) chemins.set(trace, (p = new Path2D(trace)));
+  return p;
 }
 
 /** Fond (couleur, puis image) sur la surface finie et son fond perdu. */

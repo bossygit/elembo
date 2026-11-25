@@ -9,7 +9,7 @@
 
 import { CATEGORIES } from './categories';
 import { DIMENSION_MAX_MM, DIMENSION_MIN_MM } from './formats';
-import { migrer, SCHEMA_DOCUMENT, VERSION_DOCUMENT, type DocumentBanner } from './model';
+import { migrer, NATURES_DECORATION, SCHEMA_DOCUMENT, VERSION_DOCUMENT, type DocumentBanner } from './model';
 
 export type ErreurValidation = { chemin: string; message: string };
 export type ResultatValidation = { ok: true; document: DocumentBanner } | { ok: false; erreurs: ErreurValidation[] };
@@ -214,7 +214,7 @@ export function validerDocument(v: unknown): ResultatValidation {
       }
       if (propre === 'forme' && c.objet(e.forme, `${p}.forme`, ['nature', 'fond', 'contour', 'epaisseurMm', 'rayonMm'])) {
         const fo = e.forme;
-        c.parmi(fo.nature, `${p}.forme.nature`, ['rect', 'ellipse', 'ligne']);
+        c.parmi(fo.nature, `${p}.forme.nature`, ['rect', 'ellipse', 'ligne', ...NATURES_DECORATION]);
         c.couleur(fo.fond, `${p}.forme.fond`, true);
         c.couleur(fo.contour, `${p}.forme.contour`, true);
         c.nombre(fo.epaisseurMm, `${p}.forme.epaisseurMm`, 0, 500);

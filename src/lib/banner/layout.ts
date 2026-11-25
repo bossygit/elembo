@@ -6,7 +6,8 @@
  *
  * La mesure d'une ligne est injectée et doit être **crénée** des deux côtés : canvas dans le
  * navigateur, `font.layout()` de fontkit sur le serveur (`widthOfTextAtSize` de pdf-lib ignore le
- * crénage : jusqu'à 1,2 % d'écart, docs/spike-banner-studio-lot0.md §2.2).
+ * crénage : jusqu'à 1,2 % d'écart, docs/spike-banner-studio-lot0.md §2.2). Avec un interlettrage,
+ * le navigateur coupe les ligatures : le serveur doit désactiver `liga` et `clig` dans ce cas.
  */
 
 import type { Asset, ElementImage, ElementTexte } from './model';

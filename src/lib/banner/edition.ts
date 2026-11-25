@@ -6,9 +6,11 @@
 import { resoudreContraintes, PROFILS_PUBLICS } from './constraints';
 import { DIMENSION_MAX_MM, DIMENSION_MIN_MM, finitionsApplicables } from './formats';
 import { aligner, coins, type ModeAlignement, type Rect } from './geometry';
-import { encombrementTexte } from './layout';
-import type { DocumentBanner, Element, ElementTexte, FinitionStudio, StyleTexte, SupportStudio } from './model';
-import { metriquesDe, type Mesureur } from './polices';
+import { decoration } from './formes';
+import { encombrementTexte, placementImage } from './layout';
+import type { Asset, DistanceLecture, DocumentBanner, Element, ElementForme, ElementTexte, FinitionStudio, Recadrage, StyleTexte, SupportStudio } from './model';
+import { metriquesDe, varianteDe, type Mesureur } from './polices';
+import { normaliser, RECADRAGE_PLEIN } from './recadrage';
 import { BORNES } from './schema';
 
 export const TAILLE_MIN_MM = 5;
@@ -52,6 +54,17 @@ function garderVisible<T extends Element>(doc: DocumentBanner, e: T): T {
   return { ...e, xMm: arrondir(borner(e.xMm, 0, doc.dimensions.largeurMm)), yMm: arrondir(borner(e.yMm, 0, doc.dimensions.hauteurMm)) };
 }
 
+/** Ajoute une image à la liste, sans doublon. */
+export const avecAsset = (doc: DocumentBanner, asset: Asset): DocumentBanner => (doc.assets.some((a) => a.id === asset.id) ? doc : { ...doc, assets: [...doc.assets, asset] });
+
+/** Retire de la liste les images que plus rien n'utilise (« annuler » les rend). */
+export function elaguerAssets(doc: DocumentBanner): DocumentBanner {
+  const cites = new Set(doc.elements.flatMap((e) => (e.type === 'image' ? [e.image.assetId] : [])));
+  if (doc.fond.type === 'image') cites.add(doc.fond.assetId);
+  const assets = doc.assets.filter((a) => cites.has(a.id));
+  return assets.length === doc.assets.length ? doc : { ...doc, assets };
+}
+
 export function ajouter(doc: DocumentBanner, e: Element): DocumentBanner {
   if (doc.elements.length >= BORNES.elementsMax) return doc;
   return { ...doc, elements: [...doc.elements, e] };
@@ -59,7 +72,7 @@ export function ajouter(doc: DocumentBanner, e: Element): DocumentBanner {
 
 export function supprimer(doc: DocumentBanner, id: string): DocumentBanner {
   const e = trouver(doc, id);
-  return !e || e.verrouille ? doc : { ...doc, elements: doc.elements.filter((x) => x.id !== id) };
+  return !e || e.verrouille ? doc : elaguerAssets({ ...doc, elements: doc.elements.filter((x) => x.id !== id) });
 }
 
 export function dupliquer(doc: DocumentBanner, id: string, nouvelId: string): DocumentBanner {
@@ -100,6 +113,8 @@ export function redimensionne<T extends Element>(e: T, fx: number, fy: number, m
     const corpsMm = arrondir(borner(e.texte.corpsMm * fx, CORPS_MIN_MM, CORPS_MAX_MM));
     return ajusterCadre({ ...e, texte: { ...e.texte, corpsMm } }, mesurer) as T;
   }
+  // Une décoration garde ses proportions : on suit le côté qui a le plus changé.
+  if (e.type === 'forme' && decoration(e.forme.nature)) fx = fy = Math.abs(Math.log(Math.abs(fx) || 1)) >= Math.abs(Math.log(Math.abs(fy) || 1)) ? fx : fy;
   // Un filet peut être plus fin que la taille minimale d'un bloc.
   const min = e.type === 'forme' ? 1 : TAILLE_MIN_MM;
   return { ...e, largeurMm: arrondir(borner(e.largeurMm * Math.abs(fx), min, limiteMm)), hauteurMm: arrondir(borner(e.hauteurMm * Math.abs(fy), min, limiteMm)) };
@@ -137,7 +152,13 @@ export function poserProprietes(doc: DocumentBanner, id: string, p: Partial<Pick
 /** Retire ce que le schéma refuse : caractères de contrôle, lignes et longueur en trop. */
 export function nettoyerTexte(contenu: string): string {
   return contenu
-    .replace(/\r\n?/g, '\n')
+    .normalize('NFC')
+    .replace(/\r\n?|[\u2028\u2029]/g, '\n')
+    // Espaces typographiques : presque aucune police ne les contient toutes.
+    .replace(/[\u2007\u202F]/g, '\u00A0')
+    .replace(/[\u2000-\u2006\u2008-\u200A\u205F\u3000]/g, ' ')
+    // Caractères invisibles (largeur nulle, sens d'écriture, césure conditionnelle).
+    .replace(/[\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]/g, '')
     .replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, ' ')
     .split('\n')
     .slice(0, BORNES.lignesMax)
@@ -151,12 +172,138 @@ export function poserTexte(doc: DocumentBanner, id: string, style: Partial<Style
     const texte = { ...e.texte, ...style };
     if (style.contenu !== undefined) texte.contenu = nettoyerTexte(style.contenu) || ' ';
     texte.corpsMm = arrondir(borner(texte.corpsMm, CORPS_MIN_MM, CORPS_MAX_MM));
+    texte.interligne = borner(Math.round(texte.interligne * 100) / 100, 0.5, 3);
+    texte.interlettrageEm = borner(Math.round(texte.interlettrageEm * 1000) / 1000, -0.2, 1);
+    // Le document dit ce qui est dessiné : jamais un gras ou un italique que la police n'a pas.
+    Object.assign(texte, varianteDe(texte));
     return ajusterCadre({ ...e, texte }, mesurer);
   });
 }
 
-export function poserForme(doc: DocumentBanner, id: string, forme: Partial<Extract<Element, { type: 'forme' }>['forme']>): DocumentBanner {
-  return remplacer(doc, id, (e) => (e.type !== 'forme' || e.verrouille ? e : { ...e, forme: { ...e.forme, ...forme } }));
+/** Coupe les lignes plus larges que `largeurMm` ; un mot seul trop long reste entier. */
+export function couperLignes(contenu: string, largeurMm: number, mesure: (ligne: string) => number): string {
+  return contenu
+    .split('\n')
+    .flatMap((ligne) => {
+      const sortie: string[] = [];
+      let courante = '';
+      for (const mot of ligne.split(' ').filter(Boolean)) {
+        const essai = courante ? `${courante} ${mot}` : mot;
+        if (courante && mesure(essai) > largeurMm) {
+          sortie.push(courante);
+          courante = mot;
+        } else courante = essai;
+      }
+      return [...sortie, courante];
+    })
+    .join('\n');
+}
+
+/** Largeur d'une ligne de ce texte, interlettrage compris. */
+export const largeurLigne = (t: StyleTexte, mesurer: Mesureur) => {
+  const m = mesurer(t);
+  return (ligne: string) => m(ligne, t.corpsMm) + t.interlettrageEm * t.corpsMm * Math.max(0, [...ligne].length - 1);
+};
+
+/** Matérialise les retours à la ligne pour tenir dans une zone (les lignes restent explicites). */
+export function couperTexte(doc: DocumentBanner, id: string, zone: Rect, mesurer: Mesureur): DocumentBanner {
+  const e = trouver(doc, id);
+  if (e?.type !== 'texte' || e.verrouille) return doc;
+  const contenu = couperLignes(e.texte.contenu, zone.largeur, largeurLigne(e.texte, mesurer));
+  if (contenu === e.texte.contenu || contenu.split('\n').length > BORNES.lignesMax) return doc;
+  return remplacer(poserTexte(doc, id, { contenu }, mesurer), id, (x) => {
+    const p = aligner(x, zone, 'centre-h');
+    return Math.abs(x.rotationDeg) < 0.1 && (x.xMm - x.largeurMm / 2 < zone.x || x.xMm + x.largeurMm / 2 > zone.x + zone.largeur) ? { ...x, xMm: arrondir(p.x) } : x;
+  });
+}
+
+export function poserForme(doc: DocumentBanner, id: string, forme: Partial<ElementForme['forme']>): DocumentBanner {
+  return remplacer(doc, id, (e) => {
+    if (e.type !== 'forme' || e.verrouille) return e;
+    const f = { ...e.forme, ...forme };
+    // Ni fond ni contour : la forme serait invisible (et refusée par le schéma).
+    if (f.fond === null && f.contour === null) return e;
+    f.epaisseurMm = arrondir(borner(f.epaisseurMm, 0, 500));
+    f.rayonMm = arrondir(borner(f.rayonMm, 0, 5000));
+    // Activer un contour lui donne une épaisseur visible.
+    if (f.contour !== null && f.epaisseurMm === 0) f.epaisseurMm = arrondir(Math.max(1, Math.min(e.largeurMm, e.hauteurMm) * 0.03));
+    return { ...e, forme: f };
+  });
+}
+
+/* ------------------------------------------------------------------------- images -- */
+
+/**
+ * Recadre une image. `garderCadre` : le cadre ne bouge pas, c'est son contenu qui change. Sinon le
+ * cadre prend la forme du recadrage, à la même échelle, et ce qui reste ne se déplace pas.
+ */
+export function poserRecadrage(doc: DocumentBanner, id: string, recadrage: Recadrage, garderCadre: boolean): DocumentBanner {
+  return remplacer(doc, id, (e) => {
+    if (e.type !== 'image' || e.verrouille) return e;
+    const asset = doc.assets.find((a) => a.id === e.image.assetId);
+    if (!asset) return e;
+    const r = normaliser(recadrage);
+    const image = { ...e.image, recadrage: r, ajustement: 'cover' as const };
+    if (garderCadre) return { ...e, image };
+    const p = placementImage(e, asset);
+    const limite = tailleMax(doc);
+    const largeurMm = arrondir(borner(r.l * asset.largeurPx * p.echelle, TAILLE_MIN_MM, limite));
+    const hauteurMm = arrondir(borner(r.h * asset.hauteurPx * p.echelle, TAILLE_MIN_MM, limite));
+    const dx = p.image.x + (r.x + r.l / 2) * asset.largeurPx * p.echelle;
+    const dy = p.image.y + (r.y + r.h / 2) * asset.hauteurPx * p.echelle;
+    const a = (e.rotationDeg * Math.PI) / 180;
+    return garderVisible(doc, { ...e, image, largeurMm, hauteurMm, xMm: e.xMm + dx * Math.cos(a) - dy * Math.sin(a), yMm: e.yMm + dx * Math.sin(a) + dy * Math.cos(a) });
+  });
+}
+
+/** Remplace la photo d'un cadre : position, taille et rotation restent, le recadrage repart de zéro. */
+export function remplacerImage(doc: DocumentBanner, id: string, asset: Asset): DocumentBanner {
+  const e = trouver(doc, id);
+  if (e?.type !== 'image' || e.verrouille) return doc;
+  const ancien = doc.assets.find((a) => a.id === e.image.assetId);
+  return elaguerAssets(remplacer(avecAsset(doc, asset), id, (x) => ({
+    ...x,
+    nom: x.nom === ancien?.nom ? asset.nom : x.nom,
+    ...(x.type === 'image' ? { image: { assetId: asset.id, recadrage: { ...RECADRAGE_PLEIN }, ajustement: 'cover' as const } } : {}),
+  }) as Element));
+}
+
+/* --------------------------------------------------------------------------- fond -- */
+
+export const poserCouleurFond = (doc: DocumentBanner, couleur: string): DocumentBanner => (doc.fond.couleur === couleur ? doc : { ...doc, fond: { ...doc.fond, couleur } });
+
+export function poserImageFond(doc: DocumentBanner, asset: Asset): DocumentBanner {
+  return elaguerAssets({ ...avecAsset(doc, asset), fond: { type: 'image', assetId: asset.id, ajustement: 'cover', couleur: doc.fond.couleur } });
+}
+
+export function retirerImageFond(doc: DocumentBanner): DocumentBanner {
+  return doc.fond.type === 'image' ? elaguerAssets({ ...doc, fond: { type: 'couleur', couleur: doc.fond.couleur } }) : doc;
+}
+
+export function poserAjustementFond(doc: DocumentBanner, ajustement: 'cover' | 'contain'): DocumentBanner {
+  return doc.fond.type === 'image' && doc.fond.ajustement !== ajustement ? { ...doc, fond: { ...doc.fond, ajustement } } : doc;
+}
+
+/** Une image posée devient le fond. */
+export function mettreEnFond(doc: DocumentBanner, id: string): DocumentBanner {
+  const e = trouver(doc, id);
+  const asset = e?.type === 'image' && !e.verrouille ? doc.assets.find((a) => a.id === e.image.assetId) : undefined;
+  return e && asset ? poserImageFond({ ...doc, elements: doc.elements.filter((x) => x !== e) }, asset) : doc;
+}
+
+export const poserDistance = (doc: DocumentBanner, distanceLectureM: DistanceLecture): DocumentBanner =>
+  doc.qualite.distanceLectureM === distanceLectureM ? doc : { ...doc, qualite: { distanceLectureM } };
+
+/** Couleurs déjà utilisées, les plus fréquentes d'abord : proposées dans les sélecteurs. */
+export function couleursDocument(doc: DocumentBanner, max = 8): string[] {
+  const n = new Map<string, number>();
+  const compter = (c: string | null) => c && n.set(c.toUpperCase(), (n.get(c.toUpperCase()) ?? 0) + 1);
+  compter(doc.fond.couleur);
+  for (const e of doc.elements) {
+    if (e.type === 'texte') compter(e.texte.couleur);
+    if (e.type === 'forme') [e.forme.fond, e.forme.contour].forEach(compter);
+  }
+  return [...n].sort((a, b) => b[1] - a[1]).slice(0, max).map(([c]) => c);
 }
 
 export function poserAjustement(doc: DocumentBanner, id: string, ajustement: 'cover' | 'contain'): DocumentBanner {
@@ -192,7 +339,12 @@ export function poserFormat(doc: DocumentBanner, largeurMm: number, hauteurMm: n
   const nouveau: DocumentBanner = { ...doc, dimensions: { largeurMm: L, hauteurMm: H } };
   return {
     ...nouveau,
-    elements: doc.elements.map((e) => garderVisible(nouveau, { ...redimensionne(e, f, f, mesurer, tailleMax(nouveau)), xMm: e.xMm * rx, yMm: e.yMm * ry })),
+    elements: doc.elements.map((e) => {
+      const n = redimensionne(e, f, f, mesurer, tailleMax(nouveau));
+      // Contours et arrondis suivent l'échelle de la composition.
+      const forme = n.type === 'forme' ? { forme: { ...n.forme, epaisseurMm: arrondir(borner(n.forme.epaisseurMm * f, 0, 500)), rayonMm: arrondir(borner(n.forme.rayonMm * f, 0, 5000)) } } : {};
+      return garderVisible(nouveau, { ...n, ...forme, xMm: e.xMm * rx, yMm: e.yMm * ry } as Element);
+    }),
   };
 }
 

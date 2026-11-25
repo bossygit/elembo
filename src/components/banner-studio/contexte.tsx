@@ -57,18 +57,26 @@ export function useMedia(requete: string): boolean {
   );
 }
 
-/** Importe un fichier image : contrôle, conservation de l'original, puis ajout au document. */
+export type DestinationImage = { vers: 'element' } | { vers: 'fond' } | { vers: 'remplacer'; id: string };
+
+/** Importe un fichier image : contrôle, conservation, puis ajout, remplacement ou mise en fond. */
 export function useImportImage() {
   const { store, images } = useContexte();
-  return async (fichier: File) => {
+  return async (fichier: File, destination: DestinationImage = { vers: 'element' }) => {
     const { annoncer } = store.getState();
     try {
       const lue = await lireImage(fichier);
-      const id = crypto.randomUUID();
-      const conserve = await enregistrerAsset(id, fichier);
-      images.poser(id, lue.travail);
-      store.getState().declarerImage(id);
-      const ajoute = store.getState().ajouterImage({ id, nom: lue.nom, mime: lue.mime, largeurPx: lue.largeurPx, hauteurPx: lue.hauteurPx });
+      // Même fichier déjà présent : une seule copie suffit.
+      let asset = store.getState().document.assets.find((a) => lue.sha256 && a.sha256 === lue.sha256 && images.image(a.id));
+      let conserve = true;
+      if (!asset) {
+        asset = { id: crypto.randomUUID(), nom: lue.nom, mime: lue.mime, largeurPx: lue.largeurPx, hauteurPx: lue.hauteurPx, ...(lue.sha256 ? { sha256: lue.sha256 } : {}) };
+        conserve = await enregistrerAsset(asset.id, lue.blob);
+        images.poser(asset.id, lue.travail);
+        store.getState().declarerImage(asset.id);
+      }
+      const s = store.getState();
+      const ajoute = destination.vers === 'fond' ? s.poserImageFond(asset) : destination.vers === 'remplacer' ? s.remplacerImage(destination.id, asset) : s.ajouterImage(asset);
       annoncer(!ajoute ? 'Nombre maximal d’images ou d’éléments atteint.' : conserve ? null : 'Image ajoutée, mais cet appareil ne peut pas la conserver : elle sera perdue à la fermeture.');
     } catch (e) {
       annoncer(e instanceof Error ? e.message : 'Cette image ne peut pas être importée.');

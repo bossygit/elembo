@@ -7,9 +7,10 @@ import { enregistrerProjet, lireAsset, lireProjetCourant, menage } from '@/lib/b
 import { creerStudio, type StudioStore } from '@/stores/banner-studio-store';
 
 import { Bouton, type NomIcone } from './champs';
-import { FournisseurStudio, Images, useActions, useMedia, useSelection, useStudio } from './contexte';
+import { FournisseurStudio, Images, useActions, useContexte, useMedia, useSelection, useStudio } from './contexte';
 import { Inspecteur } from './Inspecteur';
-import { PanneauAjouter, PanneauCalques, PanneauControles, PanneauFormat } from './Panneaux';
+import { PanneauAjouter, PanneauCalques, PanneauControles, PanneauFond, PanneauFormat } from './Panneaux';
+import { Recadrage } from './Recadrage';
 import { EPAISSEUR_REGLE, Regle } from './Regles';
 import { StudioCanvas } from './StudioCanvas';
 import { StudioTopBar } from './StudioTopBar';
@@ -22,8 +23,11 @@ async function charger(store: StudioStore, images: Images, actif: () => boolean)
   const doc = store.getState().document;
   await Promise.all([
     // Police du prochain texte ajouté : prête avant sa première mesure.
-    chargerPolice({ policeId: 'montserrat', graisse: 700, contenu: 'Votre texte' }),
-    chargerPolices(doc).then(() => images.notifier()),
+    chargerPolice({ policeId: 'montserrat', graisse: 700, contenu: '' }).then((ok) => store.getState().declarerPolice('montserrat', ok)),
+    chargerPolices(doc).then((echecs) => {
+      for (const p of echecs) store.getState().declarerPolice(p, false);
+      images.notifier();
+    }),
     ...doc.assets.map(async (a) => {
       const blob = await lireAsset(a.id);
       const copie = blob ? await copieTravail(blob).catch(() => null) : null;
@@ -100,9 +104,10 @@ export default function BannerStudio() {
   );
 }
 
-type Onglet = 'ajouter' | 'calques' | 'format' | 'controles' | 'reglages';
+type Onglet = 'ajouter' | 'fond' | 'calques' | 'format' | 'controles' | 'reglages';
 const ONGLETS: { id: Exclude<Onglet, 'reglages'>; nom: string; icone: NomIcone }[] = [
   { id: 'ajouter', nom: 'Ajouter', icone: 'plus' },
+  { id: 'fond', nom: 'Fond', icone: 'fond' },
   { id: 'calques', nom: 'Calques', icone: 'calques' },
   { id: 'format', nom: 'Format', icone: 'format' },
   { id: 'controles', nom: 'Contrôles', icone: 'controles' },
@@ -118,9 +123,14 @@ function Coque() {
   const critiques = useStudio((e) => e.alertes.filter((x) => x.severite === 'critique').length);
   const vide = useStudio((e) => e.charge && e.document.elements.length === 0);
   const a = useActions();
+  const { store } = useContexte();
+
+  // Double-clic sur un texte : sur mobile, ses réglages s'ouvrent.
+  useEffect(() => store.subscribe((s, p) => { if (s.demandeTexte > p.demandeTexte) setFeuille('reglages'); }), [store]);
 
   const panneau = (o: Onglet, apres?: () => void): ReactNode => {
     if (o === 'ajouter') return <PanneauAjouter apres={apres} />;
+    if (o === 'fond') return <PanneauFond />;
     if (o === 'calques') return <PanneauCalques />;
     if (o === 'format') return <PanneauFormat />;
     if (o === 'controles') return <PanneauControles />;
@@ -150,9 +160,9 @@ function Coque() {
       <div className="grid h-dvh grid-rows-[auto_auto_1fr] overflow-hidden">
         <StudioTopBar compact={false} onControles={() => setGauche('controles')} />
         <div>{annonces}</div>
-        <div className="grid min-h-0 grid-cols-[17rem_minmax(0,1fr)_18rem]">
+        <div className="grid min-h-0 grid-cols-[19rem_minmax(0,1fr)_19rem]">
           <aside aria-label="Outils" className="flex min-h-0 flex-col border-r border-filet bg-creme">
-            <div role="tablist" aria-label="Outils du Studio" className="grid grid-cols-4 border-b border-filet">
+            <div role="tablist" aria-label="Outils du Studio" className="grid grid-cols-5 border-b border-filet">
               {ONGLETS.map((o) => (
                 <button
                   key={o.id}
@@ -178,6 +188,7 @@ function Coque() {
           </main>
           <aside aria-label="Propriétés" className="min-h-0 overflow-y-auto border-l border-filet bg-creme"><Inspecteur /></aside>
         </div>
+        <Recadrage />
       </div>
     );
   }
@@ -198,11 +209,12 @@ function Coque() {
           </section>
         ) : null}
       </div>
-      <nav aria-label="Outils du Studio" className="grid grid-cols-4 border-t border-filet bg-creme pb-[env(safe-area-inset-bottom)]">
+      <nav aria-label="Outils du Studio" className="grid grid-cols-5 border-t border-filet bg-creme pb-[env(safe-area-inset-bottom)]">
         {ONGLETS.map((o) => (
           <Bouton key={o.id} icone={o.icone} libelle={o.nom} texte={o.nom} actif={feuille === o.id} className="!min-h-14 flex-col !gap-0.5 !rounded-none !px-0 !text-xs" onClick={() => setFeuille(feuille === o.id ? null : o.id)} />
         ))}
       </nav>
+      <Recadrage />
     </div>
   );
 }

@@ -1,0 +1,40 @@
+/* GÉNÉRÉ par scripts/polices-banner.py : polices du Banner Studio, distinctes de celles du textile. */
+@font-face{font-family:'Studio Montserrat';font-style:normal;font-weight:400;font-display:block;src:url('./montserrat-400.woff2') format('woff2')}
+@font-face{font-family:'Studio Montserrat';font-style:normal;font-weight:700;font-display:block;src:url('./montserrat-700.woff2') format('woff2')}
+@font-face{font-family:'Studio Montserrat';font-style:italic;font-weight:400;font-display:block;src:url('./montserrat-400i.woff2') format('woff2')}
+@font-face{font-family:'Studio Montserrat';font-style:italic;font-weight:700;font-display:block;src:url('./montserrat-700i.woff2') format('woff2')}
+@font-face{font-family:'Studio Poppins';font-style:normal;font-weight:400;font-display:block;src:url('./poppins-400.woff2') format('woff2')}
+@font-face{font-family:'Studio Poppins';font-style:normal;font-weight:700;font-display:block;src:url('./poppins-700.woff2') format('woff2')}
+@font-face{font-family:'Studio Poppins';font-style:italic;font-weight:400;font-display:block;src:url('./poppins-400i.woff2') format('woff2')}
+@font-face{font-family:'Studio Poppins';font-style:italic;font-weight:700;font-display:block;src:url('./poppins-700i.woff2') format('woff2')}
+@font-face{font-family:'Studio Bebas Neue';font-style:normal;font-weight:400;font-display:block;src:url('./bebas-neue-400.woff2') format('woff2')}
+@font-face{font-family:'Studio Oswald';font-style:normal;font-weight:400;font-display:block;src:url('./oswald-400.woff2') format('woff2')}
+@font-face{font-family:'Studio Oswald';font-style:normal;font-weight:700;font-display:block;src:url('./oswald-700.woff2') format('woff2')}
+@font-face{font-family:'Studio Anton';font-style:normal;font-weight:400;font-display:block;src:url('./anton-400.woff2') format('woff2')}
+@font-face{font-family:'Studio Archivo Black';font-style:normal;font-weight:400;font-display:block;src:url('./archivo-black-400.woff2') format('woff2')}
+@font-face{font-family:'Studio Bangers';font-style:normal;font-weight:400;font-display:block;src:url('./bangers-400.woff2') format('woff2')}
+@font-face{font-family:'Studio Righteous';font-style:normal;font-weight:400;font-display:block;src:url('./righteous-400.woff2') format('woff2')}
+@font-face{font-family:'Studio Russo One';font-style:normal;font-weight:400;font-display:block;src:url('./russo-one-400.woff2') format('woff2')}
+@font-face{font-family:'Studio Alfa Slab One';font-style:normal;font-weight:400;font-display:block;src:url('./alfa-slab-one-400.woff2') format('woff2')}
+@font-face{font-family:'Studio Pacifico';font-style:normal;font-weight:400;font-display:block;src:url('./pacifico-400.woff2') format('woff2')}
+@font-face{font-family:'Studio Lobster';font-style:normal;font-weight:400;font-display:block;src:url('./lobster-400.woff2') format('woff2')}
+@font-face{font-family:'Studio Caveat';font-style:normal;font-weight:400;font-display:block;src:url('./caveat-400.woff2') format('woff2')}
+@font-face{font-family:'Studio Caveat';font-style:normal;font-weight:700;font-display:block;src:url('./caveat-700.woff2') format('woff2')}
+@font-face{font-family:'Studio Permanent Marker';font-style:normal;font-weight:400;font-display:block;src:url('./permanent-marker-400.woff2') format('woff2')}
+@font-face{font-family:'Studio Great Vibes';font-style:normal;font-weight:400;font-display:block;src:url('./great-vibes-400.woff2') format('woff2')}
+@font-face{font-family:'Studio Playfair Display';font-style:normal;font-weight:400;font-display:block;src:url('./playfair-display-400.woff2') format('woff2')}
+@font-face{font-family:'Studio Playfair Display';font-style:normal;font-weight:700;font-display:block;src:url('./playfair-display-700.woff2') format('woff2')}
+@font-face{font-family:'Studio Playfair Display';font-style:italic;font-weight:400;font-display:block;src:url('./playfair-display-400i.woff2') format('woff2')}
+@font-face{font-family:'Studio Playfair Display';font-style:italic;font-weight:700;font-display:block;src:url('./playfair-display-700i.woff2') format('woff2')}
+@font-face{font-family:'Studio Bodoni Moda';font-style:normal;font-weight:400;font-display:block;src:url('./bodoni-moda-400.woff2') format('woff2')}
+@font-face{font-family:'Studio Bodoni Moda';font-style:normal;font-weight:700;font-display:block;src:url('./bodoni-moda-700.woff2') format('woff2')}
+@font-face{font-family:'Studio Bodoni Moda';font-style:italic;font-weight:400;font-display:block;src:url('./bodoni-moda-400i.woff2') format('woff2')}
+@font-face{font-family:'Studio Bodoni Moda';font-style:italic;font-weight:700;font-display:block;src:url('./bodoni-moda-700i.woff2') format('woff2')}
+@font-face{font-family:'Studio DM Serif Display';font-style:normal;font-weight:400;font-display:block;src:url('./dm-serif-display-400.woff2') format('woff2')}
+@font-face{font-family:'Studio DM Serif Display';font-style:italic;font-weight:400;font-display:block;src:url('./dm-serif-display-400i.woff2') format('woff2')}
+@font-face{font-family:'Studio Cinzel';font-style:normal;font-weight:400;font-display:block;src:url('./cinzel-400.woff2') format('woff2')}
+@font-face{font-family:'Studio Cinzel';font-style:normal;font-weight:700;font-display:block;src:url('./cinzel-700.woff2') format('woff2')}
+@font-face{font-family:'Studio Cormorant Garamond';font-style:normal;font-weight:400;font-display:block;src:url('./cormorant-garamond-400.woff2') format('woff2')}
+@font-face{font-family:'Studio Cormorant Garamond';font-style:normal;font-weight:700;font-display:block;src:url('./cormorant-garamond-700.woff2') format('woff2')}
+@font-face{font-family:'Studio Cormorant Garamond';font-style:italic;font-weight:400;font-display:block;src:url('./cormorant-garamond-400i.woff2') format('woff2')}
+@font-face{font-family:'Studio Cormorant Garamond';font-style:italic;font-weight:700;font-display:block;src:url('./cormorant-garamond-700i.woff2') format('woff2')}

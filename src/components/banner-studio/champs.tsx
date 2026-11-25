@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode, type Ref } from 'react';
 
 const TRACES = {
   annuler: 'M9 5 4 10l5 5M4 10h10a5 5 0 0 1 0 10h-4',
@@ -27,6 +27,12 @@ const TRACES = {
   fermer: 'M6 6l12 12M18 6 6 18',
   reglages: 'M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M8 14v6',
   retour: 'm14 6-6 6 6 6',
+  recadrer: 'M6 2v16h16M2 6h16v16',
+  remplacer: 'M4 8h13l-3-3M20 16H7l3 3',
+  fond: 'M3 5h18v14H3zM3 12h18M9 5v14',
+  alGauche: 'M4 6h16M4 12h10M4 18h13',
+  alCentre: 'M4 6h16M7 12h10M6 18h12',
+  alDroite: 'M4 6h16M10 12h10M7 18h13',
 } as const;
 export type NomIcone = keyof typeof TRACES;
 
@@ -103,38 +109,108 @@ export function ChampNombre({ libelle, valeur, unite, pas = 1, min, max, onValeu
   );
 }
 
-export function ChampTexte({ libelle, valeur, onValeur, maxLength, disabled }: { libelle: string; valeur: string; onValeur: (v: string) => void; maxLength?: number; disabled?: boolean }) {
+export function ChampTexte({ libelle, valeur, onValeur, maxLength, disabled, ref }: { libelle: string; valeur: string; onValeur: (v: string) => void; maxLength?: number; disabled?: boolean; ref?: Ref<HTMLTextAreaElement> }) {
   const id = useId();
   return (
     <div>
       <label htmlFor={id} className="mb-1 block text-xs text-attenue">{libelle}</label>
-      <textarea id={id} rows={Math.min(5, Math.max(2, valeur.split('\n').length))} maxLength={maxLength} className={SAISIE} value={valeur} disabled={disabled} onChange={(e) => onValeur(e.target.value)} />
+      <textarea ref={ref} id={id} rows={Math.min(5, Math.max(2, valeur.split('\n').length))} maxLength={maxLength} className={SAISIE} value={valeur} disabled={disabled} onChange={(e) => onValeur(e.target.value)} />
     </div>
   );
 }
 
-export function ChampChoix<T extends string | number>({ libelle, valeur, options, onValeur, disabled }: {
-  libelle: string; valeur: T; options: { valeur: T; texte: string }[]; onValeur: (v: T) => void; disabled?: boolean;
-}) {
+/** Texte court appliqué à la validation (Entrée ou sortie du champ). */
+export function ChampLigne({ libelle, valeur, onValeur, maxLength, disabled }: { libelle: string; valeur: string; onValeur: (v: string) => void; maxLength?: number; disabled?: boolean }) {
   const id = useId();
+  const [brouillon, setBrouillon] = useState<string | null>(null);
+  const valider = () => {
+    if (brouillon !== null && brouillon.trim() && brouillon !== valeur) onValeur(brouillon.trim());
+    setBrouillon(null);
+  };
   return (
     <div>
       <label htmlFor={id} className="mb-1 block text-xs text-attenue">{libelle}</label>
-      <select id={id} className={SAISIE} value={String(valeur)} disabled={disabled} onChange={(e) => { const o = options.find((x) => String(x.valeur) === e.target.value); if (o) onValeur(o.valeur); }}>
-        {options.map((o) => <option key={String(o.valeur)} value={String(o.valeur)}>{o.texte}</option>)}
+      <input id={id} className={SAISIE} value={brouillon ?? valeur} maxLength={maxLength} disabled={disabled} onChange={(e) => setBrouillon(e.target.value)} onBlur={valider} onKeyDown={(e) => { if (e.key === 'Enter') valider(); if (e.key === 'Escape') setBrouillon(null); }} />
+    </div>
+  );
+}
+
+export function ChampCase({ libelle, valeur, onValeur, disabled }: { libelle: string; valeur: boolean; onValeur: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm lg:min-h-8">
+      <input type="checkbox" className="h-5 w-5 accent-orange-action lg:h-4 lg:w-4" checked={valeur} disabled={disabled} onChange={(e) => onValeur(e.target.checked)} />
+      {libelle}
+    </label>
+  );
+}
+
+export function BoutonFichier({ icone, libelle, texte, testid, className, disabled, onFichier }: { icone?: NomIcone; libelle: string; texte: string; testid: string; className?: string; disabled?: boolean; onFichier: (f: File) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <Bouton icone={icone} libelle={libelle} texte={texte} className={className} disabled={disabled} onClick={() => ref.current?.click()} />
+      <input
+        ref={ref}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="sr-only"
+        tabIndex={-1}
+        aria-label={`Fichier : ${libelle}`}
+        data-testid={testid}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = '';
+          if (f) onFichier(f);
+        }}
+      />
+    </>
+  );
+}
+
+type Option<T> = { valeur: T; texte: string };
+export function ChampChoix<T extends string | number>({ libelle, valeur, options = [], groupes, onValeur, disabled }: {
+  libelle: string; valeur: T; options?: Option<T>[]; groupes?: { titre: string; options: Option<T>[] }[]; onValeur: (v: T) => void; disabled?: boolean;
+}) {
+  const id = useId();
+  const toutes = [...options, ...(groupes ?? []).flatMap((g) => g.options)];
+  const ligne = (o: Option<T>) => <option key={String(o.valeur)} value={String(o.valeur)}>{o.texte}</option>;
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1 block text-xs text-attenue">{libelle}</label>
+      <select id={id} className={SAISIE} value={String(valeur)} disabled={disabled} onChange={(e) => { const o = toutes.find((x) => String(x.valeur) === e.target.value); if (o) onValeur(o.valeur); }}>
+        {toutes.some((o) => o.valeur === valeur) ? null : <option value={String(valeur)}>{String(valeur)}</option>}
+        {options.map(ligne)}
+        {groupes?.map((g) => <optgroup key={g.titre} label={g.titre}>{g.options.map(ligne)}</optgroup>)}
       </select>
     </div>
   );
 }
 
-export function ChampCouleur({ libelle, valeur, onValeur, disabled }: { libelle: string; valeur: string; onValeur: (v: string) => void; disabled?: boolean }) {
+const PALETTE = ['#FFFFFF', '#18181A', '#E87A2E', '#C8A24A', '#0F6B4C', '#1F3A8A', '#B3261E'];
+
+export function ChampCouleur({ libelle, valeur, onValeur, suggestions = [], disabled }: { libelle: string; valeur: string; onValeur: (v: string) => void; suggestions?: string[]; disabled?: boolean }) {
   const id = useId();
+  const [brouillon, setBrouillon] = useState<string | null>(null);
+  const couleur = valeur.toUpperCase();
+  const valider = () => {
+    const c = `#${(brouillon ?? '').trim().replace(/^#/, '')}`.toUpperCase();
+    setBrouillon(null);
+    if (/^#[0-9A-F]{6}$/.test(c) && c !== couleur) onValeur(c);
+  };
+  const pastilles = [...new Set([...suggestions, ...PALETTE])].slice(0, 12);
   return (
     <div>
       <label htmlFor={id} className="mb-1 block text-xs text-attenue">{libelle}</label>
       <div className="flex items-center gap-2">
-        <input id={id} type="color" className={`h-11 w-14 cursor-pointer rounded-lg border border-bordure bg-white p-1 lg:h-9 ${FOCUS}`} value={valeur.toLowerCase()} disabled={disabled} onChange={(e) => onValeur(e.target.value.toUpperCase())} />
-        <span className="font-mono text-xs text-attenue">{valeur.toUpperCase()}</span>
+        <input id={id} type="color" className={`h-11 w-14 shrink-0 cursor-pointer rounded-lg border border-bordure bg-white p-1 lg:h-9 ${FOCUS}`} value={couleur.toLowerCase()} disabled={disabled} onChange={(e) => onValeur(e.target.value.toUpperCase())} />
+        <input aria-label={`${libelle}, code hexadécimal`} className={`${SAISIE} font-mono uppercase`} maxLength={7} spellCheck={false} value={brouillon ?? couleur} disabled={disabled} onChange={(e) => setBrouillon(e.target.value)} onBlur={valider} onKeyDown={(e) => { if (e.key === 'Enter') valider(); if (e.key === 'Escape') setBrouillon(null); }} />
+      </div>
+      <div className="mt-1.5 flex flex-wrap gap-1" role="group" aria-label={`${libelle} : couleurs proposées`}>
+        {pastilles.map((c) => (
+          <button key={c} type="button" title={c} aria-label={`Couleur ${c}`} aria-pressed={c === couleur} disabled={disabled} onClick={() => onValeur(c)} className={`flex h-11 w-11 items-center justify-center rounded-lg disabled:opacity-40 lg:h-7 lg:w-7 ${FOCUS}`}>
+            <span className={`block h-7 w-7 rounded-full border lg:h-5 lg:w-5 ${c === couleur ? 'border-orange-action ring-2 ring-orange-action' : 'border-bordure'}`} style={{ backgroundColor: c }} />
+          </button>
+        ))}
       </div>
     </div>
   );

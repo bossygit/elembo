@@ -10,7 +10,7 @@
 import { chevaucheCercle, chevaucheRect, estDans, retrait, traverseLigne, type Cercle, type Rect } from './geometry';
 import { DIMENSION_MAX_MM, DIMENSION_MIN_MM } from './formats';
 import type { ContraintesDocument, DocumentBanner, Element, FinitionStudio, SupportStudio } from './model';
-import { dpiEffectif, niveauQualite, seuils } from './quality';
+import { dpiEffectif, dpiFond, niveauQualite, seuils } from './quality';
 
 /* ---------------------------------------------------------------- profils -- */
 
@@ -198,7 +198,12 @@ export type ContexteEvaluation = {
   glyphesManquants?: (policeId: string, texte: string) => string[];
 };
 
-const libelle = (e: Element) => `« ${e.nom} »`;
+/** Un texte resté sans nom propre se reconnaît à son contenu. */
+const libelle = (e: Element) => {
+  if (e.type !== 'texte' || e.nom !== 'Texte') return `« ${e.nom} »`;
+  const c = e.texte.contenu.replace(/\s+/g, ' ').trim();
+  return `« ${c.length > 28 ? `${c.slice(0, 27).trimEnd()}…` : c || 'Texte'} »`;
+};
 
 /** Format : plafond du libre-service, laize (petit côté) et longueur (grand côté). */
 export function alertesFormat(doc: DocumentBanner): Alerte[] {
@@ -234,6 +239,13 @@ export function evaluer(doc: DocumentBanner, ctx: ContexteEvaluation = {}): Aler
   if (doc.fond.type === 'image') {
     if (!disponible(doc.fond.assetId)) alertes.push({ code: 'IMAGE_MANQUANTE', severite: 'critique', elementId: null, message: 'L’image de fond est introuvable.' });
     else if (assets.get(doc.fond.assetId)!.placeholder) alertes.push({ code: 'PLACEHOLDER', severite: 'critique', elementId: null, message: 'L’image de fond du modèle doit être remplacée.' });
+    const asset = assets.get(doc.fond.assetId);
+    if (asset && disponible(asset.id)) {
+      const dpi = dpiFond(doc, asset);
+      const niveau = niveauQualite(dpi, seuils(doc.qualite.distanceLectureM, doc.contraintes));
+      if (niveau === 'INSUFFISANTE') alertes.push({ code: 'IMAGE_DPI_INSUFFISANT', severite: 'avertissement', elementId: null, message: `L’image de fond sera floue (${dpi} dpi).` });
+      else if (niveau === 'FAIBLE') alertes.push({ code: 'IMAGE_DPI_FAIBLE', severite: 'info', elementId: null, message: `L’image de fond est juste en définition (${dpi} dpi).` });
+    }
     if (doc.contraintes.fondPerduMm > 0 && doc.fond.ajustement === 'contain') {
       alertes.push({ code: 'FOND_PERDU_NON_COUVERT', severite: 'info', elementId: null, message: 'L’image de fond n’atteint pas le bord du fond perdu.' });
     }

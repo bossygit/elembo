@@ -16,6 +16,7 @@
 import type { FinitionId, SupportId } from '@/lib/grand-format/catalogue';
 
 import type { CategorieId } from './categories';
+import { decoration } from './formes';
 
 export const SCHEMA_DOCUMENT = 'elembo.banner';
 export const VERSION_DOCUMENT = 1;
@@ -28,7 +29,10 @@ export type FinitionStudio = Exclude<FinitionId, 'AUTRE'>;
 export type DistanceLecture = 1 | 3 | 10;
 export type Alignement = 'left' | 'center' | 'right';
 export type Ajustement = 'cover' | 'contain';
-export type NatureForme = 'rect' | 'ellipse' | 'ligne';
+/** Décorations dessinées par un chemin original (`formes.ts`), à l'échelle toujours uniforme. */
+export const NATURES_DECORATION = ['etoile', 'eclat', 'coeur', 'croix', 'anneaux', 'ruban', 'vague', 'coin', 'triangle', 'fleche'] as const;
+export type Decoration = (typeof NATURES_DECORATION)[number];
+export type NatureForme = 'rect' | 'ellipse' | 'ligne' | Decoration;
 
 /** Snapshot des contraintes vues par le client (le serveur re-résout le profil au rendu). */
 export type ContraintesDocument = {
@@ -223,9 +227,12 @@ export function creerImage(doc: DocumentBanner, asset: Asset, { id = idParDefaut
 }
 
 export function creerForme(doc: DocumentBanner, nature: NatureForme = 'rect', { id = idParDefaut }: Fabrique = {}): ElementForme {
-  const cote = doc.dimensions.hauteurMm * 0.3;
+  const d = decoration(nature);
+  // Une décoration allongée tient aussi dans un format portrait.
+  const cote = Math.round(Math.min(doc.dimensions.hauteurMm * 0.3, d ? (doc.dimensions.largeurMm * 0.6 * d.hauteur) / d.largeur : Infinity));
+  const [largeurMm, hauteurMm] = d ? [Math.round((cote * d.largeur) / d.hauteur), cote] : nature === 'ligne' ? [cote * 3, 5] : [cote, cote];
   return {
-    ...base(doc, nature === 'ligne' ? 'Filet' : 'Forme', nature === 'ligne' ? cote * 3 : cote, nature === 'ligne' ? 5 : cote, id),
+    ...base(doc, d?.nom ?? (nature === 'ligne' ? 'Filet' : nature === 'ellipse' ? 'Ellipse' : 'Rectangle'), largeurMm, hauteurMm, id),
     type: 'forme',
     forme: { nature, fond: nature === 'ligne' ? '#18181A' : '#E87A2E', contour: null, epaisseurMm: 0, rayonMm: 0 },
   };

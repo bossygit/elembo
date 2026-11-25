@@ -6,7 +6,7 @@
  * tient compte. Les seuils dépendent de la distance de lecture, combinés à ceux du profil.
  */
 
-import type { Asset, DistanceLecture, ElementImage } from './model';
+import type { Asset, DistanceLecture, DocumentBanner, ElementImage } from './model';
 
 export const MM_PAR_POUCE = 25.4;
 
@@ -53,6 +53,20 @@ export function dpiEffectif(e: ElementImage, asset: Asset): number {
   const dx = px.largeurPx / (mm.largeurMm / MM_PAR_POUCE);
   const dy = px.hauteurPx / (mm.hauteurMm / MM_PAR_POUCE);
   return Math.round(Math.min(dx, dy));
+}
+
+/** DPI de l'image de fond, sur la surface finie et son fond perdu. */
+export function dpiFond(doc: DocumentBanner, asset: Asset): number {
+  const b = 2 * doc.contraintes.fondPerduMm;
+  const kx = (doc.dimensions.largeurMm + b) / asset.largeurPx;
+  const ky = (doc.dimensions.hauteurMm + b) / asset.hauteurPx;
+  const mmParPx = doc.fond.type === 'image' && doc.fond.ajustement === 'contain' ? Math.min(kx, ky) : Math.max(kx, ky);
+  return Math.round(MM_PAR_POUCE / mmParPx);
+}
+
+/** Plus grande largeur imprimée (mm) à laquelle l'image reste au-dessus d'un seuil. */
+export function largeurNetteMm(e: ElementImage, asset: Asset, dpi: number): number {
+  return (pixelsVisibles(e, asset).largeurPx / dpi) * MM_PAR_POUCE;
 }
 
 export type NiveauQualite = 'BONNE' | 'FAIBLE' | 'INSUFFISANTE';

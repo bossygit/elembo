@@ -4,8 +4,10 @@ Procédure et liste de contrôle pour ouvrir le Banner Studio au public. Référ
 [`banner-studio.md`](banner-studio.md). Hébergement : [`vercel.md`](vercel.md) ; base :
 [`supabase-production.md`](supabase-production.md).
 
-État au 26 novembre 2026 : code complet sur `feature/banner-studio` (lots 1 à 7), migrations appliquées en staging et
-en production, **Studio fermé** (`NEXT_PUBLIC_BANNER_STUDIO` absente). Il manque l'imprimeur pilote.
+État au 26 novembre 2026 : lots 1 à 7 fusionnés dans `main` (`9a89516`) et déployés, migrations appliquées en staging
+et en production. **Studio ouvert au public le 26 novembre 2026** (`NEXT_PUBLIC_BANNER_STUDIO=1` en Production),
+**avant** l'imprimeur pilote, par décision de Smart Vision : les étapes du §5 restent à faire, les profils publics sont
+toujours « à valider » et chaque PDF doit être contrôlé par l'équipe avant production.
 
 ## 1. Principe
 

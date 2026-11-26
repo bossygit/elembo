@@ -15,6 +15,7 @@ productions réelles doivent les remplacer au fur et à mesure.
 | `polo-pique.jpg` | Photo fournie par Smart Vision | Smart Vision |
 | `tote-bag.jpg` | https://www.pexels.com/photo/plain-tote-bag-9869067/ | Pexels |
 | `textile-lot.jpg` | https://www.pexels.com/photo/a-person-holding-a-stack-of-neatly-folded-shirts-4440574/ | Pexels |
+| `casquette-elembo-3d.jpg` | Rendu Cycles du modèle 3D de l'atelier (`assets/3d/elembo-casquette/build.py`) | Smart Vision |
 
 Les fichiers `tshirt-blanc.png`, `tableau-salon.png`, `tableau-mural.png` et
 `casquette-blanche.png` sont les anciens visuels techniques du studio 2D, conservés pour ne pas

@@ -10,7 +10,7 @@
  * n'est pas modifié.
  */
 
-import { CATALOG } from '../products/catalog';
+import { CAP_PRODUCT_ID, CATALOG } from '../products/catalog';
 import { lienWhatsApp, MESSAGES_WHATSAPP } from '../site/marque';
 import { FORMATS, prixUnitaireFcfa } from '../products/tableaux';
 import {
@@ -124,6 +124,7 @@ export type ProduitVitrine = {
 
 const tshirtRaglan = CATALOG.find((p) => p.id === 'tshirt-basic');
 const tshirtColRond = CATALOG.find((p) => p.id === 'tshirt-alt');
+const casquette = CATALOG.find((p) => p.id === CAP_PRODUCT_ID);
 const tableauPetit = FORMATS[0];
 
 export const PRODUITS_VITRINE: ProduitVitrine[] = [
@@ -318,6 +319,40 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
       configurable3D: false,
       avertissement:
         'Pas de modèle 3D fiable pour les uniformes : chaque tenue est validée sur une fiche technique et un BAT.',
+    },
+  },
+  {
+    // Même identifiant que le produit du configurateur (CAP_PRODUCT_ID) : « Personnaliser en 3D »
+    // ouvre l'atelier directement sur la casquette.
+    id: CAP_PRODUCT_ID,
+    gamme: 'personnalisee',
+    nom: 'Casquette personnalisée',
+    famille: 'textile',
+    surtitre: 'Textile · Accessoire',
+    description:
+      'Une casquette 6 panneaux à visière courbe : votre logo brodé sur le devant, un détail sur le côté, un mot sur la visière.',
+    points: ['Aperçu 3D avant commande', '5 zones : avant, côtés, arrière, visière', 'Taille unique réglable', 'Commande sur devis ou WhatsApp'],
+    image: {
+      src: '/mockups/casquette-elembo-3d.jpg',
+      alt: 'Casquette Elembo noire à personnaliser, rendu du modèle 3D de l’atelier',
+    },
+    href: `/textile/${CAP_PRODUCT_ID}`,
+    cta: 'Voir la fiche produit',
+    prix: prixVitrine(null, 'provisoire'),
+    badge: 'Nouveau',
+    fiche: {
+      variantes: ['6 panneaux structurée', 'Visière pré-courbée', 'Fermeture snapback'],
+      tailles: ['Taille unique réglable (56 à 60 cm)'],
+      couleurs: casquette?.colors.map((c) => ({ nom: c.name, hex: c.hex })) ?? [],
+      faces: ['Avant', 'Côté gauche', 'Côté droit', 'Arrière', 'Visière'],
+      zones: ['Avant : 11 × 5,5 cm', 'Côtés : 6 × 3,5 cm', 'Arrière : 7 × 3 cm', 'Visière : 9 × 3 cm'],
+      technique: 'Broderie ou transfert DTF',
+      delai: 'Fixé sur devis, après validation du procédé par l’atelier',
+      minimum: 'À confirmer avec l’atelier',
+      configurable3D: true,
+      produit3DId: CAP_PRODUCT_ID,
+      avertissement:
+        'La broderie et le transfert sur casquette sont en cours de validation par l’atelier : vous pouvez composer votre casquette en 3D, la commande se fait sur devis ou sur WhatsApp. Tailles de zone indicatives (broderie).',
     },
   },
   {

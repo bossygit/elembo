@@ -35,6 +35,10 @@ export default async function PageProduitTextile({ params }: Contexte) {
   if (!p || !p.fiche) notFound();
   const fiche = p.fiche;
   const lienDevis = `/devis?famille=TEXTILE&produit=${encodeURIComponent(p.id)}`;
+  // L'atelier s'ouvre sur le produit de la fiche (T-shirt, casquette…), pas sur le produit par défaut.
+  const lienAtelier = fiche.produit3DId
+    ? `/personnalisation?produit=${encodeURIComponent(fiche.produit3DId)}`
+    : '/personnalisation';
 
   return (
     <div className="mx-auto w-full max-w-[90rem] px-4 py-10 sm:px-8 sm:py-14">
@@ -91,7 +95,7 @@ export default async function PageProduitTextile({ params }: Contexte) {
 
           <div className="mt-8 flex flex-wrap gap-3">
             {fiche.configurable3D ? (
-              <BoutonLien href="/personnalisation" variante="accent" className="px-7 py-4 text-base">
+              <BoutonLien href={lienAtelier} variante="accent" className="px-7 py-4 text-base">
                 Personnaliser en 3D
                 <ArrowRight className="h-5 w-5" />
               </BoutonLien>

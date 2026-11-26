@@ -365,7 +365,7 @@ export default function Configurator() {
                   {couleurNom} · {profil.nom}
                   <br />
                   {nbZonesPersonnalisees === 0
-                    ? 'T-shirt uni — aucune zone personnalisée'
+                    ? 'Modèle uni — aucune zone personnalisée'
                     : `${nbZonesPersonnalisees} zone(s) personnalisée(s)`}
                 </p>
               </div>

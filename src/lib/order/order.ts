@@ -12,7 +12,7 @@
 import type { DesignElement, Side, TextElement } from '../../types/configurator';
 import { SIDE_FILE, SIDE_LABELS, SIDES } from '../../types/configurator';
 import type { PrintArea, Product } from '../products/catalog';
-import { getPrintArea } from '../products/catalog';
+import { getPrintArea, productSides } from '../products/catalog';
 import { profilParId } from '../products/production';
 import type { ProfilProduction } from '../products/production';
 import { GRILLE, villesLivraison } from '../tarifs/grille';
@@ -360,7 +360,11 @@ export function buildProductionSheet(order: OrderDraft, date = new Date()): Prod
       `Procédé : ${profil.nom} — ${profil.dpi} dpi, ${profil.description}`,
       'Vérifier qu’aucun visuel ne traverse une couture : chaque zone est une pièce séparée.',
       ...(order.product.technique === 'zones'
-        ? ['Le nom de chaque fichier indique la zone exacte du vêtement (front, back, left-sleeve, right-sleeve, collar).']
+        ? [
+            `Le nom de chaque fichier indique la zone exacte du produit (${productSides(order.product)
+              .map((side) => SIDE_FILE[side].replace(/\.png$/, ''))
+              .join(', ')}).`,
+          ]
         : []),
       'Envoyer un BAT photographique avant expédition si la quantité dépasse 10 pièces.',
     ],

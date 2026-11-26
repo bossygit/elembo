@@ -94,7 +94,11 @@ function CameraRig({
     }
 
     const vueZone = vue ?? VUE_PAR_DEFAUT;
-    const cible = new THREE.Vector3(cx, cy + (vueZone.cibleY ?? 0) * framing.height, cz);
+    const cible = new THREE.Vector3(
+      cx,
+      cy + (vueZone.cibleY ?? 0) * framing.height,
+      cz + (vueZone.cibleZ ?? 0) * framing.height,
+    );
     goal.current = {
       azimut: deg(vueZone.azimut),
       polaire: clamp(deg(vueZone.polaire), 0.15, Math.PI - 0.15),

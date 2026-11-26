@@ -33,7 +33,9 @@ export type ZoneProduction = {
 };
 
 /** Famille de support à laquelle un procédé s'applique (un mug ne se presse pas en DTF textile). */
-export type SupportProduction = 'textile' | 'mug';
+export type SupportProduction = 'textile' | 'mug' | 'casquette';
+
+export const SUPPORTS: SupportProduction[] = ['textile', 'mug', 'casquette'];
 
 export type ProfilProduction = {
   id: string;
@@ -193,7 +195,7 @@ export function validerProfils(profils: ProfilProduction[] = PROFILS): string[] 
   }
   for (const p of profils) {
     for (const support of p.supports ?? []) {
-      if (support !== 'textile' && support !== 'mug') erreurs.push(`profil ${p.id} : support inconnu « ${support} »`);
+      if (!SUPPORTS.includes(support)) erreurs.push(`profil ${p.id} : support inconnu « ${support} »`);
     }
   }
   for (const [support, id] of Object.entries(fichier.parDefautParSupport ?? {})) {

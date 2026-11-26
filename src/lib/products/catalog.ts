@@ -82,9 +82,11 @@ export type ZoneModel = {
   reperesCm: { col?: number; epaule?: number };
   /**
    * Vue de caméra qui présente la zone : angles en degrés (azimut 0 = face, 90 = côté
-   * gauche du porteur), distance relative au cadrage, hauteur de visée relative.
+   * gauche du porteur), distance relative au cadrage, hauteur de visée relative et, pour une
+   * zone en avant du modèle (visière), avancée de la visée — toutes deux en fraction de la
+   * hauteur du modèle.
    */
-  vue: { azimut: number; polaire: number; distance: number; cibleY?: number };
+  vue: { azimut: number; polaire: number; distance: number; cibleY?: number; cibleZ?: number };
 };
 
 /** Rendu de la surface du vêtement fournisseur — voir `Product.surface`. */
@@ -217,6 +219,47 @@ export const ELEMBO_MUG_ZONES: Partial<Record<Side, ZoneModel>> = {
 
 export const MUG_PRODUCT_ID = 'mug-personnalise';
 
+// Casquette Elembo 6 panneaux (assets/3d/elembo-casquette) : cinq surfaces d'impression
+// DÉPLIÉES (étirement minimal) — 1 cm de texture = 1 cm de tissu, à ±3 % près (contrôle
+// d'isotropie dans zones.json). Haut de chaque texture = côté sommet ; pour la visière,
+// côté calotte. Textures : 14 × 8 (avant, à 0,4 cm de la base), 10 × 7 (côtés, à 0,6 cm),
+// 10 × 5,5 (arrière, au-dessus de l'ouverture), 16 × 6 cm (visière, depuis 0,6 cm du bord
+// intérieur). Noms vérifiés par tests/elemboCasquette.test.ts.
+export const ELEMBO_CAP_ZONES: Partial<Record<Side, ZoneModel>> = {
+  'cap-front': {
+    mesh: 'CAP_FRONT_PRINT',
+    textureCm: { w: 14, h: 8 },
+    reperesCm: {},
+    vue: { azimut: 0, polaire: 80, distance: 1.05, cibleY: 0.05 },
+  },
+  'cap-left': {
+    mesh: 'CAP_LEFT_PRINT',
+    textureCm: { w: 10, h: 7 },
+    reperesCm: {},
+    vue: { azimut: 90, polaire: 78, distance: 1.05, cibleY: 0.05 },
+  },
+  'cap-right': {
+    mesh: 'CAP_RIGHT_PRINT',
+    textureCm: { w: 10, h: 7 },
+    reperesCm: {},
+    vue: { azimut: -90, polaire: 78, distance: 1.05, cibleY: 0.05 },
+  },
+  'cap-back': {
+    mesh: 'CAP_BACK_PRINT',
+    textureCm: { w: 10, h: 5.5 },
+    reperesCm: {},
+    vue: { azimut: 180, polaire: 74, distance: 1.05, cibleY: 0.08 },
+  },
+  visor: {
+    mesh: 'CAP_VISOR_PRINT',
+    textureCm: { w: 16, h: 6 },
+    reperesCm: {},
+    vue: { azimut: 0, polaire: 50, distance: 0.95, cibleY: -0.45, cibleZ: 0.6 },
+  },
+};
+
+export const CAP_PRODUCT_ID = 'casquette-personnalisee';
+
 export const CATALOG: Product[] = [
   {
     // L'identifiant historique est CONSERVÉ : c'est lui que le service de paiement et la
@@ -268,6 +311,44 @@ export const CATALOG: Product[] = [
       { name: 'Bleu', hex: '#1E3A63' },
       { name: 'Vert', hex: '#225C43' },
       { name: 'Jaune', hex: '#F0C33C' },
+      { name: 'Orange Elembo', hex: '#FF5A12' },
+    ],
+    printAreas: {},
+  },
+  {
+    // Même identifiant que la fiche vitrine (src/lib/commerce/catalogue.ts). Taille unique
+    // réglable (patte snapback) : commande en quantité seule. Aucun prix dans
+    // tarifs/grille.json → devis ou WhatsApp, jamais MoMo, tant que l'atelier n'a pas validé.
+    id: CAP_PRODUCT_ID,
+    name: 'Casquette Elembo',
+    modelUrl: `${MODEL_DIR}/elembo-casquette/elembo-casquette.glb`,
+    technique: 'zones',
+    support: 'casquette',
+    tailles: false,
+    venteEnLigne: false,
+    zones: ELEMBO_CAP_ZONES,
+    // Toute la casquette prend la couleur choisie (calotte, visière, doublure, patte) ; les
+    // surfaces d'impression (MAT_CAP_PRINT_*) jamais.
+    fabricMaterials: [
+      'CAP_FABRIC',
+      'CAP_BUTTON',
+      'CAP_LINING',
+      'CAP_BINDING',
+      'CAP_SWEATBAND',
+      'CAP_VISOR',
+      'CAP_UNDERVISOR',
+      'CAP_STRAP',
+    ],
+    priceFcfa: prixProduit(CAP_PRODUCT_ID),
+    // Couleurs du modèle (assets/3d/elembo-casquette/zones.json).
+    colors: [
+      { name: 'Noir', hex: '#1B1B1D' },
+      { name: 'Blanc', hex: '#F2F1EC' },
+      { name: 'Gris', hex: '#8E9093' },
+      { name: 'Bleu marine', hex: '#1E2740' },
+      { name: 'Rouge', hex: '#A8232B' },
+      { name: 'Kaki', hex: '#5B5E3C' },
+      { name: 'Beige', hex: '#CDB892' },
       { name: 'Orange Elembo', hex: '#FF5A12' },
     ],
     printAreas: {},

@@ -333,6 +333,7 @@ const etat = vi.hoisted(() => ({
   echecs: [] as string[],
   effaces: [] as string[],
   ecrireEchoue: null as string | null,
+  profils: [] as Record<string, unknown>[],
 }));
 vi.mock('@/server/devis/repository', () => ({ fichiersDuDevis: async () => etat.lignes }));
 vi.mock('@/server/banner/repository', () => ({
@@ -347,7 +348,11 @@ vi.mock('@/server/banner/repository', () => ({
     etat.objets.set(`${b}:${c}`, o);
   },
   effacerObjets: async (_: string, c: string[]) => void etat.effaces.push(...c),
+  commandeDuDevisBanner: async () => null,
+  visuelCourant: async () => null,
+  archiverVisuelCommande: async () => undefined,
 }));
+vi.mock('@/server/banner/profils', () => ({ listerProfils: async () => etat.profils }));
 
 describe('finalisation', () => {
   const DEVIS = 'devis-1';
@@ -357,7 +362,7 @@ describe('finalisation', () => {
     modifier(d);
     etat.objets.clear();
     Object.assign(etat, {
-      lignes: [], termine: [], echecs: [], effaces: [], ecrireEchoue: null,
+      lignes: [], termine: [], echecs: [], effaces: [], ecrireEchoue: null, profils: [],
       reservation: { visuel_id: 'v', version: 1, etat: 'NOUVEAU', statut: 'EN_COURS' },
       demande: { largeur_m: 3, hauteur_m: 1, quantite: 2, support: 'BANDEROLE', finition: 'OEILLETS' },
     });

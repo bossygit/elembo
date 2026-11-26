@@ -6,7 +6,7 @@
 
 import { createStore } from 'zustand/vanilla';
 
-import { evaluer, zones, type Alerte } from '@/lib/banner/constraints';
+import { evaluer, PROFILS_PUBLICS, zones, type Alerte, type ProfilImpression } from '@/lib/banner/constraints';
 import * as op from '@/lib/banner/edition';
 import type { ModeAlignement } from '@/lib/banner/geometry';
 import { annuler, enregistrer, historiqueVide, retablir, type Historique } from '@/lib/banner/historique';
@@ -54,6 +54,8 @@ export type EtatStudio = {
   /** Image en cours de recadrage. */
   recadrage: string | null;
   fenetre: FenetreStudio | null;
+  /** Profils publics d'impression ; ceux de la base remplacent les valeurs intégrées. */
+  profils: Record<SupportStudio, ProfilImpression>;
   /** Non nul quand l'utilisateur demande à modifier le texte sélectionné (double-clic). */
   demandeTexte: number;
 
@@ -63,6 +65,7 @@ export type EtatStudio = {
   /** Remplace la composition par celle d'un modèle : une seule étape d'annulation. */
   installerModele: (doc: DocumentBanner) => void;
   ouvrirFenetre: (f: FenetreStudio | null) => void;
+  poserProfils: (profils: readonly ProfilImpression[]) => void;
   annoncer: (message: string | null) => void;
   declarerImage: (id: string) => void;
   declarerPolice: (policeId: string, ok: boolean) => void;
@@ -134,12 +137,17 @@ export function creerStudio({ mesurer, enregistrer: persister, id = () => global
     // Les profils publics ne sont pas validés par un imprimeur : le préflight le rappelle.
     const preflight = (d: DocumentBanner, disponibles: Set<string> | null, echouees: ReadonlySet<string> = get()?.policesEchouees ?? new Set()) =>
       evaluer(d, {
-        statutProfil: 'A_VALIDER',
+        statutProfil: (get()?.profils ?? PROFILS_PUBLICS)[d.support]?.statut ?? 'A_VALIDER',
         assetsDisponibles: disponibles ?? undefined,
         policesDisponibles: new Set(POLICES.map((p) => p.id).filter((p) => !echouees.has(p))),
         glyphesManquants,
         textesExemple: textesExemple(d),
       });
+    /** Le document avec les contraintes du profil courant de son support (même objet si rien ne change). */
+    const avecProfil = (d: DocumentBanner): DocumentBanner => {
+      const n = op.poserSupport(d, d.support, d.finition, (get()?.profils ?? PROFILS_PUBLICS)[d.support]);
+      return JSON.stringify(n.contraintes) === JSON.stringify(d.contraintes) && JSON.stringify(n.profil) === JSON.stringify(d.profil) && n.finition === d.finition ? d : n;
+    };
     /** Place pour une image de plus ? Une image déjà dans le document ne compte pas. */
     const place = (asset: Asset, elements = 0) => {
       const d = get().document;
@@ -195,6 +203,7 @@ export function creerStudio({ mesurer, enregistrer: persister, id = () => global
       proportions: { image: true, forme: false },
       recadrage: null,
       fenetre: null,
+      profils: { ...PROFILS_PUBLICS },
       demandeTexte: 0,
 
       ouvrir: (lecture) => {
@@ -204,7 +213,8 @@ export function creerStudio({ mesurer, enregistrer: persister, id = () => global
           set({ message: MESSAGES[lecture.erreur] });
           return;
         }
-        const d = lecture.document;
+        // Contraintes du profil actuel : celles enregistrées peuvent dater d'un ancien profil.
+        const d = avecProfil(lecture.document);
         if (minuterie) clearTimeout(minuterie);
         minuterie = null;
         set({ document: d, selection: null, message: null, recadrage: null, historique: historiqueVide(), alertes: preflight(d, get().charge ? get().disponibles : null), sauvegarde: 'enregistre', vue: ajuster(get().cadre, d.dimensions), vueAjustee: true });
@@ -212,11 +222,25 @@ export function creerStudio({ mesurer, enregistrer: persister, id = () => global
       nouveau: () => {
         if (minuterie) clearTimeout(minuterie);
         minuterie = null;
-        const d = documentInitial(id);
+        const d = avecProfil(documentInitial(id));
         set({ document: d, historique: historiqueVide(), selection: null, message: null, recadrage: null, sauvegarde: 'vierge', alertes: preflight(d, get().disponibles), vue: ajuster(get().cadre, d.dimensions), vueAjustee: true });
       },
-      installerModele: (doc) => appliquer((d) => ({ ...doc, id: d.id, creeLe: d.creeLe }), { selection: null }),
+      installerModele: (doc) => appliquer((d) => avecProfil({ ...doc, id: d.id, creeLe: d.creeLe }), { selection: null }),
       ouvrirFenetre: (fenetre) => set({ fenetre }),
+      poserProfils: (liste) => {
+        const profils = { ...get().profils };
+        for (const p of liste) if (p.estPublic && p.support in profils) profils[p.support] = p;
+        set({ profils });
+        // Les contraintes du document suivent le profil : ce n'est pas une modification de l'utilisateur.
+        const d = get().document;
+        const n = avecProfil(d);
+        const change = n !== d;
+        set({ document: n, alertes: preflight(n, get().charge ? get().disponibles : null) });
+        if (change && get().sauvegarde !== 'vierge') {
+          set({ sauvegarde: 'modifie' });
+          programmer();
+        }
+      },
       annoncer: (message) => set({ message }),
       declarerImage: (idImage) => {
         const disponibles = new Set(get().disponibles ?? []).add(idImage);
@@ -318,7 +342,7 @@ export function creerStudio({ mesurer, enregistrer: persister, id = () => global
       mettreEnFond: (cible) => appliquer((d) => op.mettreEnFond(d, cible)),
       poserDistance: (distance) => appliquer((d) => op.poserDistance(d, distance)),
       poserNom: (nom) => nom.trim() && appliquer((d) => ({ ...d, nom: nom.slice(0, BORNES.nomMax) }), { fusion: 'nom' }),
-      poserSupport: (support, finition) => appliquer((d) => op.poserSupport(d, support, finition)),
+      poserSupport: (support, finition) => appliquer((d) => op.poserSupport(d, support, finition, get().profils[support])),
       poserFormat: (l, h) => appliquer((d) => op.poserFormat(d, l, h, mesurer)),
 
       poserCadre: (cadre) => {

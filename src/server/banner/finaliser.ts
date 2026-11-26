@@ -1,16 +1,21 @@
 import { createHash } from 'node:crypto';
 
-import { bloquant, evaluer, PROFILS_PUBLICS, resoudreContraintes, type Alerte } from '@/lib/banner/constraints';
+import { bloquant, evaluer, resoudreContraintes, type Alerte, type ProfilImpression } from '@/lib/banner/constraints';
 import { analyserImage, aNormaliser, dimensionsImage, OCTETS_ANALYSE, typeReel } from '@/lib/banner/images';
 import type { DocumentBanner } from '@/lib/banner/model';
 import { NOM_APERCU, NOM_PROJET, nomFichierAsset } from '@/lib/banner/paquet';
 import { glyphesManquants, POLICES } from '@/lib/banner/polices';
+import { choisirProfil } from '@/lib/banner/profils';
 import { lireDocument } from '@/lib/banner/schema';
 import { textesExemple } from '@/lib/banner/templates';
 import { fichiersDuDevis } from '@/server/devis/repository';
 
 import { ficheProduction } from './fiche';
-import { demandeDuDevis, echouerVisuel, ecrireObjet, effacerObjets, lireObjet, reserverVisuel, terminerVisuel, visuelParId, type DemandeVisuel, type FichierServeur } from './repository';
+import { listerProfils } from './profils';
+import {
+  archiverVisuelCommande, commandeDuDevisBanner, demandeDuDevis, echouerVisuel, ecrireObjet, effacerObjets, lireObjet, reserverVisuel, terminerVisuel,
+  visuelCourant, visuelParId, type DemandeVisuel, type FichierServeur,
+} from './repository';
 import { ErreurRendu, rendrePdf } from './rendu';
 import { verifierPdf } from './verification';
 
@@ -50,9 +55,19 @@ export function incoherences(doc: DocumentBanner, d: DemandeVisuel): Alerte[] {
   return ecarts.length ? [critique('DOCUMENT_INCOHERENT', `Le visuel ne correspond pas à la demande : ${ecarts.join(', ')}.`)] : [];
 }
 
-/** Document canonique : contraintes re-résolues par le serveur, celles du navigateur sont ignorées. */
-export function canoniser(doc: DocumentBanner): DocumentBanner {
-  return { ...doc, profil: null, contraintes: resoudreContraintes(PROFILS_PUBLICS[doc.support], doc.finition), meta: { ...doc.meta, versionRendu: VERSION_RENDU } };
+/** Document canonique : contraintes re-résolues par le serveur depuis le profil, celles du navigateur sont ignorées. */
+export function canoniser(doc: DocumentBanner, profil: ProfilImpression): DocumentBanner {
+  return {
+    ...doc,
+    profil: profil.id ? { id: profil.id, version: profil.version } : null,
+    contraintes: resoudreContraintes(profil, doc.finition),
+    meta: { ...doc.meta, versionRendu: VERSION_RENDU },
+  };
+}
+
+/** Profil de la demande : celui de l'imprimeur affecté, sinon le profil public du support. */
+export async function profilDeLaDemande(support: DocumentBanner['support'], demande: DemandeVisuel): Promise<ProfilImpression> {
+  return choisirProfil(support, demande.partenaire_id, await listerProfils({ support, actifs: true }));
 }
 
 /** Contrôle une image déposée contre ce que le document en dit ; renvoie le motif de refus. */
@@ -65,6 +80,10 @@ export function refusImage(asset: DocumentBanner['assets'][number], octets: Uint
   return d && d.largeur === asset.largeurPx && d.hauteur === asset.hauteurPx ? null : 'dimensions différentes';
 }
 
+type Fichiers = Awaited<ReturnType<typeof fichiersDuDevis>>;
+type Source = { doc: DocumentBanner; checksum: string; origine: 'CLIENT' | 'STAFF'; fichierImage: (a: DocumentBanner['assets'][number]) => Fichiers[number] | undefined };
+
+/** Visuel envoyé par le client : le projet déposé avec la demande. */
 export async function finaliserVisuel(devisId: string, reference: string): Promise<ResultatVisuel> {
   const [fichiers, demande] = await Promise.all([fichiersDuDevis(devisId), demandeDuDevis(devisId)]);
   if (!demande) throw new ErreurFinalisation(409, 'Ce devis n’est pas une demande de banderole.');
@@ -74,9 +93,34 @@ export async function finaliserVisuel(devisId: string, reference: string): Promi
   if (!octets || sha256(octets) !== source.checksum) throw new ErreurFinalisation(409, 'Le projet du Studio est illisible.');
   const lecture = lireDocument(new TextDecoder('utf-8').decode(octets));
   if (!lecture.ok) throw new ErreurFinalisation(422, 'Le projet du Studio est invalide.');
-  const doc = canoniser(lecture.document);
+  const parNom = (a: DocumentBanner['assets'][number]) => fichiers.find((x) => x.nom === nomFichierAsset(a) && x.verifie && x.chemin.startsWith(`devis/${devisId}/`));
+  return rendreVisuel(devisId, reference, { doc: lecture.document, checksum: source.checksum!, origine: 'CLIENT', fichierImage: parNom }, fichiers, demande);
+}
 
-  const reservation = await reserverVisuel({ devisId, checksum: sha256(`${VERSION_RENDU}:${source.checksum}`), projet: doc, projetVersion: doc.version, categorie: doc.categorie }).catch((e: Error) => {
+/**
+ * Régénération par le personnel (changement d'imprimeur ou de profil) : même document, contraintes du
+ * profil actuel. Les images sont retrouvées par les identifiants enregistrés au rendu précédent.
+ */
+export async function regenererVisuel(devisId: string, reference: string): Promise<ResultatVisuel> {
+  const [fichiers, demande, courant] = await Promise.all([fichiersDuDevis(devisId), demandeDuDevis(devisId), visuelCourant(devisId)]);
+  if (!demande) throw new ErreurFinalisation(409, 'Ce devis n’est pas une demande de banderole.');
+  if (!courant) return finaliserVisuel(devisId, reference);
+  const lecture = lireDocument(courant.projet);
+  if (!lecture.ok) throw new ErreurFinalisation(422, 'Le visuel enregistré est illisible.');
+  const ids = ((courant.preflight?.assets ?? {}) as Record<string, string>);
+  const fichierImage = (a: DocumentBanner['assets'][number]) =>
+    fichiers.find((x) => x.id === ids[a.id] && x.verifie && x.chemin.startsWith(`devis/${devisId}/`)) ??
+    fichiers.find((x) => x.nom === nomFichierAsset(a) && x.verifie && x.chemin.startsWith(`devis/${devisId}/`));
+  return rendreVisuel(devisId, reference, { doc: lecture.document, checksum: sha256(JSON.stringify(lecture.document)), origine: 'STAFF', fichierImage }, fichiers, demande);
+}
+
+async function rendreVisuel(devisId: string, reference: string, source: Source, fichiers: Fichiers, demande: DemandeVisuel): Promise<ResultatVisuel> {
+  const profil = await profilDeLaDemande(source.doc.support, demande);
+  const doc = canoniser(source.doc, profil);
+  const reservation = await reserverVisuel({
+    devisId, checksum: sha256(`${VERSION_RENDU}:${profil.id ?? 'repli'}:${profil.version}:${source.checksum}`), projet: doc, projetVersion: doc.version,
+    categorie: doc.categorie, profilId: profil.id, profilVersion: profil.id ? profil.version : null, origine: source.origine,
+  }).catch((e: Error) => {
     if (e.message.includes('VISUEL_STATUT')) throw new ErreurFinalisation(409, 'Ce devis n’accepte plus de visuel.');
     if (e.message.includes('VISUEL_LIMITE')) throw new ErreurFinalisation(429, 'Trop de versions de ce visuel.');
     throw e;
@@ -96,7 +140,7 @@ export async function finaliserVisuel(devisId: string, reference: string): Promi
     const refus: Alerte[] = [];
     for (const a of doc.assets) {
       if (a.placeholder) continue;
-      const f = fichiers.find((x) => x.nom === nomFichierAsset(a) && x.verifie && x.chemin.startsWith(`devis/${devisId}/`));
+      const f = source.fichierImage(a);
       const o = f ? await lireObjet('devis', f.chemin) : null;
       if (!f || !o || sha256(o) !== f.checksum) continue; // signalée comme manquante par le préflight
       const motif = refusImage(a, o);
@@ -112,14 +156,14 @@ export async function finaliserVisuel(devisId: string, reference: string): Promi
       ...incoherences(doc, demande),
       ...refus,
       ...evaluer(doc, {
-        statutProfil: 'A_VALIDER',
+        statutProfil: profil.statut,
         assetsDisponibles: new Set(images.keys()),
         policesDisponibles: new Set(POLICES.map((p) => p.id)),
         glyphesManquants,
         textesExemple: textesExemple(doc),
       }),
     ];
-    const preflight = { dimensions: doc.dimensions, versionRendu: VERSION_RENDU, assets: manifeste };
+    const preflight = { dimensions: doc.dimensions, versionRendu: VERSION_RENDU, assets: manifeste, profil: { id: profil.id, nom: profil.nom, version: profil.version, statut: profil.statut } };
 
     const aRevoir = async (liste: Alerte[]): Promise<ResultatVisuel> => {
       await terminerVisuel({ visuelId, statut: 'A_REVOIR', projet: doc, contraintes: doc.contraintes, preflight, avertissements: liste, fichiers: [], apercuChemin: null, checksumProduction: null });
@@ -146,7 +190,7 @@ export async function finaliserVisuel(devisId: string, reference: string): Promi
     const aDeposer: { role: FichierServeur['role']; nom: string; octets: Uint8Array; mime: string; type: string }[] = [
       { role: 'production', nom: `visuel-banner-v${version}.pdf`, octets: rendu.octets, mime: 'application/pdf', type: 'VISUEL_IMPRESSION' },
       { role: 'projet', nom: `projet-banner-v${version}.json`, octets: texte(JSON.stringify(doc)), mime: 'application/json', type: 'SOURCE' },
-      { role: 'fiche', nom: `fiche-production-v${version}.txt`, octets: texte(ficheProduction(doc, rendu, { reference, version, quantite: Number(demande.quantite), empreinte, alertes })), mime: 'text/plain', type: 'FICHE_PRODUCTION' },
+      { role: 'fiche', nom: `fiche-production-v${version}.txt`, octets: texte(ficheProduction(doc, rendu, { reference, version, quantite: Number(demande.quantite), empreinte, alertes, profil })), mime: 'text/plain', type: 'FICHE_PRODUCTION' },
     ];
     const enregistres: FichierServeur[] = [];
     for (const f of aDeposer) {
@@ -161,6 +205,9 @@ export async function finaliserVisuel(devisId: string, reference: string): Promi
       visuelId, statut: 'RENDU', projet: doc, contraintes: doc.contraintes, avertissements: alertes, fichiers: enregistres, apercuChemin, checksumProduction: empreinte,
       preflight: { ...preflight, pages: controle.pages, plan: rendu.plan, recouvrementMm: rendu.recouvrementMm, userUnit: rendu.userUnit, polices: rendu.polices, tailleOctets: rendu.octets.byteLength },
     });
+    // Commande déjà créée (régénération après acceptation) : le nouveau visuel la suit.
+    const commande = await commandeDuDevisBanner(devisId);
+    if (commande) await archiverVisuel(devisId, commande.id).catch((e) => console.error('visuel_archivage_echec', reference, e instanceof Error ? e.message : e));
     return { etat: 'RENDU', version, alertes: enAlertes(alertes) };
   } catch (e) {
     // Rien à moitié : les objets déposés sans ligne en base sont retirés.
@@ -168,6 +215,27 @@ export async function finaliserVisuel(devisId: string, reference: string): Promi
     await echouerVisuel(visuelId, e instanceof Error ? e.message : 'erreur inconnue').catch(() => undefined);
     throw e;
   }
+}
+
+/**
+ * Archivage dans la commande (audit §7.7) : PDF, projet et fiche du visuel courant sont recopiés dans
+ * le stockage de production et conservés 24 mois. Sans visuel rendu, rien à faire.
+ */
+export async function archiverVisuel(devisId: string, commandeId: string): Promise<number> {
+  const courant = await visuelCourant(devisId);
+  if (!courant || courant.statut !== 'RENDU') return 0;
+  const ids = new Set([courant.fichier_production_id, courant.fichier_projet_id, courant.fichier_fiche_id].filter(Boolean));
+  const fichiers = (await fichiersDuDevis(devisId)).filter((f) => ids.has(f.id));
+  const copies: Omit<FichierServeur, 'role'>[] = [];
+  for (const f of fichiers) {
+    const o = await lireObjet('devis', f.chemin);
+    if (!o || sha256(o) !== f.checksum) throw new Error(`Fichier du visuel illisible : ${f.nom}`);
+    const chemin = `commandes/${commandeId}/${f.nom}`;
+    await ecrireObjet('production', chemin, o, f.type_mime);
+    copies.push({ nom: f.nom, chemin, type_mime: f.type_mime, taille_octets: o.byteLength, type_fichier: f.type_fichier, checksum: f.checksum! });
+  }
+  await archiverVisuelCommande(commandeId, copies);
+  return copies.length;
 }
 
 /** L'aperçu du client, déjà vérifié comme JPEG, est recopié à côté du visuel. Facultatif. */

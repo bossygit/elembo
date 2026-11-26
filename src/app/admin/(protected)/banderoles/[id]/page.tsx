@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { CarteVisuelBanner } from '@/components/admin/CarteVisuelBanner';
 import { PropositionAffectation } from '@/components/admin/PropositionAffectation';
 import { SuiviAffectation } from '@/components/admin/SuiviAffectation';
 import { Badge, Carte, Definitions, EnTete, Flash, Vide, bouton, champ, libelle, tableau } from '@/components/admin/ui';
@@ -62,6 +63,10 @@ const MESSAGES: Record<string, string> = {
   production: 'Production planifiée.',
   affectation: 'Proposition envoyée à l’atelier.',
   couts: 'Coûts réels enregistrés : la marge de la commande est recalculée.',
+  visuel: 'Visuel régénéré : prêt pour l’impression.',
+  visuel_a_revoir: 'Visuel régénéré, mais il ne passe plus : voir les points signalés. L’équipe a été alertée.',
+  visuel_en_cours: 'Un rendu est déjà en cours : rechargez la page dans un instant.',
+  visuel_archive: 'Visuel recopié dans la commande (conservé 24 mois).',
 };
 
 function Montant({ name, valeur, label, desactive = false }: { name: string; valeur: number | null; label: string; desactive?: boolean }) {
@@ -269,6 +274,19 @@ export default async function PageBanderole({
               </p>
             </div>
           </Carte>
+
+          {peut(staff.role, 'grand_format.visuel') ? (
+            <CarteVisuelBanner
+              devisId={id}
+              support={d.support}
+              partenaireId={d.partenaire_id}
+              statutDevis={statut}
+              commande={Boolean(d.commande)}
+              peutRegenerer
+              peutTelecharger={telecharger}
+              fichiers={fichiers}
+            />
+          ) : null}
 
           {/* ------------------------------------------------------ chiffrage ---- */}
           <Carte

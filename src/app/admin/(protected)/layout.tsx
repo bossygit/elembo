@@ -6,11 +6,13 @@ import { LIBELLES_ROLES, peut, type Permission } from '@/lib/admin/permissions';
 import { staffCourant } from '@/server/admin/acces';
 import { deconnexion } from '../connexion/actions';
 
-const NAVIGATION: (EntreeNav & { permission: Permission })[] = [
+const NAVIGATION: (EntreeNav & { permission: Permission; sauf?: Permission })[] = [
   { href: '/admin', label: 'Tableau de bord', permission: 'tableau_de_bord.voir' },
   { href: '/admin/commandes', label: 'Commandes', permission: 'commandes.voir' },
   { href: '/admin/devis', label: 'Devis', permission: 'devis.voir' },
   { href: '/admin/banderoles', label: 'Banderoles', permission: 'grand_format.voir' },
+  // L'atelier règle les profils sans voir les demandes ; les autres y accèdent depuis « Banderoles ».
+  { href: '/admin/banderoles/profils', label: 'Profils d’impression', permission: 'grand_format.profils', sauf: 'grand_format.voir' },
   { href: '/admin/production', label: 'Atelier', permission: 'production.voir' },
   { href: '/admin/partenaires', label: 'Partenaires', permission: 'partenaires.voir' },
   { href: '/admin/affectations', label: 'Affectations', permission: 'affectations.voir' },
@@ -27,7 +29,7 @@ export default async function LayoutAdminProtege({ children }: { children: React
   const staff = await staffCourant();
   if (!staff) redirect('/admin/connexion');
 
-  const entrees = NAVIGATION.filter((e) => peut(staff.role, e.permission)).map(({ href, label }) => ({ href, label }));
+  const entrees = NAVIGATION.filter((e) => peut(staff.role, e.permission) && !(e.sauf && peut(staff.role, e.sauf))).map(({ href, label }) => ({ href, label }));
   const identite = (
     <div className="min-w-0">
       <p className="truncate text-sm text-white" title={staff.email ?? undefined}>

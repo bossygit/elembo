@@ -2,7 +2,8 @@
 
 Référence du moteur livré au **lot 1** (modèle, géométrie, contraintes, `src/lib/banner`) de l'éditeur
 livré au **lot 2** (§6) et de l'édition de contenu livrée au **lot 3** (§7), des modèles et du passage à la commande livrés au **lot 4**
-(§8), et du PDF de production livré au **lot 5** (§9). Cadre :
+(§8), du PDF de production livré au **lot 5** (§9), et des profils d'imprimeurs et du
+back-office livrés au **lot 6** (§10). Cadre :
 [`audit-banner-studio.md`](audit-banner-studio.md) ; preuve technique et décisions :
 [`spike-banner-studio-lot0.md`](spike-banner-studio-lot0.md).
 
@@ -317,7 +318,8 @@ cause (glyphes non alignés, mal découpés par fontkit) est corrigée dans `scr
 `20261125130000_banner_studio_visuels.sql` : table `visuels_banderole` (versions, document canonique, préflight,
 empreintes), pointeur `demandes_grand_format.visuel_courant_id`, trois fonctions `service_role`, RLS (lecture du
 personnel), `text/plain` et 50 Mo pour le bucket `devis` (un fichier envoyé par un client reste refusé au-delà de
-25 Mo). Retour arrière fourni. **Appliquée en local seulement**, comme celle du lot 4.
+25 Mo). Retour arrière fourni. Appliquée en staging et en production le 26/11/2026, avec celle du lot 4, après
+sauvegarde du schéma et des données.
 
 ### 9.5 Limites et reste à faire
 
@@ -326,10 +328,64 @@ personnel), `text/plain` et 50 Mo pour le bucket `devis` (un fichier envoyé par
 - Charge mesurée en local : 8 JPEG de 27 Mpx, 64 ms et +44 Mo ; un PNG transparent de 30 Mpx, 4,9 s et +500 Mo. Les PNG
   transparents sont limités à 40 Mpx au total. Non mesuré sur Vercel.
 - Un PDF de plus de 50 Mo est mis `A_REVOIR`.
-- Carte visuel au back-office, relance d'un rendu, profils d'imprimeurs, archivage à la commande : lot 6. Affichage du
-  visuel dans le suivi du client : lot 7.
+- Affichage du visuel dans le suivi du client : lot 7.
 
 ### 9.6 Tests
 
 `tests/bannerRendu.test.ts` (39 tests, rendu réel), `supabase/tests/banner_studio.sql` et les contrôles serveur de
 `scripts/e2e/banner-commande.mjs`.
+
+## 10. Profils d'imprimeurs et back-office (lot 6)
+
+### 10.1 Profils d'impression
+
+Table `profils_impression` (migration `20261126120000_banner_studio_profils.sql`) : marges, ourlets, œillets, bandes
+réservées, laize, longueur, définition, pagination, par support. Un profil **public** par support (les valeurs prudentes de
+`PROFILS_PUBLICS`, livrées « à valider ») et, au besoin, un profil par imprimeur et par support.
+
+- **Profil retenu** (`choisirProfil`) : celui de l'imprimeur affecté à la demande, sinon le profil public, sinon les valeurs
+  intégrées. Le Studio lit les profils publics (`GET /api/banderoles/profils`, sans rien de confidentiel) ; le PDF applique
+  le profil retenu et l'enregistre (`visuels_banderole.profil_id`, `profil_version`).
+- **Validation nominative** : une case « l'imprimeur a confirmé ces valeurs », enregistrée au nom de la personne. Toute
+  valeur qui change l'impression retire la validation et crée une version (contrôle en base). Tant qu'un profil n'est pas
+  validé, le client et la fiche de production lisent « à confirmer ».
+- **Elembo Partners** : un profil d'imprimeur est prérempli depuis le profil public et, pour la laize et la longueur,
+  depuis la capacité grand format **validée** du partenaire. Le profil fait foi pour le rendu ; un écart avec la capacité
+  est signalé sur la page.
+- **Droits** : `grand_format.profils` (admin, atelier) ; l'atelier a l'entrée « Profils d'impression » au menu sans voir
+  les demandes. `grand_format.visuel` (admin, commercial, atelier) pour la carte du visuel.
+
+### 10.2 Carte du visuel
+
+Dans la fiche d'une banderole : aperçu, état, profil appliqué, points signalés, PDF, fiche et projet, versions. Si le profil
+applicable a changé depuis le rendu, la carte le dit. « Régénérer » refait le rendu du même document avec le profil
+actuel (`regenererVisuel`) : nouvelle version, les précédentes restent. Possible jusqu'à l'acceptation du devis.
+
+### 10.3 Changement d'imprimeur
+
+Quand un imprimeur accepte une banderole (Elembo Partners), le visuel est régénéré **après la réponse**, avec son profil
+(`regenererApresAffectation`). S'il ne passe plus (laize trop étroite, par exemple), il est mis « à revoir » et l'équipe
+est alertée par e-mail et Telegram (une fois par version). Une erreur n'annule jamais la décision de l'imprimeur.
+
+### 10.4 Archivage à la commande
+
+À la conversion du devis, le PDF, le projet et la fiche du visuel courant sont recopiés dans le stockage de production
+(`commandes/<commande>/…`) et conservés **24 mois** (`archiver_visuel_commande`) ; un visuel régénéré après la commande
+la suit. Les sources du client gardent la règle des 90 jours. Un échec de copie ne bloque pas la commande : la carte
+propose « Recopier dans la commande ».
+
+### 10.5 Limites
+
+- Profils publics toujours « à valider » : à faire avec l'imprimeur pilote.
+- La régénération automatique ne couvre que l'acceptation d'une affectation : c'est aujourd'hui le seul chemin qui fixe
+  l'imprimeur d'une banderole.
+- Pas de profil `UserUnit` testé en impression réelle.
+
+### 10.6 Tests
+
+`tests/bannerProfils.test.ts` (17 tests), `supabase/tests/banner_studio.sql` (profils, validation, unicité, archivage,
+droits) et un essai de bout en bout du back-office, 27 contrôles, en local :
+
+```bash
+STUDIO_SUPABASE_URL=http://127.0.0.1:54321 STUDIO_SERVICE_ROLE_KEY=… node scripts/e2e/banner-admin.mjs
+```

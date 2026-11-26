@@ -3,7 +3,7 @@
  * touchent ni au DOM ni à Konva. Le store les enchaîne et tient l'historique.
  */
 
-import { resoudreContraintes, PROFILS_PUBLICS } from './constraints';
+import { resoudreContraintes, PROFILS_PUBLICS, type ProfilImpression } from './constraints';
 import { DIMENSION_MAX_MM, DIMENSION_MIN_MM, finitionsApplicables } from './formats';
 import { aligner, coins, type ModeAlignement, type Rect } from './geometry';
 import { decoration } from './formes';
@@ -332,10 +332,10 @@ export function alignerElement(doc: DocumentBanner, id: string, zone: Rect, mode
   });
 }
 
-/** Change support et finition : les contraintes sont re-résolues depuis le profil public. */
-export function poserSupport(doc: DocumentBanner, support: SupportStudio, finition: FinitionStudio): DocumentBanner {
+/** Change support et finition : les contraintes sont re-résolues depuis le profil (public par défaut). */
+export function poserSupport(doc: DocumentBanner, support: SupportStudio, finition: FinitionStudio, profil: ProfilImpression = PROFILS_PUBLICS[support]): DocumentBanner {
   const f = finitionsApplicables(support).includes(finition) ? finition : 'SANS';
-  return { ...doc, support, finition: f, profil: null, contraintes: resoudreContraintes(PROFILS_PUBLICS[support], f) };
+  return { ...doc, support, finition: f, profil: profil.id ? { id: profil.id, version: profil.version } : null, contraintes: resoudreContraintes(profil, f) };
 }
 
 /**

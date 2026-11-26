@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 
+import type { ProfilImpression } from '@/lib/banner/constraints';
 import { mesureurNavigateur } from '@/lib/banner/navigateur';
 import { ID_PROJET } from '@/lib/banner/paquet';
 import { enregistrerProjet, lireProjet, lireProjetCourant, menage, poserCourant } from '@/lib/banner/stockage';
@@ -39,6 +40,10 @@ async function charger(store: StudioStore, images: Images, depart: Depart, actif
   if (!actif()) return;
   if (demande?.ok) await poserCourant(demande.document.id);
   else if (depart.projet && !demande) store.getState().annoncer('Ce projet n’est pas sur cet appareil.');
+  // Profils d'impression de la base : à défaut (hors ligne), les valeurs prudentes intégrées restent.
+  void fetch('/api/banderoles/profils').then((r) => (r.ok ? r.json() : null)).then((j: { profils?: ProfilImpression[] } | null) => {
+    if (actif() && j?.profils?.length) store.getState().poserProfils(j.profils);
+  }, () => undefined);
   if (depart.modele || depart.categorie) store.getState().ouvrirFenetre('modeles');
   if (window.location.search) window.history.replaceState(null, '', window.location.pathname);
   void menage();

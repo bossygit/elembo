@@ -58,6 +58,10 @@ export const MATRICE = {
   'grand_format.couts': ['admin', 'finance'],
   /** Grille de vente servant à l'estimation publique : saisie et validation. */
   'grand_format.tarifs': ['admin', 'finance'],
+  /** Profils d'impression du Banner Studio : marges, œillets, laize. Saisie et validation par l'atelier. */
+  'grand_format.profils': ['admin', 'atelier'],
+  /** Carte du visuel Banner Studio d'une demande, et sa régénération. */
+  'grand_format.visuel': ['admin', 'commercial', 'atelier'],
 
   'production.voir': ['admin', 'atelier', 'commercial'],
   'production.modifier': ['admin', 'atelier'],

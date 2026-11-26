@@ -1,4 +1,4 @@
-import type { Alerte } from '@/lib/banner/constraints';
+import type { Alerte, ProfilImpression } from '@/lib/banner/constraints';
 import type { DocumentBanner } from '@/lib/banner/model';
 import { POLICES } from '@/lib/banner/polices';
 import { dpiEffectif, dpiFond } from '@/lib/banner/quality';
@@ -10,7 +10,7 @@ import type { Rendu } from './rendu';
  * Fiche de production, en texte : ce que l'imprimeur doit savoir et que le PDF ne montre pas. Aucun
  * prix, aucun coût, aucune coordonnée du client.
  */
-export function ficheProduction(doc: DocumentBanner, rendu: Rendu, infos: { reference: string; version: number; quantite: number; empreinte: string; alertes: readonly Alerte[] }): string {
+export function ficheProduction(doc: DocumentBanner, rendu: Rendu, infos: { reference: string; version: number; quantite: number; empreinte: string; alertes: readonly Alerte[]; profil?: ProfilImpression }): string {
   const { largeurMm: L, hauteurMm: H } = doc.dimensions;
   const c = doc.contraintes;
   const cm = (mm: number) => `${String(Math.round(mm) / 10).replace('.', ',')} cm`;
@@ -36,7 +36,10 @@ export function ficheProduction(doc: DocumentBanner, rendu: Rendu, infos: { refe
     l.push('', 'PLAN DE POSE', `${rendu.plan.length} panneaux ${rendu.plan[0].axe === 'x' ? 'de gauche à droite' : 'de haut en bas'}, recouvrement de ${mm(rendu.recouvrementMm)} entre deux panneaux.`);
     for (const p of rendu.plan) l.push(`  Page ${p.page} : ${mm(p.largeurMm)} × ${mm(p.hauteurMm)}, à partir de ${mm(p.debutMm)}`);
   }
-  l.push('', 'CONTRAINTES PRISES EN COMPTE (à confirmer par l’imprimeur, non imprimées)', `Marge de sécurité : ${mm(c.margeSecuriteMm)}`);
+  const p = infos.profil;
+  const statut = p?.statut === 'VALIDE' ? 'validé' : 'à confirmer par l’imprimeur';
+  l.push('', `CONTRAINTES PRISES EN COMPTE (non imprimées) : ${p ? `${p.nom}, version ${p.version}, ${statut}` : 'à confirmer par l’imprimeur'}`, `Marge de sécurité : ${mm(c.margeSecuriteMm)}`);
+  if (c.laizeMaxMm) l.push(`Laize maximale : ${mm(c.laizeMaxMm)}`);
   if (c.ourletMm > 0) l.push(`Ourlets : ${mm(c.ourletMm)} sur les quatre côtés`);
   if (c.oeillets.actifs) l.push(`Œillets : diamètre ${mm(c.oeillets.diametreMm)}, tous les ${mm(c.oeillets.espacementMm)} au plus, à ${mm(c.oeillets.margeMm)} du bord`);
   if (c.fourreaux.hautMm > 0 || c.fourreaux.basMm > 0) l.push(`Bandes réservées : haut ${mm(c.fourreaux.hautMm)}, bas ${mm(c.fourreaux.basMm)}`);

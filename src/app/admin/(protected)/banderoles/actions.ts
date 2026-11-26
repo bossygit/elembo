@@ -8,6 +8,8 @@ import { estModePaiement } from '@/lib/admin/statuts';
 import { ETAPES_GRAND_FORMAT, POSTES, genererProposition, type PosteCout } from '@/lib/grand-format/suivi';
 import { SUPPORTS } from '@/lib/grand-format/catalogue';
 import { exigerAcces } from '@/server/admin/acces';
+import { archiverVisuel, ErreurFinalisation, regenererVisuel } from '@/server/banner/finaliser';
+import { alerterVisuel } from '@/server/banner/regeneration';
 import { journaliser } from '@/server/admin/audit';
 import { enregistrerProposition } from '@/server/admin/devis';
 import { echec, succes } from '@/server/admin/retour';
@@ -396,4 +398,46 @@ export async function suspendreTarifAction(formData: FormData): Promise<void> {
   }
   revalidatePath(TARIFS);
   succes(`${TARIFS}#${support}`, 'suspendu');
+}
+
+/* ------------------------------------------------------- visuel Banner Studio ---- */
+
+/** Nouveau rendu du visuel avec le profil applicable (imprimeur affecté, sinon profil public). */
+export async function regenererVisuelAction(formData: FormData): Promise<void> {
+  const staff = await exigerAcces('grand_format.visuel');
+  const id = idDemande(formData);
+  const chemin = fiche(id, 'visuel');
+  const demande = await demandeParDevis(id);
+  if (!demande) echec('/admin/banderoles', 'Demande introuvable.');
+  let code = 'visuel';
+  try {
+    const r = await regenererVisuel(id, demande.devis.reference);
+    await journaliser({ staff, action: 'VISUEL_BANDEROLE_REGENERE', entite: 'devis', entiteId: id, apres: { version: r.version, etat: r.etat } });
+    if (r.etat === 'A_REVOIR') {
+      await alerterVisuel(id, demande.devis.reference, r, 'Régénération demandée depuis le back-office.');
+      code = 'visuel_a_revoir';
+    }
+    if (r.etat === 'EN_COURS') code = 'visuel_en_cours';
+  } catch (erreur) {
+    echec(chemin, erreur instanceof ErreurFinalisation ? erreur.message : 'Le rendu a échoué : voir la carte du visuel.');
+  }
+  rafraichir(id);
+  succes(chemin, code);
+}
+
+/** Nouvel essai de l'archivage dans la commande (24 mois), si la copie automatique a échoué. */
+export async function archiverVisuelAction(formData: FormData): Promise<void> {
+  const staff = await exigerAcces('grand_format.visuel');
+  const id = idDemande(formData);
+  const chemin = fiche(id, 'visuel');
+  const commande = await commandeDuDevis(id);
+  if (!commande) echec(chemin, 'Pas encore de commande.');
+  try {
+    const n = await archiverVisuel(id, commande.id);
+    await journaliser({ staff, action: 'VISUEL_BANDEROLE_ARCHIVE', entite: 'commande', entiteId: commande.id, apres: { fichiers: n } });
+  } catch (erreur) {
+    echec(chemin, erreur);
+  }
+  rafraichir(id);
+  succes(chemin, 'visuel_archive');
 }

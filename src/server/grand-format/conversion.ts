@@ -1,4 +1,5 @@
 import { reporterCoutEstime } from '@/server/admin/devis';
+import { archiverVisuel } from '@/server/banner/finaliser';
 import { demandeParDevis, initialiserTravaux } from '@/server/grand-format/repository';
 
 /**
@@ -14,6 +15,12 @@ export async function reporterCoutsApresConversion(
   commandeId: string,
 ): Promise<{ mode: 'grand_format'; taches: number } | { mode: 'devis'; coutUnitaire: number | null }> {
   const demande = await demandeParDevis(devisId);
-  if (demande) return { mode: 'grand_format', taches: await initialiserTravaux(demande, commandeId) };
+  if (demande) {
+    const taches = await initialiserTravaux(demande, commandeId);
+    // Le visuel Banner Studio passe dans le stockage de production, conservé 24 mois. Un échec ne
+    // bloque pas la commande : la carte du visuel le signale et permet de recommencer.
+    await archiverVisuel(devisId, commandeId).catch((e) => console.error('visuel_archivage_echec', devisId, e instanceof Error ? e.message : e));
+    return { mode: 'grand_format', taches };
+  }
   return { mode: 'devis', coutUnitaire: await reporterCoutEstime(devisId, commandeId) };
 }

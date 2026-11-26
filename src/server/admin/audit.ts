@@ -23,6 +23,7 @@ export type EntiteAuditee =
   | 'partenaire'
   | 'affectation'
   | 'tarif_grand_format'
+  | 'profil_impression'
   | 'fichier'
   | 'export'
   | 'session';

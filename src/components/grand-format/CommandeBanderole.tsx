@@ -31,6 +31,7 @@ import {
 import type { Estimation } from '@/lib/grand-format/estimation';
 import { modeleParId, modelePrincipal, modelesPour } from '@/lib/grand-format/modeles';
 import { lienWhatsApp } from '@/lib/site/marque';
+import { studioOuvert } from '@/lib/banner/ouverture';
 
 /* ----------------------------------------------------------------- réglages ---- */
 
@@ -92,6 +93,7 @@ type Props = {
   initialUsage?: UsageId;
   initialModele?: string;
   initialPrestation?: PrestationId;
+  initialQuantite?: number;
 };
 
 function metres(brut: string): number {
@@ -131,7 +133,7 @@ function Erreur({ message }: { message?: string }) {
 
 /* -------------------------------------------------------------- composant ---- */
 
-export default function CommandeBanderole({ visuel, initialUsage, initialModele, initialPrestation }: Props) {
+export default function CommandeBanderole({ visuel, initialUsage, initialModele, initialPrestation, initialQuantite }: Props) {
   const router = useRouter();
   const modeleInitial = modeleParId(initialModele);
   const usageDepart = modeleInitial?.usage ?? visuel?.usage ?? initialUsage;
@@ -145,7 +147,7 @@ export default function CommandeBanderole({ visuel, initialUsage, initialModele,
   const [supportPrecision, setSupportPrecision] = useState('');
   const [largeur, setLargeur] = useState(texteMetres(formatDepart.largeurM));
   const [hauteur, setHauteur] = useState(texteMetres(formatDepart.hauteurM));
-  const [quantite, setQuantite] = useState(1);
+  const [quantite, setQuantite] = useState(initialQuantite ?? 1);
   const [finition, setFinition] = useState<FinitionId>(visuel?.finition ?? 'OEILLETS');
   const [finitionPrecision, setFinitionPrecision] = useState('');
   const [delai, setDelai] = useState<DelaiId>('STANDARD');
@@ -726,6 +728,11 @@ export default function CommandeBanderole({ visuel, initialUsage, initialModele,
                     ? 'Ajoutez photos, logos, textes ou un visuel existant : notre studio s’en sert pour composer votre banderole.'
                     : 'Ajoutez des documents de référence si vous en avez (facultatif).'}
               </p>
+              {!visuel && studioOuvert && prestation === 'FICHIER_PRET' ? (
+                <p className="mt-3 rounded-2xl bg-sable px-4 py-3 text-sm text-encre">
+                  Pas encore de visuel ? <Link href={`/banderoles/studio${usage && ['DEUIL', 'EGLISE', 'PUBLICITE', 'INSTITUTION'].includes(usage) ? `?categorie=${usage}` : '?categorie=TOUS'}`} className="font-semibold underline">Créez-le en ligne avec le Studio</Link>, à partir d’un modèle.
+                </p>
+              ) : null}
               {visuel ? (
                 <div className="mt-4 flex items-center gap-4 rounded-2xl border border-encre bg-white p-4" data-testid="paquet-studio">
                   {/* eslint-disable-next-line @next/next/no-img-element -- image locale (blob) */}

@@ -37,7 +37,7 @@ async function lireVisuel(projet: string): Promise<VisuelStudio> {
   };
 }
 
-export default function CommandeStudio({ projet, initialUsage }: { projet: string; initialUsage?: UsageId }) {
+export default function CommandeStudio({ projet, initialUsage, initialQuantite }: { projet: string; initialUsage?: UsageId; initialQuantite?: number }) {
   const [etat, setEtat] = useState<Etat>({ etat: 'chargement' });
 
   useEffect(() => {
@@ -71,5 +71,5 @@ export default function CommandeStudio({ projet, initialUsage }: { projet: strin
       </div>
     );
   }
-  return <CommandeBanderole initialUsage={initialUsage} visuel={etat.visuel} />;
+  return <CommandeBanderole initialUsage={initialUsage} initialQuantite={initialQuantite} visuel={etat.visuel} />;
 }

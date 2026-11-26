@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { bloquant, evaluer, resoudreContraintes, type Alerte, type ProfilImpression } from '@/lib/banner/constraints';
 import { analyserImage, aNormaliser, dimensionsImage, OCTETS_ANALYSE, typeReel } from '@/lib/banner/images';
 import type { DocumentBanner } from '@/lib/banner/model';
-import { NOM_APERCU, NOM_PROJET, nomFichierAsset } from '@/lib/banner/paquet';
+import { MOTIF_APERCU, MOTIF_PROJET, nomFichierAsset, revision } from '@/lib/banner/paquet';
 import { glyphesManquants, POLICES } from '@/lib/banner/polices';
 import { choisirProfil } from '@/lib/banner/profils';
 import { lireDocument } from '@/lib/banner/schema';
@@ -87,7 +87,7 @@ type Source = { doc: DocumentBanner; checksum: string; origine: 'CLIENT' | 'STAF
 export async function finaliserVisuel(devisId: string, reference: string): Promise<ResultatVisuel> {
   const [fichiers, demande] = await Promise.all([fichiersDuDevis(devisId), demandeDuDevis(devisId)]);
   if (!demande) throw new ErreurFinalisation(409, 'Ce devis n’est pas une demande de banderole.');
-  const source = fichiers.find((f) => f.nom === NOM_PROJET && f.verifie && f.chemin.startsWith(`devis/${devisId}/`));
+  const source = dernier(fichiers, devisId, MOTIF_PROJET);
   if (!source) throw new ErreurFinalisation(409, 'Le projet du Studio n’a pas été reçu.');
   const octets = await lireObjet('devis', source.chemin);
   if (!octets || sha256(octets) !== source.checksum) throw new ErreurFinalisation(409, 'Le projet du Studio est illisible.');
@@ -238,9 +238,16 @@ export async function archiverVisuel(devisId: string, commandeId: string): Promi
   return copies.length;
 }
 
+/** Fichier client le plus récent d'une série (envoi d'origine puis révisions du suivi), vérifié, de ce devis. */
+function dernier(fichiers: Fichiers, devisId: string, motif: RegExp) {
+  return fichiers
+    .filter((f) => motif.test(f.nom) && f.verifie && f.chemin.startsWith(`devis/${devisId}/`))
+    .sort((a, b) => (revision(b.nom) ?? 0) - (revision(a.nom) ?? 0))[0];
+}
+
 /** L'aperçu du client, déjà vérifié comme JPEG, est recopié à côté du visuel. Facultatif. */
 async function deposerApercu(devisId: string, version: number, fichiers: Awaited<ReturnType<typeof fichiersDuDevis>>): Promise<string | null> {
-  const f = fichiers.find((x) => x.nom === NOM_APERCU && x.verifie && x.chemin.startsWith(`devis/${devisId}/`));
+  const f = dernier(fichiers, devisId, MOTIF_APERCU);
   const o = f ? await lireObjet('devis', f.chemin) : null;
   if (!f || !o || sha256(o) !== f.checksum || typeReel(o) !== 'image/jpeg' || o.byteLength > 5 * 1024 * 1024) return null;
   const chemin = `visuels/${devisId}/apercu-v${version}.jpg`;

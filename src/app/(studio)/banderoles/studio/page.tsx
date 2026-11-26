@@ -2,9 +2,10 @@ import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 
 import { Chargeur } from '@/components/banner-studio/Chargeur';
+import { studioOuvert } from '@/lib/banner/ouverture';
 
-// En construction (lots 2 à 7) : la page n'est liée nulle part et n'est pas indexée.
-export const metadata: Metadata = { title: 'Studio banderole', robots: { index: false, follow: false } };
+// Indexée seulement une fois le Studio ouvert au public (`ouverture.ts`).
+export const metadata: Metadata = { title: 'Studio banderole', ...(studioOuvert ? {} : { robots: { index: false, follow: false } }) };
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' };
 
 export default function PageStudioBanderole() {

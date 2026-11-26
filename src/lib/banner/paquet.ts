@@ -12,6 +12,16 @@ import { validerDocument } from './schema';
 export const LIMITES_PAQUET = { fichiers: 10, octetsFichier: 25 * 1024 * 1024, octetsTotal: 45 * 1024 * 1024, octetsJson: 1024 * 1024 } as const;
 export const NOM_PROJET = 'projet-banner.json';
 export const NOM_APERCU = 'apercu-banner.jpg';
+/** Révisions envoyées depuis le suivi (reprise) : `projet-banner-r2.json`, `apercu-banner-r2.jpg`… */
+export const MOTIF_PROJET = /^projet-banner(?:-r([2-9]|1[0-9]))?\.json$/;
+export const MOTIF_APERCU = /^apercu-banner(?:-r([2-9]|1[0-9]))?\.jpg$/;
+export const REVISIONS_MAX = 19;
+/** Numéro de révision d'un nom de projet ou d'aperçu (1 pour l'envoi d'origine), `null` sinon. */
+export function revision(nom: string): number | null {
+  const m = MOTIF_PROJET.exec(nom) ?? MOTIF_APERCU.exec(nom);
+  return m ? Number(m[1] ?? 1) : null;
+}
+export const nomRevision = (nom: string, r: number) => (r <= 1 ? nom : nom.replace(/\.(json|jpg)$/, `-r${r}.$1`));
 /** Identifiant de projet accepté dans une adresse. */
 export const ID_PROJET = /^[A-Za-z0-9_-]{1,64}$/;
 

@@ -231,12 +231,17 @@ async function bureau(chrome) {
     await page.eval(`document.querySelector('dialog[open] input[type=checkbox]').click()`);
     await attendre(150);
   }
+  await page.attendre(`!/…$/.test(document.querySelector('[data-testid="prix-indicatif"]')?.innerText ?? '…')`);
+  verifier('prix indicatif calculé par le serveur', /FCFA|Sur devis/.test(await s.texte('[data-testid="prix-indicatif"]')), await s.texte('[data-testid="prix-indicatif"]'));
+  await page.eval(`(() => { const q = document.querySelector('dialog[open] input[type=number]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(q, '3'); q.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
+  await attendre(200);
   await s.capture('54-finaliser');
   await s.bouton('Continuer vers ma demande');
   await page.attendre(`location.pathname === '/banderoles/commander'`, { timeoutMs: 30000 });
   await s.titre('caractéristiques');
   const params = await page.eval('location.search');
-  verifier('adresse de commande : projet, support, usage', params.includes(`studio=${premier}`) && params.includes('support=BANDEROLE') && params.includes('usage=deuil'), params);
+  verifier('adresse de commande : projet, support, usage, quantité', params.includes(`studio=${premier}`) && params.includes('support=BANDEROLE') && params.includes('usage=deuil') && params.includes('quantite=3'), params);
+  verifier('quantité reprise dans le formulaire', (await page.eval(`document.querySelector('input[type=number][aria-labelledby=quantite-libelle]').value`)) === '3');
   const etape1 = await s.texte('main');
   verifier('format verrouillé : pas de champ de dimension ni de finition', (await page.eval(`document.querySelectorAll('input[inputmode="decimal"], input[name="finition"], input[name="support"]').length`)) === 0 && etape1.includes('3 × 1 m') && etape1.includes('Les modifier dans le Studio'));
   verifier('aperçu du visuel affiché', await page.eval(`[...document.querySelectorAll('img[src^="blob:"]')].some((i) => i.naturalWidth === 1600)`));
@@ -274,7 +279,32 @@ async function bureau(chrome) {
   await page.attendre(`document.body.innerText.includes('projet-banner.json')`, { timeoutMs: 20000 });
   const suivi = await s.texte('main');
   verifier('suivi client : projet, aperçu et image visibles', ['projet-banner.json', 'apercu-banner.jpg', 'studio-'].every((x) => suivi.includes(x)));
+  console.log(`REFERENCE=${reference}`);
+  await page.attendre(`!!document.querySelector('[data-testid="suivi-visuel"] img')?.complete`, { timeoutMs: 20000 });
+  const bloc = await s.texte('[data-testid="suivi-visuel"]');
+  verifier('suivi : votre visuel, aperçu, PDF, modification possible', bloc.includes('fichier d’impression est prêt') && bloc.includes('Télécharger le fichier d’impression (PDF)') && bloc.includes('Modifier mon visuel'), bloc);
+  verifier('suivi : rien sur l’imprimeur ni les alertes internes', !/profil|laize|imprimeur affecté/i.test(bloc));
   await s.capture('57-suivi');
+
+  // --- Reprise : le client modifie son visuel depuis le suivi, même demande, même format.
+  await page.eval(`[...document.querySelectorAll('[data-testid="suivi-visuel"] a')].find((a) => a.textContent.includes('Modifier')).click()`);
+  await page.attendre(`location.pathname === '/banderoles/studio' && !!document.querySelector('[data-testid="plan-de-travail"] canvas')`, { timeoutMs: 60000 });
+  await attendre(1200);
+  await s.calque('Ses enfants');
+  await s.champ('Contenu', 'Ses enfants, petits-enfants et arrière-petits-enfants');
+  await s.doc();
+  await s.bouton('Finaliser ma demande');
+  await page.attendre(`!!document.querySelector('dialog[open]')?.innerText.includes(${JSON.stringify(reference)})`, { timeoutMs: 20000 });
+  verifier('Studio : la demande envoyée est reconnue', (await s.actif(`Mettre à jour la demande ${reference}`)) !== null);
+  if ((await s.texte('dialog[open]')).includes('À vérifier')) await page.eval(`document.querySelector('dialog[open] input[type=checkbox]').click()`);
+  await attendre(150);
+  await s.capture('58-mise-a-jour');
+  await s.bouton(`Mettre à jour la demande ${reference}`);
+  await page.attendre(`location.pathname === '/devis/${reference}'`, { timeoutMs: 60000 });
+  await page.attendre(`document.body.innerText.includes('projet-banner-r2.json')`, { timeoutMs: 20000 });
+  verifier('demande mise à jour : révision 2 déposée, sans renvoyer la photo', (await s.texte('main')).includes('apercu-banner-r2.jpg') && (await s.texte('main')).split('studio-').length === 2);
+  verifier('suivi : version 2 prête', (await page.eval(`document.querySelector('[data-testid="suivi-visuel"] img')?.alt ?? ''`)).includes('version 2'));
+  d = await page.eval(LIRE);
 
   // Réponse perdue puis second essai : la même clé d'idempotence ne crée pas de doublon.
   if (SUPABASE && CLE) {
@@ -289,29 +319,29 @@ async function bureau(chrome) {
     const fichiers = await (await rest(`/rest/v1/fichiers_devis?devis_id=eq.${devis.id}&select=nom,type_mime,verifie,statut_analyse,checksum,chemin,taille_octets`)).json();
     const serveur = fichiers.filter((f) => /-v\d+\./.test(f.nom));
     const sources = fichiers.filter((f) => !serveur.includes(f));
-    verifier('trois fichiers client, tous vérifiés côté serveur', sources.length === 3 && sources.every((f) => f.verifie && /^[0-9a-f]{64}$/.test(f.checksum)), fichiers);
+    verifier('fichiers client (envoi et révision 2), tous vérifiés', sources.length === 5 && sources.every((f) => f.verifie && /^[0-9a-f]{64}$/.test(f.checksum)), fichiers);
     verifier('sources client non diffusables (NON_ANALYSE)', sources.every((f) => f.statut_analyse === 'NON_ANALYSE'));
-    verifier('PDF, projet canonique et fiche produits par le serveur, diffusables', serveur.map((f) => f.nom).sort().join() === 'fiche-production-v1.txt,projet-banner-v1.json,visuel-banner-v1.pdf' && serveur.every((f) => f.statut_analyse === 'PROPRE' && f.verifie), fichiers);
+    verifier('PDF, projet canonique et fiche produits par le serveur, diffusables', serveur.map((f) => f.nom).filter((n) => /-v\d+\./.test(n)).sort().join() === 'fiche-production-v1.txt,fiche-production-v2.txt,projet-banner-v1.json,projet-banner-v2.json,visuel-banner-v1.pdf,visuel-banner-v2.pdf' && serveur.every((f) => f.statut_analyse === 'PROPRE' && f.verifie), fichiers);
     const lire = async (nom) => Buffer.from(await (await rest(`/storage/v1/object/devis/${fichiers.find((f) => f.nom === nom).chemin}`)).arrayBuffer());
     const projet = JSON.parse((await lire('projet-banner.json')).toString('utf8'));
-    verifier('projet déposé = document du Studio', JSON.stringify(projet) === JSON.stringify(d));
+    verifier('premier projet déposé intact', projet.id === d.id && !JSON.stringify(projet).includes('arrière-petits'));
     const image = await lire(`studio-${d.assets[0].id}.png`);
     verifier('image déposée = fichier d’origine, octet pour octet', image.equals(readFileSync(LOGO)) && createHash('sha256').update(image).digest('hex') === projet.assets[0].sha256);
-    const pdf = await lire('visuel-banner-v1.pdf');
+    const pdf = await lire('visuel-banner-v2.pdf');
     writeFileSync(join(CAPTURES, 'visuel.pdf'), pdf);
     const boite = pdf.toString('latin1').match(/\/TrimBox \[\s*([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+)/)?.slice(1).map(Number);
     verifier('PDF de production : 3 × 1 m à l’échelle 1', pdf.subarray(0, 5).toString() === '%PDF-' && boite && Math.abs(boite[2] - boite[0] - 8503.94) < 0.2 && Math.abs(boite[3] - boite[1] - 2834.65) < 0.2, boite);
-    const fiche = (await lire('fiche-production-v1.txt')).toString('utf8');
+    const fiche = (await lire('fiche-production-v2.txt')).toString('utf8');
     verifier('fiche de production', fiche.includes(reference) && fiche.includes('300 cm × 100 cm') && fiche.includes(createHash('sha256').update(pdf).digest('hex')), fiche);
-    const [visuel] = await (await rest(`/rest/v1/visuels_banderole?devis_id=eq.${devis.id}&select=*`)).json();
-    verifier('visuel rendu, courant, préflight enregistré', visuel.statut === 'RENDU' && visuel.version === 1 && visuel.preflight.pages.length === 1 && visuel.categorie_modele === 'DEUIL', visuel);
+    const [visuel] = await (await rest(`/rest/v1/visuels_banderole?devis_id=eq.${devis.id}&statut=eq.RENDU&select=*`)).json();
+    verifier('visuel rendu, courant, préflight enregistré', visuel.statut === 'RENDU' && visuel.version === 2 && visuel.preflight.pages.length === 1 && visuel.categorie_modele === 'DEUIL' && visuel.projet.elements.some((e) => e.texte?.contenu.includes('arrière-petits-enfants')), visuel);
     const [pointeur] = await (await rest(`/rest/v1/demandes_grand_format?devis_id=eq.${devis.id}&select=visuel_courant_id`)).json();
     verifier('pointeur du visuel courant', pointeur.visuel_courant_id === visuel.id);
     verifier('aperçu copié dans le stockage de production', (await rest(`/storage/v1/object/production/${visuel.apercu_chemin}`)).ok);
     // Même projet, second appel : rien n'est refait. Puis les refus.
     const visuelApi = (entetes = {}, ref = reference) => page.eval(`fetch('/api/banderoles/${ref}/visuel', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': decodeURIComponent(document.cookie.match(/elembo_devis_csrf=([^;]+)/)?.[1] ?? ''), ...${JSON.stringify(entetes)} }, body: '{}' }).then(async (r) => ({ statut: r.status, corps: await r.json() }))`);
     const encore = await visuelApi();
-    verifier('second appel : même version, pas de nouveau rendu', encore.statut === 200 && encore.corps.etat === 'RENDU' && encore.corps.version === 1, encore);
+    verifier('second appel : même version, pas de nouveau rendu', encore.statut === 200 && encore.corps.etat === 'RENDU' && encore.corps.version === 2, encore);
     verifier('sans jeton CSRF : refusé', (await visuelApi({ 'x-csrf-token': 'faux' })).statut === 403);
     verifier('devis d’un autre client : introuvable', (await visuelApi({}, 'DEV-20260101-AAAAAAAA')).statut === 404);
     const apercu = await lire('apercu-banner.jpg');

@@ -1,4 +1,4 @@
-import { LIMITES_PAQUET, NOM_PROJET } from '@/lib/banner/paquet';
+import { LIMITES_PAQUET, MOTIF_PROJET } from '@/lib/banner/paquet';
 import { lireDocument } from '@/lib/banner/schema';
 
 /**
@@ -7,7 +7,7 @@ import { lireDocument } from '@/lib/banner/schema';
  * et une version connue. Fonction pure.
  */
 export function verifierProjetBanner(nom: string, octets: Uint8Array): { ok: true } | { ok: false; raison: string } {
-  if (nom !== NOM_PROJET) return { ok: false, raison: 'nom ou extension refusé' };
+  if (!MOTIF_PROJET.test(nom)) return { ok: false, raison: 'nom ou extension refusé' };
   if (octets.byteLength === 0 || octets.byteLength > LIMITES_PAQUET.octetsJson) return { ok: false, raison: 'taille invalide' };
   if (octets[0] === 0xef && octets[1] === 0xbb && octets[2] === 0xbf) return { ok: false, raison: 'marque d’ordre des octets refusée' };
   let texte: string;

@@ -175,6 +175,11 @@ export async function lirePaquet(projet: string): Promise<Paquet | null> {
   return l?.apercu instanceof Blob && typeof l.modifieLe === 'string' ? { modifieLe: l.modifieLe, apercu: l.apercu } : null;
 }
 
+export async function lireEnvoi(projet: string): Promise<Envoi | null> {
+  const l = await lire('meta', `envoi:${projet}`);
+  return typeof l?.reference === 'string' ? { reference: l.reference, le: String(l.le ?? '') } : null;
+}
+
 export const marquerEnvoye = (projet: string, reference: string) => ecrire([{ magasin: 'meta', ligne: { id: `envoi:${projet}`, reference, le: new Date().toISOString() } }]);
 
 export const enregistrerAsset = (id: string, blob: Blob) => ecrire([{ magasin: 'assets', ligne: { id, blob, cree: Date.now() } }]);

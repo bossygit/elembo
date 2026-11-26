@@ -44,7 +44,7 @@ export function normaliserTelephone(brut: string): string {
   return chiffres.length === 9 ? `242${chiffres}` : '';
 }
 
-function fichiersValides(brut: unknown, limites: LimitesFichiers): { ok: true; valeur: FichierAnnonce[] } | { ok: false; erreur: string } {
+export function fichiersValides(brut: unknown, limites: LimitesFichiers): { ok: true; valeur: FichierAnnonce[] } | { ok: false; erreur: string } {
   if (brut === undefined || brut === null) return { ok: true, valeur: [] };
   if (!Array.isArray(brut)) return { ok: false, erreur: 'La liste des fichiers est invalide.' };
   if (brut.length > limites.fichiers) return { ok: false, erreur: `Maximum ${limites.fichiers} fichiers.` };

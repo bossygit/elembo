@@ -2,8 +2,9 @@
 
 Référence du moteur livré au **lot 1** (modèle, géométrie, contraintes, `src/lib/banner`) de l'éditeur
 livré au **lot 2** (§6) et de l'édition de contenu livrée au **lot 3** (§7), des modèles et du passage à la commande livrés au **lot 4**
-(§8), du PDF de production livré au **lot 5** (§9), et des profils d'imprimeurs et du
-back-office livrés au **lot 6** (§10). Cadre :
+(§8), du PDF de production livré au **lot 5** (§9), des profils d'imprimeurs et du
+back-office livrés au **lot 6** (§10), et du suivi, de la reprise et de la recette livrés au **lot 7** (§11).
+Mise en ligne : [`banner-studio-mise-en-production.md`](banner-studio-mise-en-production.md). Cadre :
 [`audit-banner-studio.md`](audit-banner-studio.md) ; preuve technique et décisions :
 [`spike-banner-studio-lot0.md`](spike-banner-studio-lot0.md).
 
@@ -328,7 +329,7 @@ sauvegarde du schéma et des données.
 - Charge mesurée en local : 8 JPEG de 27 Mpx, 64 ms et +44 Mo ; un PNG transparent de 30 Mpx, 4,9 s et +500 Mo. Les PNG
   transparents sont limités à 40 Mpx au total. Non mesuré sur Vercel.
 - Un PDF de plus de 50 Mo est mis `A_REVOIR`.
-- Affichage du visuel dans le suivi du client : lot 7.
+- Affichage du visuel dans le suivi du client : livré au lot 7 (§11.2).
 
 ### 9.6 Tests
 
@@ -389,3 +390,91 @@ droits) et un essai de bout en bout du back-office, 27 contrôles, en local :
 ```bash
 STUDIO_SUPABASE_URL=http://127.0.0.1:54321 STUDIO_SERVICE_ROLE_KEY=… node scripts/e2e/banner-admin.mjs
 ```
+
+## 11. Suivi, reprise et recette (lot 7)
+
+### 11.1 Prix et quantité dans le Studio
+
+« Finaliser ma demande » montre la finition, le nombre d'images, une **quantité** et le **prix indicatif** calculé par le
+serveur (`POST /api/banderoles/estimation`, la même grille que le formulaire). Hors grille, le Studio affiche « Sur devis ».
+La quantité est reprise dans le formulaire de commande (`?quantite=`). Le prix reste indicatif : le montant fait foi
+dans le devis.
+
+### 11.2 Visuel dans le suivi du client
+
+`GET /api/devis/[reference]` renvoie un bloc `visuel` en mots simples (`visuelClient`) : version, état (`PRET`,
+`VERIFICATION`, `PREPARATION`), lien signé de l'aperçu, identifiant du PDF téléchargeable, identifiant du projet et
+`modifiable`. Rien d'interne ne sort : ni alertes du préflight, ni profil, ni nom d'imprimeur, ni laize. Le client voit
+l'aperçu, télécharge son PDF quand il est prêt et, si le projet est encore sur l'appareil, « Modifier mon visuel ».
+
+### 11.3 Reprise d'une demande
+
+Tant que le devis est `NOUVEAU` ou `EN_ANALYSE`, le client peut corriger son visuel sans refaire de demande :
+
+1. Le Studio reconnaît le projet déjà envoyé (`lireEnvoi`) et propose « Mettre à jour la demande DEV-… » ou
+   « Nouvelle demande ».
+2. `POST /api/banderoles/[reference]/reprise` (session du devis, CSRF, 10 par heure) vérifie que le **format, le support
+   et la finition** sont ceux de la demande (sinon 409 : un autre format change le prix, il faut une nouvelle demande),
+   valide les fichiers et attribue la révision suivante : `projet-banner-r2.json`, `apercu-banner-r2.jpg`, …,
+   jusqu'à `r19`. Les images déjà reçues et vérifiées ne sont pas renvoyées.
+3. Le rendu (`finaliserVisuel`) prend le **dernier** projet vérifié : nouvelle version du visuel, les précédentes restent
+   dans le back-office.
+
+Les anciennes révisions suivent la règle des 90 jours des fichiers du client.
+
+### 11.4 Ouverture au public
+
+`NEXT_PUBLIC_BANNER_STUDIO=1` (lue au build) ouvre le Studio : bouton « Créer mon visuel en ligne » sur `/banderoles`,
+lien depuis l'étape Fichiers du formulaire, page indexable. Sans elle, le Studio marche par lien direct mais n'est proposé
+nulle part et porte `noindex`. Jamais ouvert sur l'export GitHub Pages.
+
+### 11.5 Accessibilité
+
+`scripts/e2e/banner-accessibilite.mjs` passe axe-core (WCAG 2.1 A et AA) sur le Studio en bureau et en mobile, chaque
+panneau et chaque fenêtre (Projets, Aperçu, Finaliser), et échoue sur toute violation sérieuse ou critique. Résultat au
+26 novembre 2026 : **aucune violation**. Le contraste au-dessus du canevas reste « à vérifier » pour axe (il ne lit pas le
+dessin). La navigation au clavier et les raccourcis sont couverts par `banner-studio.mjs` (lot 2).
+
+Non testé : lecteur d'écran réel (VoiceOver, TalkBack, NVDA). Le canevas n'est de toute façon pas lisible par un lecteur
+d'écran ; les calques et le panneau de propriétés le sont.
+
+### 11.6 Performances
+
+`scripts/e2e/banner-performance.mjs`, réseau « 4G lente » et processeur ralenti ×4 :
+
+| Mesure | Budget | Mesuré (26/11/2026) |
+|---|---|---|
+| JavaScript du Studio (compressé) | 350 Ko | 266 Ko |
+| Studio prêt à l'emploi | 6 s | 3,4 s |
+| Mémoire JavaScript après chargement | 60 Mo | 6 Mo |
+| JavaScript de `/banderoles` et du formulaire | 220 Ko | 147 Ko et 166 Ko |
+
+Konva n'est chargé que dans le Studio ; pdf-lib n'est jamais chargé dans le navigateur.
+
+### 11.7 Tests d'abus
+
+`tests/bannerRoutes.test.ts` (8 tests) : origine étrangère, corps non JSON ou démesuré, CSRF absent, devis d'un autre,
+dépassement de débit, devis déjà chiffré, format changé, noms de fichiers piégés (`../`, `.html`, nom hors Studio),
+fichiers trop gros ou trop nombreux, plus de 19 révisions, détail d'incident jamais renvoyé, profils indisponibles sans
+cache, suivi sans fuite d'informations internes.
+
+### 11.8 Parcours complet
+
+`scripts/e2e/banner-parcours.mjs` enchaîne, sur la même demande, le parcours client (modèle → texte → photo → zones →
+prix → finaliser → commande → PDF → suivi → modification → révision 2) et le back-office (carte du visuel, profil
+d'imprimeur, régénération après changement de profil, alerte, validation nominative, archivage à la commande, droits de
+l'atelier). La régénération déclenchée par l'acceptation d'un imprimeur est couverte par `tests/bannerProfils.test.ts`. Local uniquement ; refuse toute URL distante.
+
+```bash
+STUDIO_URL=http://localhost:3100 STUDIO_SUPABASE_URL=http://127.0.0.1:54321 STUDIO_SERVICE_ROLE_KEY=… \
+  node scripts/e2e/banner-parcours.mjs
+```
+
+Résultat au 26 novembre 2026, sur un build de production : **95 contrôles sur 95**.
+
+### 11.9 Limites
+
+- Pas d'imprimeur pilote : profils publics « à valider », aucun tirage réel, seuils de netteté non confirmés.
+- Testé dans Chrome (bureau et mobile émulé) seulement : ni Safari, ni Firefox, ni téléphone réel.
+- « Modifier mon visuel » demande le même appareil : le projet vit dans le navigateur du client.
+- Les modèles n'ont pas été relus par Smart Vision.

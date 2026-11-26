@@ -87,9 +87,11 @@ async function deposerDemande() {
 
 const chrome = await lancerChrome({ port: 9396 });
 try {
-  const { reference, visuel } = await deposerDemande();
-  verifier('demande du Studio déposée et rendue avec le profil public', visuel.etat === 'RENDU' && visuel.version === 1, visuel);
+  // Parcours complet : la demande vient de l'essai du client (banner-commande.mjs) ; sinon on la dépose.
+  const { reference, visuel } = process.env.STUDIO_REFERENCE ? { reference: process.env.STUDIO_REFERENCE, visuel: null } : await deposerDemande();
   const [devis] = await rest(`/rest/v1/devis?reference=eq.${reference}&select=id`);
+  const v0 = Math.max(0, ...(await rest(`/rest/v1/visuels_banderole?devis_id=eq.${devis.id}&select=version`)).map((x) => x.version));
+  if (visuel) verifier('demande du Studio déposée et rendue avec le profil public', visuel.etat === 'RENDU' && visuel.version === 1, visuel);
   const [partenaire] = await rest('/rest/v1/partenaires', { method: 'POST', body: JSON.stringify({ nom: `Atelier essai ${randomBytes(3).toString('hex')}`, specialite: 'Grand format', statut: 'VALIDE', types_impression: ['BANDEROLE'] }) });
 
   const admin = await compte('admin');
@@ -124,7 +126,7 @@ try {
   await page.goto(fiche);
   await page.attendre(`!!document.querySelector('#visuel')`);
   let carte = await texte('#visuel');
-  verifier('carte du visuel : version 1 prête, profil public à valider', carte.includes('version 1') && carte.includes('Prêt pour l’impression') && /Banderole — profil public, version \d+ — à valider/.test(carte), carte);
+  verifier('carte du visuel : dernière version prête, profil public à valider', carte.includes(`version ${v0}`) && carte.includes('Prêt pour l’impression') && /Banderole — profil public, version \d+ — à valider/.test(carte), carte);
   verifier('aperçu affiché (lien signé)', await page.eval(`(() => { const i = document.querySelector('#visuel img'); return !!i && i.complete && i.naturalWidth > 100 && i.src.includes('/storage/v1/object/sign/'); })()`));
   verifier('PDF, fiche et projet téléchargeables', ['PDF d’impression', 'Fiche de production', 'Projet (JSON)'].every((x) => carte.includes(x)));
   await page.screenshot(join(CAPTURES, '70-carte-visuel.png'), { fullPage: false });
@@ -140,6 +142,8 @@ try {
   await soumettre(`#p-${profil.id} input[name=laize_max_mm]`, { laize_max_mm: '900' });
   let [p] = await rest(`/rest/v1/profils_impression?id=eq.${profil.id}&select=*`);
   verifier('laize enregistrée, nouvelle version', p.laize_max_mm === 900 && p.version === 2, p);
+  const [{ largeur_m: largeurDemande, hauteur_m: hauteurDemande }] = await rest(`/rest/v1/demandes_grand_format?devis_id=eq.${devis.id}&select=largeur_m,hauteur_m`);
+  if (Math.min(largeurDemande, hauteurDemande) * 1000 <= 900) throw new Error('Format trop étroit pour l’essai de laize.');
 
   // --- L'imprimeur est affecté (acceptation simulée en base) : le visuel est périmé, on le régénère.
   await rest(`/rest/v1/demandes_grand_format?devis_id=eq.${devis.id}`, { method: 'PATCH', body: JSON.stringify({ partenaire_id: partenaire.id }) });
@@ -151,7 +155,7 @@ try {
   await page.attendre(`location.search.includes('visuel')`, { timeoutMs: 60000 });
   verifier('régénération : le visuel ne passe plus, message clair', (await texte()).includes('il ne passe plus'), await texte());
   carte = await texte('#visuel');
-  verifier('carte : version 2 à revoir, laize signalée', carte.includes('version 2') && carte.includes('À revoir') && /laize/i.test(carte), carte);
+  verifier('carte : nouvelle version à revoir, laize signalée', carte.includes(`version ${v0 + 1}`) && carte.includes('À revoir') && /laize/i.test(carte), carte);
   const notifications = await rest(`/rest/v1/notifications?entite_id=eq.${devis.id}&cle_idempotence=like.visuel*&select=canal,sujet`);
   verifier('l’équipe est alertée', notifications.some((n) => n.sujet.includes(reference)), notifications);
   await page.screenshot(join(CAPTURES, '71-visuel-a-revoir.png'));
@@ -171,11 +175,12 @@ try {
   await page.eval(`document.querySelector('#visuel details summary')?.click()`);
   await soumettre('[data-testid="regenerer"]', {});
   carte = await texte('#visuel');
-  verifier('version 3 prête, profil de l’imprimeur validé', carte.includes('version 3') && carte.includes('Prêt pour l’impression') && carte.includes('Atelier essai') && carte.includes('validé'), carte);
+  verifier('nouvelle version prête, profil de l’imprimeur validé', carte.includes(`version ${v0 + 2}`) && carte.includes('Prêt pour l’impression') && carte.includes('Atelier essai') && carte.includes('validé'), carte);
   const visuels = await rest(`/rest/v1/visuels_banderole?devis_id=eq.${devis.id}&select=version,statut,origine,profil_id,profil_version&order=version`);
-  verifier('versions conservées : v1 remplacée, v2 à revoir, v3 rendue par l’équipe', JSON.stringify(visuels.map((v) => [v.version, v.statut, v.origine])) === JSON.stringify([[1, 'ARCHIVE', 'CLIENT'], [2, 'A_REVOIR', 'STAFF'], [3, 'RENDU', 'STAFF']]) && visuels[2].profil_id === profil.id && visuels[2].profil_version === 3, visuels);
+  const fin = visuels.slice(-3);
+  verifier('versions conservées : remplacée, à revoir, rendue par l’équipe', JSON.stringify(fin.map((v) => [v.statut, v.origine])) === JSON.stringify([['ARCHIVE', 'CLIENT'], ['A_REVOIR', 'STAFF'], ['RENDU', 'STAFF']]) && fin[2].profil_id === profil.id && fin[2].profil_version === 3, visuels);
   const fichiersDevis = await rest(`/rest/v1/fichiers_devis?devis_id=eq.${devis.id}&nom=like.fiche-production*&select=nom,chemin`);
-  const fiche3 = await (await fetch(`${SUPABASE}/storage/v1/object/devis/${fichiersDevis.find((f) => f.nom.includes('v3')).chemin}`, { headers: entetes })).text();
+  const fiche3 = await (await fetch(`${SUPABASE}/storage/v1/object/devis/${fichiersDevis.find((f) => f.nom.includes(`v${v0 + 2}.`)).chemin}`, { headers: entetes })).text();
   verifier('fiche de production : profil validé et laize', fiche3.includes('version 3, validé') && fiche3.includes('Laize maximale : 3200 mm'), fiche3);
 
   // --- Devis accepté, commande : le visuel est archivé 24 mois dans le stockage de production.
@@ -186,12 +191,12 @@ try {
   const [commande] = await rest(`/rest/v1/commandes?devis_id=eq.${devis.id}&select=id,reference`);
   verifier('commande créée', !!commande, commande);
   const archives = await rest(`/rest/v1/fichiers_commande?commande_id=eq.${commande.id}&select=nom,chemin,expire_le,verifie`);
-  const v3 = archives.filter((f) => f.nom.includes('-v3.'));
+  const v3 = archives.filter((f) => f.nom.includes(`-v${v0 + 2}.`));
   const mois = (f) => (Date.parse(f.expire_le) - Date.now()) / (30.4 * 86400000);
-  verifier('PDF, projet et fiche v3 archivés pour 24 mois', v3.length === 3 && v3.every((f) => f.chemin.startsWith(`commandes/${commande.id}/`) && f.verifie && mois(f) > 23.5), archives);
-  const objet = await fetch(`${SUPABASE}/storage/v1/object/production/commandes/${commande.id}/visuel-banner-v3.pdf`, { headers: entetes });
+  verifier('PDF, projet et fiche de la dernière version archivés pour 24 mois', v3.length === 3 && v3.every((f) => f.chemin.startsWith(`commandes/${commande.id}/`) && f.verifie && mois(f) > 23.5), archives);
+  const objet = await fetch(`${SUPABASE}/storage/v1/object/production/commandes/${commande.id}/visuel-banner-v${v0 + 2}.pdf`, { headers: entetes });
   verifier('copie réelle dans le stockage de production', objet.ok && (await objet.arrayBuffer()).byteLength > 1000);
-  verifier('les sources du client gardent la règle des 90 jours', archives.filter((f) => !f.nom.includes('-v')).every((f) => mois(f) < 4));
+  verifier('les sources du client gardent la règle des 90 jours', archives.filter((f) => !/-v\d+\./.test(f.nom)).every((f) => mois(f) < 4));
 
   // --- Le Studio applique le profil public de la base.
   const [pub] = await rest('/rest/v1/profils_impression?est_public=eq.true&support=eq.BANDEROLE&statut=neq.ARCHIVE&select=*');

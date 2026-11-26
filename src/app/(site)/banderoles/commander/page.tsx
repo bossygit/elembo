@@ -6,7 +6,7 @@ import CommandeStudio from '@/components/grand-format/CommandeStudio';
 import { Etiquette } from '@/components/site/ui';
 import { ID_PROJET } from '@/lib/banner/paquet';
 import { devisConfigure } from '@/lib/devis/configuration';
-import { PRESTATIONS, usageParSlug, type PrestationId } from '@/lib/grand-format/catalogue';
+import { LIMITES, PRESTATIONS, usageParSlug, type PrestationId } from '@/lib/grand-format/catalogue';
 import { lienWhatsApp } from '@/lib/site/marque';
 
 export const metadata: Metadata = {
@@ -18,9 +18,11 @@ export const metadata: Metadata = {
 export default async function PageCommanderBanderole({
   searchParams,
 }: {
-  searchParams: Promise<{ usage?: string; modele?: string; prestation?: string; studio?: string | string[] }>;
+  searchParams: Promise<{ usage?: string; modele?: string; prestation?: string; studio?: string | string[]; quantite?: string }>;
 }) {
-  const { usage, modele, prestation, studio } = await searchParams;
+  const { usage, modele, prestation, studio, quantite } = await searchParams;
+  const q = Number(quantite);
+  const quantiteInitiale = Number.isInteger(q) && q >= 1 && q <= LIMITES.quantiteMax ? q : undefined;
   const projet = typeof studio === 'string' && ID_PROJET.test(studio) ? studio : null;
 
   if (!devisConfigure) {
@@ -56,7 +58,7 @@ export default async function PageCommanderBanderole({
       </p>
       <div className="mt-10">
         {projet ? (
-          <CommandeStudio projet={projet} initialUsage={usageParSlug(usage ?? '')?.id} />
+          <CommandeStudio projet={projet} initialUsage={usageParSlug(usage ?? '')?.id} initialQuantite={quantiteInitiale} />
         ) : (
           <CommandeBanderole
             initialUsage={usageParSlug(usage ?? '')?.id}

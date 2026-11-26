@@ -4,6 +4,7 @@ import Link from 'next/link';
 import ApercuBanderole from '@/components/grand-format/ApercuBanderole';
 import { ArrowRight, ArrowUpRight, Check } from '@/components/site/Icons';
 import { BoutonLien, Etiquette, Surtitre } from '@/components/site/ui';
+import { studioOuvert } from '@/lib/banner/ouverture';
 import { devisConfigure } from '@/lib/devis/configuration';
 import { FINITIONS, PRESTATIONS, USAGES, formatDimensions } from '@/lib/grand-format/catalogue';
 import { MODELES, modeleParId, modelePrincipal } from '@/lib/grand-format/modeles';
@@ -81,6 +82,11 @@ export default function PageBanderoles() {
                 Commander une banderole
                 <ArrowRight className="h-4 w-4" />
               </BoutonLien>
+              {studioOuvert ? (
+                <BoutonLien href="/banderoles/studio" variante="secondaire">
+                  Créer mon visuel en ligne
+                </BoutonLien>
+              ) : null}
               <BoutonLien href={lienDevis} variante="secondaire">
                 Demander un devis
               </BoutonLien>

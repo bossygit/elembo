@@ -1,0 +1,285 @@
+{
+  "id": "hommage-portrait",
+  "nom": "Hommage avec portrait",
+  "categorie": "DEUIL",
+  "description": "Fond sombre, portrait et lettres d’or, pour une veillée ou une levée de corps.",
+  "variables": [
+    {
+      "id": "surtitre",
+      "libelle": "Ligne du haut",
+      "exemple": "Hommage à notre regretté",
+      "max": 80
+    },
+    {
+      "id": "nom",
+      "libelle": "Nom du défunt",
+      "exemple": "Papa Joseph Malonga",
+      "max": 80,
+      "personnel": true
+    },
+    {
+      "id": "dates",
+      "libelle": "Dates",
+      "exemple": "1951 — 2026",
+      "max": 40,
+      "personnel": true
+    },
+    {
+      "id": "citation",
+      "libelle": "Citation",
+      "exemple": "« Tu resteras à jamais dans nos cœurs »",
+      "max": 120
+    },
+    {
+      "id": "famille",
+      "libelle": "Signature",
+      "exemple": "Les familles Malonga, Bouanga et alliées",
+      "max": 100,
+      "personnel": true
+    }
+  ],
+  "document": {
+    "schema": "elembo.banner",
+    "version": 1,
+    "id": "modele-hommage-portrait",
+    "nom": "Hommage avec portrait",
+    "creeLe": "2026-11-25T00:00:00.000Z",
+    "modifieLe": "2026-11-25T00:00:00.000Z",
+    "support": "BANDEROLE",
+    "categorie": "DEUIL",
+    "modeleId": "hommage-portrait",
+    "dimensions": {
+      "largeurMm": 3000,
+      "hauteurMm": 1000
+    },
+    "finition": "OEILLETS",
+    "profil": null,
+    "contraintes": {
+      "margeSecuriteMm": 50,
+      "ourletMm": 0,
+      "fondPerduMm": 0,
+      "laizeMaxMm": null,
+      "longueurMaxMm": null,
+      "oeillets": {
+        "actifs": true,
+        "diametreMm": 20,
+        "espacementMm": 500,
+        "margeMm": 30
+      },
+      "fourreaux": {
+        "hautMm": 0,
+        "basMm": 0
+      },
+      "dpiMin": 72,
+      "dpiRecommande": 150,
+      "pageMaxMm": 5080,
+      "modeGrandFormat": "PANNEAUX"
+    },
+    "fond": {
+      "type": "couleur",
+      "couleur": "#17131C"
+    },
+    "assets": [
+      {
+        "id": "exemple-portrait",
+        "nom": "Portrait (exemple)",
+        "mime": "image/jpeg",
+        "largeurPx": 1600,
+        "hauteurPx": 2000,
+        "placeholder": true
+      }
+    ],
+    "elements": [
+      {
+        "id": "e1",
+        "nom": "Cadre de la photo",
+        "xMm": 520,
+        "yMm": 500,
+        "largeurMm": 640,
+        "hauteurMm": 800,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "rect",
+          "fond": "#D9C08A",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e2",
+        "nom": "Photo",
+        "xMm": 520,
+        "yMm": 500,
+        "largeurMm": 600,
+        "hauteurMm": 760,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "image",
+        "image": {
+          "assetId": "exemple-portrait",
+          "recadrage": {
+            "x": 0,
+            "y": 0,
+            "l": 1,
+            "h": 1
+          },
+          "ajustement": "cover"
+        }
+      },
+      {
+        "id": "e3",
+        "nom": "Surtitre",
+        "xMm": 1900,
+        "yMm": 195,
+        "largeurMm": 1800,
+        "hauteurMm": 86.4,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{surtitre}}",
+          "policeId": "cormorant-garamond",
+          "corpsMm": 72,
+          "couleur": "#D9C08A",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": true,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e4",
+        "nom": "Nom",
+        "xMm": 1900,
+        "yMm": 395,
+        "largeurMm": 1860,
+        "hauteurMm": 264,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{nom}}",
+          "policeId": "dm-serif-display",
+          "corpsMm": 199,
+          "couleur": "#FBF6EA",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e5",
+        "nom": "Filet",
+        "xMm": 1900,
+        "yMm": 545,
+        "largeurMm": 700,
+        "hauteurMm": 5,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "rect",
+          "fond": "#D9C08A",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e6",
+        "nom": "Dates",
+        "xMm": 1900,
+        "yMm": 620,
+        "largeurMm": 1200,
+        "hauteurMm": 115.2,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{dates}}",
+          "policeId": "cinzel",
+          "corpsMm": 96,
+          "couleur": "#D9C08A",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": false,
+          "interlettrageEm": 0.06,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e7",
+        "nom": "Citation",
+        "xMm": 1900,
+        "yMm": 745,
+        "largeurMm": 1860,
+        "hauteurMm": 88.8,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{citation}}",
+          "policeId": "cormorant-garamond",
+          "corpsMm": 74,
+          "couleur": "#FBF6EA",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": true,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e8",
+        "nom": "Signature",
+        "xMm": 1900,
+        "yMm": 860,
+        "largeurMm": 1860,
+        "hauteurMm": 62.4,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{famille}}",
+          "policeId": "montserrat",
+          "corpsMm": 52,
+          "couleur": "#D9C08A",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      }
+    ],
+    "qualite": {
+      "distanceLectureM": 3
+    },
+    "meta": {
+      "versionRendu": 1,
+      "createur": "modele"
+    }
+  }
+}

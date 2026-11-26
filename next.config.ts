@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
   // `ioredis` garde ses `require` internes (commandes dynamiques) : le laisser hors du bundle
   // serveur évite des erreurs de résolution à l'exécution dans les fonctions Vercel.
   serverExternalPackages: ["ioredis"],
+  // Polices du PDF des banderoles : lues par `fs`, donc invisibles à l'analyse des dépendances.
+  outputFileTracingIncludes: { "/api/banderoles/\\[reference\\]/visuel": ["./assets/banner/polices/*.ttf"] },
   // Ne pas révéler la stack dans les réponses.
   poweredByHeader: false,
   async headers() {

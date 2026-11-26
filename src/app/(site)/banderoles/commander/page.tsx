@@ -2,9 +2,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import CommandeBanderole from '@/components/grand-format/CommandeBanderole';
+import CommandeStudio from '@/components/grand-format/CommandeStudio';
 import { Etiquette } from '@/components/site/ui';
+import { ID_PROJET } from '@/lib/banner/paquet';
 import { devisConfigure } from '@/lib/devis/configuration';
-import { PRESTATIONS, usageParSlug, type PrestationId } from '@/lib/grand-format/catalogue';
+import { LIMITES, PRESTATIONS, usageParSlug, type PrestationId } from '@/lib/grand-format/catalogue';
 import { lienWhatsApp } from '@/lib/site/marque';
 
 export const metadata: Metadata = {
@@ -16,9 +18,12 @@ export const metadata: Metadata = {
 export default async function PageCommanderBanderole({
   searchParams,
 }: {
-  searchParams: Promise<{ usage?: string; modele?: string; prestation?: string }>;
+  searchParams: Promise<{ usage?: string; modele?: string; prestation?: string; studio?: string | string[]; quantite?: string }>;
 }) {
-  const { usage, modele, prestation } = await searchParams;
+  const { usage, modele, prestation, studio, quantite } = await searchParams;
+  const q = Number(quantite);
+  const quantiteInitiale = Number.isInteger(q) && q >= 1 && q <= LIMITES.quantiteMax ? q : undefined;
+  const projet = typeof studio === 'string' && ID_PROJET.test(studio) ? studio : null;
 
   if (!devisConfigure) {
     return (
@@ -52,11 +57,15 @@ export default async function PageCommanderBanderole({
         Six étapes rapides. Aucun paiement à ce stade : Smart Vision vérifie votre demande et vous adresse un devis.
       </p>
       <div className="mt-10">
-        <CommandeBanderole
-          initialUsage={usageParSlug(usage ?? '')?.id}
-          initialModele={modele}
-          initialPrestation={prestationInitiale}
-        />
+        {projet ? (
+          <CommandeStudio projet={projet} initialUsage={usageParSlug(usage ?? '')?.id} initialQuantite={quantiteInitiale} />
+        ) : (
+          <CommandeBanderole
+            initialUsage={usageParSlug(usage ?? '')?.id}
+            initialModele={modele}
+            initialPrestation={prestationInitiale}
+          />
+        )}
       </div>
     </div>
   );

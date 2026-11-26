@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 
 import { supabaseAdmin } from '@/server/supabase/client';
+import { verifierProjetBanner } from '@/server/storage/projetBanner';
 import {
   TAILLE_MAX_DEVIS,
   mimeAttendu,
@@ -27,6 +28,8 @@ function typeDepuisMime(typeMime: string): TypeFichierVerifie | null {
     'image/webp': 'WEBP',
     'application/zip': 'ZIP',
     'application/x-zip-compressed': 'ZIP',
+    // Projet du Banner Studio uniquement : voir verifierProjetBanner.
+    'application/json': 'JSON',
   };
   return map[typeMime] ?? null;
 }
@@ -63,6 +66,15 @@ export async function verifierObjetStorage(options: {
   const octets = new Uint8Array(await data.arrayBuffer());
   const type = typeDepuisMime(options.typeMime);
   if (!type) return { ok: false, raison: 'Type MIME non autorisé.' };
+
+  if (type === 'JSON') {
+    const projet = verifierProjetBanner(options.nom, octets);
+    if (!projet.ok) return { ok: false, raison: projet.raison };
+    if (octets.byteLength !== options.tailleAnnoncee) {
+      return { ok: false, raison: 'Taille réelle différente de la taille annoncée.' };
+    }
+    return { ok: true, tailleOctets: octets.byteLength, typeMime: mimeAttendu('JSON'), checksum: createHash('sha256').update(octets).digest('hex') };
+  }
 
   const verdict = verifierFichier({
     nom: options.nom,

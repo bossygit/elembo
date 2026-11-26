@@ -1,0 +1,328 @@
+{
+  "id": "conference-rollup",
+  "nom": "Conférence (roll-up)",
+  "categorie": "EVENEMENT_CONFERENCE",
+  "description": "Roll-up vertical d’accueil : titre, intervenants, programme.",
+  "variables": [
+    {
+      "id": "organisateur",
+      "libelle": "Organisateur",
+      "exemple": "Institut Horizon",
+      "max": 40,
+      "personnel": true
+    },
+    {
+      "id": "titre",
+      "libelle": "Titre",
+      "exemple": "Forum de\nl’entrepreneuriat",
+      "max": 60,
+      "multiligne": true,
+      "personnel": true
+    },
+    {
+      "id": "theme",
+      "libelle": "Thème",
+      "exemple": "Créer, produire et vendre\ndepuis Brazzaville",
+      "max": 90,
+      "multiligne": true
+    },
+    {
+      "id": "date",
+      "libelle": "Date",
+      "exemple": "4 et 5 décembre 2026",
+      "max": 40,
+      "personnel": true
+    },
+    {
+      "id": "lieu",
+      "libelle": "Lieu",
+      "exemple": "Centre de conférences\nLes Rives",
+      "max": 60,
+      "multiligne": true,
+      "personnel": true
+    },
+    {
+      "id": "contact",
+      "libelle": "Contact",
+      "exemple": "forum@exemple.cg",
+      "max": 40,
+      "personnel": true
+    }
+  ],
+  "document": {
+    "schema": "elembo.banner",
+    "version": 1,
+    "id": "modele-conference-rollup",
+    "nom": "Conférence (roll-up)",
+    "creeLe": "2026-11-25T00:00:00.000Z",
+    "modifieLe": "2026-11-25T00:00:00.000Z",
+    "support": "ROLL_UP",
+    "categorie": "EVENEMENT_CONFERENCE",
+    "modeleId": "conference-rollup",
+    "dimensions": {
+      "largeurMm": 850,
+      "hauteurMm": 2000
+    },
+    "finition": "SANS",
+    "profil": null,
+    "contraintes": {
+      "margeSecuriteMm": 30,
+      "ourletMm": 0,
+      "fondPerduMm": 0,
+      "laizeMaxMm": null,
+      "longueurMaxMm": null,
+      "oeillets": {
+        "actifs": false,
+        "diametreMm": 20,
+        "espacementMm": 500,
+        "margeMm": 30
+      },
+      "fourreaux": {
+        "hautMm": 0,
+        "basMm": 100
+      },
+      "dpiMin": 72,
+      "dpiRecommande": 150,
+      "pageMaxMm": 5080,
+      "modeGrandFormat": "PANNEAUX"
+    },
+    "fond": {
+      "type": "couleur",
+      "couleur": "#F7F4EE"
+    },
+    "assets": [],
+    "elements": [
+      {
+        "id": "e1",
+        "nom": "Aplat",
+        "xMm": 425,
+        "yMm": 520,
+        "largeurMm": 850,
+        "hauteurMm": 1040,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "rect",
+          "fond": "#1F3A8A",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e2",
+        "nom": "Accent",
+        "xMm": 425,
+        "yMm": 1048,
+        "largeurMm": 850,
+        "hauteurMm": 16,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "rect",
+          "fond": "#E87A2E",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e3",
+        "nom": "Triangle",
+        "xMm": 700,
+        "yMm": 900,
+        "largeurMm": 218.4,
+        "hauteurMm": 190,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "triangle",
+          "fond": "#2E4FB5",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e4",
+        "nom": "Organisateur",
+        "xMm": 425,
+        "yMm": 150,
+        "largeurMm": 730,
+        "hauteurMm": 55.2,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{organisateur}}",
+          "policeId": "montserrat",
+          "corpsMm": 46,
+          "couleur": "#FFD9BF",
+          "alignement": "center",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0.05,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e5",
+        "nom": "Titre",
+        "xMm": 425,
+        "yMm": 420,
+        "largeurMm": 750,
+        "hauteurMm": 248.4,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{titre}}",
+          "policeId": "playfair-display",
+          "corpsMm": 95,
+          "couleur": "#FFFFFF",
+          "alignement": "center",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.15
+        }
+      },
+      {
+        "id": "e6",
+        "nom": "Thème",
+        "xMm": 425,
+        "yMm": 680,
+        "largeurMm": 730,
+        "hauteurMm": 135,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{theme}}",
+          "policeId": "montserrat",
+          "corpsMm": 50,
+          "couleur": "#FFFFFF",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.35
+        }
+      },
+      {
+        "id": "e7",
+        "nom": "Date",
+        "xMm": 425,
+        "yMm": 1230,
+        "largeurMm": 740,
+        "hauteurMm": 88.8,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{date}}",
+          "policeId": "oswald",
+          "corpsMm": 74,
+          "couleur": "#E87A2E",
+          "alignement": "center",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e8",
+        "nom": "Lieu",
+        "xMm": 425,
+        "yMm": 1410,
+        "largeurMm": 740,
+        "hauteurMm": 139.2,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{lieu}}",
+          "policeId": "montserrat",
+          "corpsMm": 58,
+          "couleur": "#18181A",
+          "alignement": "center",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e9",
+        "nom": "Filet",
+        "xMm": 425,
+        "yMm": 1560,
+        "largeurMm": 400,
+        "hauteurMm": 6,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "rect",
+          "fond": "#1F3A8A",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e10",
+        "nom": "Contact",
+        "xMm": 425,
+        "yMm": 1660,
+        "largeurMm": 730,
+        "hauteurMm": 57.6,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{contact}}",
+          "policeId": "montserrat",
+          "corpsMm": 48,
+          "couleur": "#1F3A8A",
+          "alignement": "center",
+          "graisse": 400,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      }
+    ],
+    "qualite": {
+      "distanceLectureM": 3
+    },
+    "meta": {
+      "versionRendu": 1,
+      "createur": "modele"
+    }
+  }
+}

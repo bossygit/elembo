@@ -1,0 +1,243 @@
+{
+  "id": "sensibilisation",
+  "nom": "Campagne de sensibilisation",
+  "categorie": "INSTITUTION",
+  "description": "Message clair et appel à l’action, avec place pour un logo.",
+  "variables": [
+    {
+      "id": "campagne",
+      "libelle": "Campagne ou journée",
+      "exemple": "Semaine de la santé communautaire",
+      "max": 60,
+      "personnel": true
+    },
+    {
+      "id": "message",
+      "libelle": "Message principal",
+      "exemple": "Se laver les mains, c’est protéger les siens",
+      "max": 70
+    },
+    {
+      "id": "action",
+      "libelle": "Appel à l’action",
+      "exemple": "Dépistage gratuit du 8 au 12 décembre",
+      "max": 70,
+      "personnel": true
+    },
+    {
+      "id": "organisme",
+      "libelle": "Organisme",
+      "exemple": "Association Santé pour Tous",
+      "max": 50,
+      "personnel": true
+    }
+  ],
+  "document": {
+    "schema": "elembo.banner",
+    "version": 1,
+    "id": "modele-sensibilisation",
+    "nom": "Campagne de sensibilisation",
+    "creeLe": "2026-11-25T00:00:00.000Z",
+    "modifieLe": "2026-11-25T00:00:00.000Z",
+    "support": "BANDEROLE",
+    "categorie": "INSTITUTION",
+    "modeleId": "sensibilisation",
+    "dimensions": {
+      "largeurMm": 4000,
+      "hauteurMm": 1000
+    },
+    "finition": "OURLETS_OEILLETS",
+    "profil": null,
+    "contraintes": {
+      "margeSecuriteMm": 50,
+      "ourletMm": 50,
+      "fondPerduMm": 0,
+      "laizeMaxMm": null,
+      "longueurMaxMm": null,
+      "oeillets": {
+        "actifs": true,
+        "diametreMm": 20,
+        "espacementMm": 500,
+        "margeMm": 30
+      },
+      "fourreaux": {
+        "hautMm": 0,
+        "basMm": 0
+      },
+      "dpiMin": 72,
+      "dpiRecommande": 150,
+      "pageMaxMm": 5080,
+      "modeGrandFormat": "PANNEAUX"
+    },
+    "fond": {
+      "type": "couleur",
+      "couleur": "#FFFFFF"
+    },
+    "assets": [],
+    "elements": [
+      {
+        "id": "e1",
+        "nom": "Aplat",
+        "xMm": 2000,
+        "yMm": 120,
+        "largeurMm": 4000,
+        "hauteurMm": 240,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "rect",
+          "fond": "#0F6B4C",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e2",
+        "nom": "Bandeau",
+        "xMm": 2000,
+        "yMm": 875,
+        "largeurMm": 4000,
+        "hauteurMm": 250,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "rect",
+          "fond": "#FFC83D",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e3",
+        "nom": "Cœur",
+        "xMm": 330,
+        "yMm": 490,
+        "largeurMm": 333.3,
+        "hauteurMm": 300,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "coeur",
+          "fond": "#B3261E",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e4",
+        "nom": "Campagne",
+        "xMm": 2000,
+        "yMm": 156,
+        "largeurMm": 3700,
+        "hauteurMm": 100.8,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{campagne}}",
+          "policeId": "montserrat",
+          "corpsMm": 84,
+          "couleur": "#FFFFFF",
+          "alignement": "center",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0.03,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e5",
+        "nom": "Message",
+        "xMm": 2180,
+        "yMm": 490,
+        "largeurMm": 3200,
+        "hauteurMm": 228,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{message}}",
+          "policeId": "playfair-display",
+          "corpsMm": 169,
+          "couleur": "#12251E",
+          "alignement": "center",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e6",
+        "nom": "Action",
+        "xMm": 1500,
+        "yMm": 832,
+        "largeurMm": 2600,
+        "hauteurMm": 120,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{action}}",
+          "policeId": "montserrat",
+          "corpsMm": 100,
+          "couleur": "#12251E",
+          "alignement": "center",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e7",
+        "nom": "Organisme",
+        "xMm": 3370,
+        "yMm": 832,
+        "largeurMm": 1000,
+        "hauteurMm": 74.4,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{organisme}}",
+          "policeId": "montserrat",
+          "corpsMm": 62,
+          "couleur": "#12251E",
+          "alignement": "center",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      }
+    ],
+    "qualite": {
+      "distanceLectureM": 3
+    },
+    "meta": {
+      "versionRendu": 1,
+      "createur": "modele"
+    }
+  }
+}

@@ -24,6 +24,15 @@ type Commande = {
   livraisonPrevueLe: string | null;
 };
 
+type Visuel = {
+  version: number;
+  etat: 'PRET' | 'VERIFICATION' | 'PREPARATION';
+  apercuUrl: string | null;
+  pdfFichierId: string | null;
+  projetId: string | null;
+  modifiable: boolean;
+};
+
 type Devis = {
   reference: string;
   statut: string;
@@ -36,6 +45,7 @@ type Devis = {
   creeLe: string;
   expireLe: string | null;
   commande?: Commande | null;
+  visuel?: Visuel | null;
   fichiers: Fichier[];
 };
 
@@ -300,6 +310,8 @@ export default function SuiviDevis({ reference }: { reference: string }) {
         </div>
       ) : null}
 
+      {devis.visuel ? <BlocVisuel visuel={devis.visuel} fichiers={devis.fichiers} telecharger={telecharger} /> : null}
+
       <div className="rounded-2xl border border-filet bg-white p-6">
         <h3 className="font-semibold">Vos pièces jointes</h3>
         {devis.fichiers.length === 0 ? (
@@ -337,3 +349,51 @@ export default function SuiviDevis({ reference }: { reference: string }) {
     </div>
   );
 }
+
+const ETATS_VISUEL: Record<Visuel['etat'], string> = {
+  PRET: 'Votre fichier d’impression est prêt. Smart Vision le contrôle avant la production.',
+  VERIFICATION: 'Notre équipe vérifie votre visuel avant l’impression ; elle vous contacte si un point est à revoir.',
+  PREPARATION: 'Votre fichier d’impression est en préparation.',
+};
+
+/** Visuel réalisé avec le Banner Studio : aperçu, fichier d'impression, modification tant que le devis n'est pas établi. */
+function BlocVisuel({ visuel, fichiers, telecharger }: { visuel: Visuel; fichiers: Fichier[]; telecharger: (f: Fichier) => Promise<void> }) {
+  const pdf = fichiers.find((f) => f.id === visuel.pdfFichierId && f.telechargementDisponible);
+  // Le projet n'existe que sur l'appareil qui l'a créé : on ne propose de le modifier que s'il y est.
+  const [local, setLocal] = useState(false);
+  useEffect(() => {
+    let actif = true;
+    if (visuel.modifiable && visuel.projetId) {
+      void import('@/lib/banner/stockage').then((s) => s.lireProjet(visuel.projetId!)).then((r) => { if (actif) setLocal(Boolean(r?.ok)); }, () => undefined);
+    }
+    return () => { actif = false; };
+  }, [visuel.modifiable, visuel.projetId]);
+  return (
+    <div className="rounded-2xl border border-filet bg-white p-6" data-testid="suivi-visuel">
+      <h3 className="font-semibold">Votre visuel</h3>
+      <div className="mt-3 grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        {visuel.apercuUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- lien signé de 5 minutes
+          <img src={visuel.apercuUrl} alt={`Aperçu de votre visuel, version ${visuel.version}`} className="w-full rounded-xl border border-filet bg-sable object-contain" />
+        ) : <p className="rounded-xl bg-sable p-4 text-sm text-attenue">Aperçu indisponible.</p>}
+        <div className="space-y-3 text-sm">
+          <p>{ETATS_VISUEL[visuel.etat]}</p>
+          {pdf ? (
+            <button type="button" onClick={() => void telecharger(pdf)} className="rounded-full bg-encre px-5 py-3 font-semibold text-creme">
+              Télécharger le fichier d’impression (PDF)
+            </button>
+          ) : null}
+          {visuel.modifiable ? (
+            local && visuel.projetId ? (
+              <Link href={`/banderoles/studio?projet=${encodeURIComponent(visuel.projetId)}`} className="inline-block rounded-full border border-encre px-5 py-3 font-semibold text-encre">
+                Modifier mon visuel
+              </Link>
+            ) : <p className="text-xs text-attenue">Pour modifier votre visuel, ouvrez ce suivi sur l’appareil où vous l’avez créé.</p>
+          ) : <p className="text-xs text-attenue">Le devis est établi : le visuel ne se modifie plus en ligne. Écrivez-nous pour tout changement.</p>}
+          <p className="text-xs text-attenue">Couleurs à l’écran indicatives : l’impression peut différer légèrement.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+

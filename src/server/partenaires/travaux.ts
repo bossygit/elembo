@@ -9,9 +9,12 @@
  * revérifient le rattachement, le rôle et l'échéance (défense en profondeur).
  */
 
+import { after } from 'next/server';
+
 import type { SessionPartenaire } from '@/lib/partenaires/compte';
 import { notifierEvenementAffectation } from '@/server/affectations/notifications';
 import { creerClientAuthServeur } from '@/server/auth/session';
+import { regenererApresAffectation } from '@/server/banner/regeneration';
 import { supabaseAdmin } from '@/server/supabase/client';
 import { ErreurIntrouvable, ErreurMetier } from './ecriture';
 
@@ -104,6 +107,8 @@ export async function repondreAffectation(
   });
   if (error) traduire(error);
   await notifierEvenementAffectation(id, decision, { motif: decision === 'REFUSEE' ? motif : null });
+  // Banderole Banner Studio : le profil du nouvel imprimeur s'applique. Après la réponse, sans la retarder.
+  if (decision === 'ACCEPTEE') after(() => regenererApresAffectation(id));
 }
 
 export async function terminerAffectation(session: SessionPartenaire, id: string): Promise<void> {

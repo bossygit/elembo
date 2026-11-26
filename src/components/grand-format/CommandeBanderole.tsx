@@ -31,6 +31,7 @@ import {
 import type { Estimation } from '@/lib/grand-format/estimation';
 import { modeleParId, modelePrincipal, modelesPour } from '@/lib/grand-format/modeles';
 import { lienWhatsApp } from '@/lib/site/marque';
+import { studioOuvert } from '@/lib/banner/ouverture';
 
 /* ----------------------------------------------------------------- réglages ---- */
 
@@ -57,6 +58,9 @@ const TYPES_ACCEPTES = ['application/pdf', 'image/png', 'image/jpeg', 'image/web
 const MAX_FICHIERS = 5;
 const MAX_FICHIER = 25 * 1024 * 1024;
 const MAX_TOTAL = 50 * 1024 * 1024;
+/** Avec un visuel du Studio (images, projet, aperçu) ; le serveur applique les mêmes limites. */
+const MAX_FICHIERS_STUDIO = 10;
+const MAX_TOTAL_STUDIO = 45 * 1024 * 1024;
 
 const FORMATS_RAPIDES: Record<string, [number, number][]> = {
   BANDEROLE: [[2, 1], [3, 1], [4, 1], [5, 1], [3, 1.5], [6, 1.5]],
@@ -70,10 +74,26 @@ type EtatEstimation =
   | { etat: 'pret'; resultat: Estimation }
   | { etat: 'indisponible'; message: string };
 
+/** Visuel préparé dans le Banner Studio : dimensions, support et finition ne se changent plus ici. */
+export type VisuelStudio = {
+  projet: string;
+  nom: string;
+  usage?: UsageId;
+  support: SupportId;
+  finition: FinitionId;
+  largeurM: number;
+  hauteurM: number;
+  fichiers: File[];
+  apercuUrl: string;
+  surEnvoi: (reference: string) => void;
+};
+
 type Props = {
+  visuel?: VisuelStudio;
   initialUsage?: UsageId;
   initialModele?: string;
   initialPrestation?: PrestationId;
+  initialQuantite?: number;
 };
 
 function metres(brut: string): number {
@@ -113,26 +133,26 @@ function Erreur({ message }: { message?: string }) {
 
 /* -------------------------------------------------------------- composant ---- */
 
-export default function CommandeBanderole({ initialUsage, initialModele, initialPrestation }: Props) {
+export default function CommandeBanderole({ visuel, initialUsage, initialModele, initialPrestation, initialQuantite }: Props) {
   const router = useRouter();
   const modeleInitial = modeleParId(initialModele);
-  const usageDepart = modeleInitial?.usage ?? initialUsage;
+  const usageDepart = modeleInitial?.usage ?? visuel?.usage ?? initialUsage;
   const usageInitialFiche = USAGES.find((u) => u.id === usageDepart);
-  const formatDepart = modeleInitial?.format ?? usageInitialFiche?.formatConseille ?? { largeurM: 3, hauteurM: 1 };
+  const formatDepart = visuel ?? modeleInitial?.format ?? usageInitialFiche?.formatConseille ?? { largeurM: 3, hauteurM: 1 };
 
   const [etape, setEtape] = useState(usageDepart ? 1 : 0);
   const [usage, setUsage] = useState<UsageId | null>(usageDepart ?? null);
   const [modeleId, setModeleId] = useState<string | null>(modeleInitial?.id ?? null);
-  const [support, setSupport] = useState<SupportId>(usageInitialFiche?.supportDefaut ?? 'BANDEROLE');
+  const [support, setSupport] = useState<SupportId>(visuel?.support ?? usageInitialFiche?.supportDefaut ?? 'BANDEROLE');
   const [supportPrecision, setSupportPrecision] = useState('');
   const [largeur, setLargeur] = useState(texteMetres(formatDepart.largeurM));
   const [hauteur, setHauteur] = useState(texteMetres(formatDepart.hauteurM));
-  const [quantite, setQuantite] = useState(1);
-  const [finition, setFinition] = useState<FinitionId>('OEILLETS');
+  const [quantite, setQuantite] = useState(initialQuantite ?? 1);
+  const [finition, setFinition] = useState<FinitionId>(visuel?.finition ?? 'OEILLETS');
   const [finitionPrecision, setFinitionPrecision] = useState('');
   const [delai, setDelai] = useState<DelaiId>('STANDARD');
   const [dateSouhaitee, setDateSouhaitee] = useState('');
-  const [prestation, setPrestation] = useState<PrestationId | null>(initialPrestation ?? null);
+  const [prestation, setPrestation] = useState<PrestationId | null>(initialPrestation ?? (visuel ? 'FICHIER_PRET' : null));
   const [commentaire, setCommentaire] = useState('');
   const [fichiers, setFichiers] = useState<File[]>([]);
   const [estimation, setEstimation] = useState<EtatEstimation>({ etat: 'inactif' });
@@ -226,7 +246,7 @@ export default function CommandeBanderole({ initialUsage, initialModele, initial
       if (!prestation) e.prestation = 'Choisissez une prestation.';
       if (prestation === 'ACCOMPAGNEMENT' && commentaire.trim().length < 10) e.commentaire = 'Décrivez votre besoin en quelques mots.';
     }
-    if (n === 3 && prestation === 'FICHIER_PRET' && fichiers.length === 0) {
+    if (n === 3 && prestation === 'FICHIER_PRET' && fichiers.length === 0 && !visuel) {
       e.fichiers = 'Ajoutez votre fichier d’impression (une version allégée suffit si le fichier est très lourd).';
     }
     if (n === 5) {
@@ -261,6 +281,7 @@ export default function CommandeBanderole({ initialUsage, initialModele, initial
 
   function choisirUsage(id: UsageId) {
     setUsage(id);
+    if (visuel) return;
     const u = USAGES.find((x) => x.id === id)!;
     setModeleId(modelePrincipal(id).id);
     setSupport(u.supportDefaut);
@@ -281,12 +302,16 @@ export default function CommandeBanderole({ initialUsage, initialModele, initial
     if (!liste) return;
     const nouveaux = [...fichiers];
     const refus: string[] = [];
+    const visuels = visuel?.fichiers ?? [];
+    const maxFichiers = visuel ? MAX_FICHIERS_STUDIO - visuels.length : MAX_FICHIERS;
+    const maxTotal = visuel ? MAX_TOTAL_STUDIO : MAX_TOTAL;
+    const dejaPris = visuels.reduce((s, x) => s + x.size, 0);
     for (const f of Array.from(liste)) {
       if (!TYPES_ACCEPTES.includes(f.type)) refus.push(`${f.name} : format non accepté.`);
       else if (f.size > MAX_FICHIER) refus.push(`${f.name} : plus de 25 Mo.`);
-      else if (nouveaux.some((x) => x.name.toLowerCase() === f.name.toLowerCase())) refus.push(`${f.name} : déjà ajouté.`);
-      else if (nouveaux.length >= MAX_FICHIERS) refus.push(`${f.name} : ${MAX_FICHIERS} fichiers au maximum.`);
-      else if (nouveaux.reduce((s, x) => s + x.size, 0) + f.size > MAX_TOTAL) refus.push(`${f.name} : 50 Mo cumulés au maximum.`);
+      else if ([...visuels, ...nouveaux].some((x) => x.name.toLowerCase() === f.name.toLowerCase())) refus.push(`${f.name} : déjà ajouté.`);
+      else if (nouveaux.length >= maxFichiers) refus.push(`${f.name} : ${maxFichiers} fichiers au maximum.`);
+      else if (nouveaux.reduce((s, x) => s + x.size, dejaPris) + f.size > maxTotal) refus.push(`${f.name} : ${maxTotal / 1024 / 1024} Mo cumulés au maximum.`);
       else nouveaux.push(f);
     }
     setFichiers(nouveaux);
@@ -302,6 +327,7 @@ export default function CommandeBanderole({ initialUsage, initialModele, initial
     if (Object.keys(e).length) return;
 
     setEnvoi('Enregistrement de votre demande…');
+    const aEnvoyer = [...(visuel?.fichiers ?? []), ...fichiers];
     let enregistree = false;
     try {
       const r = await fetch('/api/banderoles', {
@@ -311,7 +337,8 @@ export default function CommandeBanderole({ initialUsage, initialModele, initial
           ...parametres,
           contact,
           consentement,
-          fichiers: fichiers.map((f) => ({ nom: f.name, typeMime: f.type, tailleOctets: f.size })),
+          ...(visuel ? { studio: true } : {}),
+          fichiers: aEnvoyer.map((f) => ({ nom: f.name, typeMime: f.type, tailleOctets: f.size })),
         }),
       });
       const corps = (await r.json().catch(() => ({}))) as {
@@ -341,20 +368,30 @@ export default function CommandeBanderole({ initialUsage, initialModele, initial
       enregistree = true;
       // Second essai après une réponse perdue : le serveur a déjà la demande et ne redonne pas d'URL
       // d'envoi. Ne pas laisser croire que les fichiers sont partis.
-      if (corps.dejaExistant && fichiers.length) {
+      if (corps.dejaExistant && aEnvoyer.length) {
         setErreurGlobale(`Votre demande ${corps.reference} est déjà enregistrée, mais ses fichiers ne peuvent pas être renvoyés d’ici. Donnez-nous cette référence :`);
         setEnvoi(null);
         return;
       }
+      visuel?.surEnvoi(corps.reference);
       if (corps.uploads?.length) {
         setEnvoi(`Envoi de vos fichiers (0/${corps.uploads.length})…`);
         await envoyerFichiersDevis({
           reference: corps.reference,
           csrfToken: corps.csrfToken ?? '',
           uploads: corps.uploads,
-          fichiers,
+          fichiers: aEnvoyer,
           surProgression: (n, total) => setEnvoi(`Envoi de vos fichiers (${n}/${total})…`),
         });
+      }
+      if (visuel && corps.uploads?.length) {
+        setEnvoi('Préparation de votre fichier d’impression…');
+        // Sans gravité si cela échoue : la demande et le visuel sont enregistrés, l'équipe peut relancer.
+        await fetch(`/api/banderoles/${encodeURIComponent(corps.reference)}/visuel`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-csrf-token': corps.csrfToken ?? '' },
+          body: '{}',
+        }).catch(() => undefined);
       }
       setEnvoi('Demande enregistrée. Ouverture de votre suivi…');
       router.push(`/devis/${corps.reference}`);
@@ -389,16 +426,19 @@ export default function CommandeBanderole({ initialUsage, initialModele, initial
 
   const apercu = (
     <div className="rounded-3xl border border-filet bg-white p-4">
-      <ApercuBanderole
+      {visuel ? (
+        // eslint-disable-next-line @next/next/no-img-element -- image locale (blob), sans optimisation possible
+        <img src={visuel.apercuUrl} alt={`Votre visuel : ${visuel.nom}`} className="max-h-96 w-full rounded-2xl bg-sable object-contain" />
+      ) : <ApercuBanderole
         modele={modele}
         largeurM={dimensionsValides ? l : modele.format.largeurM}
         hauteurM={dimensionsValides ? h : modele.format.hauteurM}
         finition={finitionEffective}
         cadre={Math.min(2.2, Math.max(1.1, dimensionsValides ? l / h : 4 / 3))}
         className="w-full rounded-2xl bg-sable"
-      />
+      />}
       <p className="mt-3 text-center text-xs text-attenue">
-        Aperçu indicatif aux proportions réelles{dimensionsValides ? ` — ${formatDimensions(l, h)}` : ''}. Le visuel final est validé avec vous.
+        {visuel ? 'Visuel Elembo Banner Studio' : 'Aperçu indicatif aux proportions réelles'}{dimensionsValides ? ` — ${formatDimensions(l, h)}` : ''}. Le visuel final est validé avec vous.
       </p>
     </div>
   );
@@ -480,7 +520,16 @@ export default function CommandeBanderole({ initialUsage, initialModele, initial
             <div className="space-y-8">
               <div className="lg:hidden">{apercu}</div>
 
-              {modelesPour(usage).length > 1 ? (
+              {visuel ? (
+                <div className="rounded-2xl border border-filet bg-white p-4 text-sm" data-testid="visuel-studio">
+                  <p className="font-semibold text-encre">{visuel.nom}</p>
+                  <p className="mt-1 text-attenue">{libelleSupport(visuel.support)} · {formatDimensions(visuel.largeurM, visuel.hauteurM)}{finitionsApplicables ? ` · ${libelleFinition(visuel.finition)}` : ''}</p>
+                  <p className="mt-2 text-xs text-attenue">Le support, le format et la finition viennent de votre visuel.</p>
+                  <Link href={`/banderoles/studio?projet=${visuel.projet}`} className="mt-2 inline-block font-semibold text-encre underline">Les modifier dans le Studio</Link>
+                </div>
+              ) : null}
+
+              {!visuel && modelesPour(usage).length > 1 ? (
                 <fieldset>
                   <legend className={etiquette}>Modèle d’inspiration</legend>
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -494,7 +543,7 @@ export default function CommandeBanderole({ initialUsage, initialModele, initial
                 </fieldset>
               ) : null}
 
-              <fieldset>
+              {visuel ? null : <><fieldset>
                 <legend className={etiquette}>Support</legend>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {SUPPORTS.map((s) => (
@@ -549,7 +598,7 @@ export default function CommandeBanderole({ initialUsage, initialModele, initial
                   </div>
                 ) : null}
                 <p className="mt-2 text-xs text-attenue">Toutes les dimensions sont possibles, au centimètre près (ex. 2,5 × 0,8).</p>
-              </fieldset>
+              </fieldset></>}
 
               <div>
                 <span className={etiquette} id="quantite-libelle">
@@ -575,7 +624,7 @@ export default function CommandeBanderole({ initialUsage, initialModele, initial
                 <Erreur message={erreurs.quantite} />
               </div>
 
-              {finitionsApplicables ? (
+              {visuel ? null : finitionsApplicables ? (
                 <fieldset>
                   <legend className={etiquette}>Finition</legend>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -628,7 +677,7 @@ export default function CommandeBanderole({ initialUsage, initialModele, initial
                   onChange={(e) => setCommentaire(e.target.value)}
                   maxLength={LIMITES.commentaireMax}
                   rows={3}
-                  placeholder="Textes à faire figurer, lieu d’installation (intérieur / extérieur), couleurs…"
+                  placeholder={visuel ? 'Lieu d’installation (intérieur / extérieur), contraintes de pose…' : 'Textes à faire figurer, lieu d’installation (intérieur / extérieur), couleurs…'}
                   className={champ}
                 />
                 <Erreur message={erreurs.commentaire} />
@@ -640,6 +689,7 @@ export default function CommandeBanderole({ initialUsage, initialModele, initial
           {etape === 2 ? (
             <fieldset>
               <legend className="sr-only">Type de prestation</legend>
+              {visuel ? <p className="mb-3 rounded-2xl bg-sable px-4 py-3 text-sm text-encre">Votre visuel est prêt, réalisé avec Elembo Banner Studio. Vous pouvez aussi demander l’aide de notre studio.</p> : null}
               <div className="grid gap-3">
                 {PRESTATIONS.map((p) => (
                   <label key={p.id} className={carte}>
@@ -670,15 +720,33 @@ export default function CommandeBanderole({ initialUsage, initialModele, initial
           {etape === 3 ? (
             <div>
               <p className="text-sm leading-relaxed text-attenue">
-                {prestation === 'FICHIER_PRET'
+                {visuel
+                  ? 'Votre visuel est joint. Vous pouvez ajouter d’autres documents (charte, logo d’origine), c’est facultatif.'
+                  : prestation === 'FICHIER_PRET'
                   ? 'Ajoutez votre fichier prêt à imprimer. Il sera contrôlé avant production.'
                   : prestation === 'CREATION'
                     ? 'Ajoutez photos, logos, textes ou un visuel existant : notre studio s’en sert pour composer votre banderole.'
                     : 'Ajoutez des documents de référence si vous en avez (facultatif).'}
               </p>
+              {!visuel && studioOuvert && prestation === 'FICHIER_PRET' ? (
+                <p className="mt-3 rounded-2xl bg-sable px-4 py-3 text-sm text-encre">
+                  Pas encore de visuel ? <Link href={`/banderoles/studio${usage && ['DEUIL', 'EGLISE', 'PUBLICITE', 'INSTITUTION'].includes(usage) ? `?categorie=${usage}` : '?categorie=TOUS'}`} className="font-semibold underline">Créez-le en ligne avec le Studio</Link>, à partir d’un modèle.
+                </p>
+              ) : null}
+              {visuel ? (
+                <div className="mt-4 flex items-center gap-4 rounded-2xl border border-encre bg-white p-4" data-testid="paquet-studio">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- image locale (blob) */}
+                  <img src={visuel.apercuUrl} alt="" className="max-h-20 w-32 rounded-lg bg-sable object-contain" />
+                  <span className="min-w-0 text-sm">
+                    <span className="block font-semibold text-encre">Visuel Banner Studio</span>
+                    <span className="block truncate text-attenue">{visuel.nom}</span>
+                    <span className="block text-xs text-attenue">{visuel.fichiers.length - 2} image{visuel.fichiers.length - 2 > 1 ? 's' : ''}, le projet et son aperçu · {taille(visuel.fichiers.reduce((s, f) => s + f.size, 0))}</span>
+                  </span>
+                </div>
+              ) : null}
               <label className="mt-4 flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-encre/25 bg-white px-6 py-10 text-center transition-colors hover:border-encre has-[:focus-visible]:outline has-[:focus-visible]:outline-orange">
                 <span className="font-semibold text-encre">Choisir des fichiers</span>
-                <span className="mt-1 text-sm text-attenue">PDF, PNG, JPEG, WEBP ou ZIP · 25 Mo par fichier · 5 fichiers et 50 Mo au total</span>
+                <span className="mt-1 text-sm text-attenue">PDF, PNG, JPEG, WEBP ou ZIP · 25 Mo par fichier · {visuel ? `${MAX_FICHIERS_STUDIO - visuel.fichiers.length} fichiers` : '5 fichiers et 50 Mo au total'}</span>
                 <input
                   type="file"
                   multiple

@@ -29,6 +29,7 @@ export type FichierDevisLigne = {
   chemin: string;
   type_mime: string;
   taille_octets: number;
+  checksum: string | null;
   type_fichier: string;
   verifie: boolean;
   verifie_le: string | null;

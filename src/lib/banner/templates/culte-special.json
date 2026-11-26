@@ -1,0 +1,305 @@
+{
+  "id": "culte-special",
+  "nom": "Culte spécial avec orateur",
+  "categorie": "EGLISE",
+  "description": "Photo de l’orateur à droite, thème et horaires à gauche.",
+  "variables": [
+    {
+      "id": "eglise",
+      "libelle": "Église ou ministère",
+      "exemple": "Église La Grâce — Assemblée centrale",
+      "max": 80,
+      "personnel": true
+    },
+    {
+      "id": "titre",
+      "libelle": "Titre",
+      "exemple": "Culte d’action de grâce",
+      "max": 50
+    },
+    {
+      "id": "theme",
+      "libelle": "Thème ou verset",
+      "exemple": "« Entrez dans ses portes avec des louanges »",
+      "max": 110
+    },
+    {
+      "id": "orateur",
+      "libelle": "Orateur",
+      "exemple": "Avec le pasteur Daniel Loemba",
+      "max": 60,
+      "personnel": true
+    },
+    {
+      "id": "dates",
+      "libelle": "Date, heure et lieu",
+      "exemple": "Dimanche 14 décembre · 9 h · Temple de la Grâce",
+      "max": 90,
+      "personnel": true
+    }
+  ],
+  "document": {
+    "schema": "elembo.banner",
+    "version": 1,
+    "id": "modele-culte-special",
+    "nom": "Culte spécial avec orateur",
+    "creeLe": "2026-11-25T00:00:00.000Z",
+    "modifieLe": "2026-11-25T00:00:00.000Z",
+    "support": "BANDEROLE",
+    "categorie": "EGLISE",
+    "modeleId": "culte-special",
+    "dimensions": {
+      "largeurMm": 3000,
+      "hauteurMm": 1000
+    },
+    "finition": "OEILLETS",
+    "profil": null,
+    "contraintes": {
+      "margeSecuriteMm": 50,
+      "ourletMm": 0,
+      "fondPerduMm": 0,
+      "laizeMaxMm": null,
+      "longueurMaxMm": null,
+      "oeillets": {
+        "actifs": true,
+        "diametreMm": 20,
+        "espacementMm": 500,
+        "margeMm": 30
+      },
+      "fourreaux": {
+        "hautMm": 0,
+        "basMm": 0
+      },
+      "dpiMin": 72,
+      "dpiRecommande": 150,
+      "pageMaxMm": 5080,
+      "modeGrandFormat": "PANNEAUX"
+    },
+    "fond": {
+      "type": "couleur",
+      "couleur": "#0B4A36"
+    },
+    "assets": [
+      {
+        "id": "exemple-portrait",
+        "nom": "Portrait (exemple)",
+        "mime": "image/jpeg",
+        "largeurPx": 1600,
+        "hauteurPx": 2000,
+        "placeholder": true
+      }
+    ],
+    "elements": [
+      {
+        "id": "e1",
+        "nom": "Aplat",
+        "xMm": 2500,
+        "yMm": 500,
+        "largeurMm": 1000,
+        "hauteurMm": 1000,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "rect",
+          "fond": "#0F6B4C",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e2",
+        "nom": "Cadre de la photo",
+        "xMm": 2500,
+        "yMm": 480,
+        "largeurMm": 620,
+        "hauteurMm": 760,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "rect",
+          "fond": "#D9F24A",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e3",
+        "nom": "Photo",
+        "xMm": 2500,
+        "yMm": 480,
+        "largeurMm": 590,
+        "hauteurMm": 730,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "image",
+        "image": {
+          "assetId": "exemple-portrait",
+          "recadrage": {
+            "x": 0,
+            "y": 0,
+            "l": 1,
+            "h": 1
+          },
+          "ajustement": "cover"
+        }
+      },
+      {
+        "id": "e4",
+        "nom": "Église",
+        "xMm": 1080,
+        "yMm": 165,
+        "largeurMm": 1780,
+        "hauteurMm": 72,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{eglise}}",
+          "policeId": "montserrat",
+          "corpsMm": 60,
+          "couleur": "#D9F24A",
+          "alignement": "left",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e5",
+        "nom": "Titre",
+        "xMm": 1080,
+        "yMm": 360,
+        "largeurMm": 1780,
+        "hauteurMm": 228,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{titre}}",
+          "policeId": "playfair-display",
+          "corpsMm": 169,
+          "couleur": "#FBF7EE",
+          "alignement": "left",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e6",
+        "nom": "Filet",
+        "xMm": 540,
+        "yMm": 500,
+        "largeurMm": 700,
+        "hauteurMm": 8,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "forme",
+        "forme": {
+          "nature": "rect",
+          "fond": "#D9F24A",
+          "contour": null,
+          "epaisseurMm": 0,
+          "rayonMm": 0
+        }
+      },
+      {
+        "id": "e7",
+        "nom": "Thème",
+        "xMm": 1080,
+        "yMm": 585,
+        "largeurMm": 1780,
+        "hauteurMm": 93.6,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{theme}}",
+          "policeId": "playfair-display",
+          "corpsMm": 78,
+          "couleur": "#FBF7EE",
+          "alignement": "left",
+          "graisse": 400,
+          "italique": true,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e8",
+        "nom": "Orateur",
+        "xMm": 1080,
+        "yMm": 715,
+        "largeurMm": 1780,
+        "hauteurMm": 100.8,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{orateur}}",
+          "policeId": "montserrat",
+          "corpsMm": 84,
+          "couleur": "#D9F24A",
+          "alignement": "left",
+          "graisse": 700,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      },
+      {
+        "id": "e9",
+        "nom": "Date et lieu",
+        "xMm": 1080,
+        "yMm": 840,
+        "largeurMm": 1780,
+        "hauteurMm": 81.6,
+        "rotationDeg": 0,
+        "opacite": 1,
+        "verrouille": false,
+        "visible": true,
+        "type": "texte",
+        "texte": {
+          "contenu": "{{dates}}",
+          "policeId": "montserrat",
+          "corpsMm": 68,
+          "couleur": "#FBF7EE",
+          "alignement": "left",
+          "graisse": 400,
+          "italique": false,
+          "interlettrageEm": 0,
+          "interligne": 1.2
+        }
+      }
+    ],
+    "qualite": {
+      "distanceLectureM": 3
+    },
+    "meta": {
+      "versionRendu": 1,
+      "createur": "modele"
+    }
+  }
+}

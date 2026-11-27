@@ -51,7 +51,7 @@ describe('profils de production — source unique', () => {
     ]);
     // Les procédés réellement vendus restent distingués des procédés à valider.
     expect(dtf.statut).toBe('disponible');
-    expect(flex.statut).toBe('a-valider');
+    expect(flex.statut).toBe('disponible'); // validé le 27/11/2026
     expect(dtg.statut).toBe('indisponible');
     expect(sublimation.statut).toBe('indisponible');
   });
@@ -93,8 +93,18 @@ describe('statut effectif d’une zone', () => {
   });
 
   it('un procédé « à valider » rend toutes ses zones non commandables', () => {
-    expect(statutZone(flex, 'front')).toBe('a-valider');
-    expect(zoneCommandable(flex, 'front')).toBe(false);
+    // Procédé fictif : le flex tel qu'il était avant sa validation.
+    const flexAValider: ProfilProduction = { ...flex, statut: 'a-valider' };
+    expect(statutZone(flexAValider, 'front')).toBe('a-valider');
+    expect(zoneCommandable(flexAValider, 'front')).toBe(false);
+  });
+
+  it('flex : avant, dos et manches commandables ; col non proposé', () => {
+    for (const side of ['front', 'back', 'left-sleeve', 'right-sleeve'] as const) {
+      expect(zoneCommandable(flex, side), side).toBe(true);
+    }
+    expect(statutZone(flex, 'collar')).toBe('indisponible');
+    expect(empechementsCommande(flex, ['front', 'collar'])).toHaveLength(1);
   });
 
   it('un procédé indisponible rend toutes ses zones indisponibles', () => {

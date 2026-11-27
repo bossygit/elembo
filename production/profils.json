@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "maj": "2026-11-12",
+  "maj": "2026-11-26",
   "note": "SOURCE UNIQUE DES CAPACITÉS DE PRODUCTION. L'atelier 3D laisse composer sur les cinq zones du vêtement ; ce fichier dit ce qui est RÉELLEMENT imprimable, avec quel procédé et à quelle taille. Statuts : « disponible » = commandable ; « a-valider » = prévu mais non confirmé par l'atelier (composition et aperçu possibles, commande bloquée) ; « indisponible » = non proposé. Ne passer une zone ou un procédé à « disponible » qu'après validation par l'atelier ou le prestataire. Repères : « col » = creux du col sur l'axe médian, « epaule » = tête de manche, « haut » = bord haut de la zone. hautCm = distance entre ce repère et le haut de la zone imprimable.",
   "parDefaut": "dtf",
   "notesSupports": "Chaque procédé s'applique à un type de support (champ « supports », « textile » par défaut). Le procédé proposé d'emblée pour un support est donné par « parDefautParSupport ».",
-  "parDefautParSupport": { "textile": "dtf", "mug": "sublimation-mug" },
+  "parDefautParSupport": { "textile": "dtf", "mug": "sublimation-mug", "casquette": "broderie-casquette" },
   "profils": [
     {
       "id": "dtf",
@@ -122,6 +122,38 @@
           "hautCm": 0.4,
           "note": "Tour complet hors zone de l'anse (23,8 × 7,2 cm) : à valider avec l'atelier."
         }
+      }
+    },
+    {
+      "id": "broderie-casquette",
+      "nom": "Broderie",
+      "supports": ["casquette"],
+      "description": "Visuel brodé sur la casquette montée (cadre à casquette) : relief, très résistant. Éviter les dégradés et les textes de moins de 5 mm.",
+      "statut": "a-valider",
+      "note": "Brodeuse avec cadre à casquette et coût de digitalisation à confirmer avec l'atelier.",
+      "dpi": 300,
+      "zones": {
+        "cap-front": { "statut": "a-valider", "largeurCm": 11, "hauteurCm": 5.5, "repere": "haut", "hautCm": 1.4, "note": "Panneau avant : 11 × 5,5 cm, bas du visuel à 1,5 cm de la visière — à valider avec l'atelier." },
+        "cap-left": { "statut": "a-valider", "largeurCm": 6, "hauteurCm": 3.5, "repere": "haut", "hautCm": 2.1, "note": "Côté gauche : 6 × 3,5 cm, à 2 cm du bord — à valider avec l'atelier." },
+        "cap-right": { "statut": "a-valider", "largeurCm": 6, "hauteurCm": 3.5, "repere": "haut", "hautCm": 2.1, "note": "Côté droit : 6 × 3,5 cm, à 2 cm du bord — à valider avec l'atelier." },
+        "cap-back": { "statut": "a-valider", "largeurCm": 7, "hauteurCm": 3, "repere": "haut", "hautCm": 1.8, "note": "Arrière : 7 × 3 cm, 1 cm au-dessus de l'ouverture — à valider avec l'atelier." },
+        "visor": { "statut": "a-valider", "largeurCm": 9, "hauteurCm": 3, "repere": "haut", "hautCm": 1.4, "note": "Dessus de visière : 9 × 3 cm — à valider avec l'atelier." }
+      }
+    },
+    {
+      "id": "transfert-casquette",
+      "nom": "Transfert DTF",
+      "supports": ["casquette"],
+      "description": "Film DTF pressé à chaud sur un plateau courbe : couleurs et dégradés photo possibles, sans relief.",
+      "statut": "a-valider",
+      "note": "Plateau de presse pour casquette à confirmer avec l'atelier.",
+      "dpi": 300,
+      "zones": {
+        "cap-front": { "statut": "a-valider", "largeurCm": 10, "hauteurCm": 6, "repere": "haut", "hautCm": 1.2, "note": "Panneau avant : 10 × 6 cm, bas du visuel à 1,2 cm de la visière — à valider avec l'atelier." },
+        "cap-left": { "statut": "a-valider", "largeurCm": 6, "hauteurCm": 4, "repere": "haut", "hautCm": 1.6, "note": "Côté gauche : 6 × 4 cm — à valider avec l'atelier." },
+        "cap-right": { "statut": "a-valider", "largeurCm": 6, "hauteurCm": 4, "repere": "haut", "hautCm": 1.6, "note": "Côté droit : 6 × 4 cm — à valider avec l'atelier." },
+        "cap-back": { "statut": "a-valider", "largeurCm": 8, "hauteurCm": 3.5, "repere": "haut", "hautCm": 1.5, "note": "Arrière : 8 × 3,5 cm au-dessus de l'ouverture — à valider avec l'atelier." },
+        "visor": { "statut": "a-valider", "largeurCm": 11, "hauteurCm": 3.5, "repere": "haut", "hautCm": 0.9, "note": "Dessus de visière : 11 × 3,5 cm — à valider avec l'atelier." }
       }
     }
   ]

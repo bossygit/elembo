@@ -4,8 +4,9 @@
 //
 // Un PNG transparent est recalculé pour chaque zone personnalisée, à la résolution
 // physique de la zone imprimable et à la densité du procédé (300 dpi en DTF, 150 dpi en
-// sublimation). Les fichiers portent les noms attendus par l'atelier :
-// front.png, back.png, left-sleeve.png, right-sleeve.png, collar.png.
+// sublimation). Les fichiers portent les noms attendus par l'atelier (SIDE_FILE) :
+// front.png, back.png… pour le T-shirt, wrap.png pour le mug, cap-front.png… visor.png
+// pour la casquette.
 //
 // Ce n'est jamais une capture du modèle 3D : le texte est redessiné à la résolution cible
 // et les images sont rééchantillonnées depuis leur fichier d'origine.

@@ -1,0 +1,257 @@
+{
+  "product": "elembo-casquette",
+  "version": "1.0",
+  "units": "meters",
+  "coordinate_system": {
+    "up": "+Y",
+    "front": "+Z",
+    "wearer_left": "+X",
+    "origin": "centre of the base, on the floor"
+  },
+  "dimensions_mm": {
+    "width_x": 225.6,
+    "depth_with_visor": 267.6,
+    "height": 131.6,
+    "head_circumference": 594.0,
+    "crown_height": 98.0,
+    "visor_depth": 73.0,
+    "back_opening": [
+      72.0,
+      52.0
+    ]
+  },
+  "meridiens": {
+    "avant_cm": 17.64,
+    "cote_cm": 15.35,
+    "arriere_cm": 14.13,
+    "haut_ouverture_arriere_cm": 5.42
+  },
+  "uv": {
+    "convention": "TEXCOORD_0 0..1 par zone, isotrope (cm de texture = cm de tissu) ; glTF V = 0 en haut de l'image",
+    "u_increases": "vers la droite de l'observateur qui regarde la zone",
+    "flipY": false
+  },
+  "zones": {
+    "cap-front": {
+      "mesh": "CAP_FRONT_PRINT",
+      "material": "MAT_CAP_PRINT_FRONT",
+      "label": "Panneau avant",
+      "texture_cm": [
+        14.0,
+        8.0
+      ],
+      "recommended_texture_px": [
+        1654,
+        945
+      ],
+      "image_top": "côté sommet",
+      "s_top_cm": 8.4,
+      "s_bottom_cm": 0.4,
+      "s_reference": "base de la calotte, le long du méridien",
+      "center_azimuth_deg": 0.0,
+      "isotropie": {
+        "methode": "écarts pondérés par l'aire ; anisotropie = σmax/σmin du jacobien UV(cm) → surface(cm)",
+        "anisotropie_p50": 1.0329,
+        "anisotropie_p95": 1.0699,
+        "echelle_p05": 0.9574,
+        "echelle_p50": 0.9992,
+        "echelle_p95": 1.0187,
+        "triangles": 5834
+      }
+    },
+    "cap-left": {
+      "mesh": "CAP_LEFT_PRINT",
+      "material": "MAT_CAP_PRINT_LEFT",
+      "label": "Côté gauche",
+      "texture_cm": [
+        10.0,
+        7.0
+      ],
+      "recommended_texture_px": [
+        1181,
+        827
+      ],
+      "image_top": "côté sommet",
+      "s_top_cm": 7.6,
+      "s_bottom_cm": 0.6,
+      "s_reference": "base de la calotte, le long du méridien",
+      "center_azimuth_deg": 90.0,
+      "isotropie": {
+        "methode": "écarts pondérés par l'aire ; anisotropie = σmax/σmin du jacobien UV(cm) → surface(cm)",
+        "anisotropie_p50": 1.0169,
+        "anisotropie_p95": 1.0602,
+        "echelle_p05": 0.9807,
+        "echelle_p50": 1.0039,
+        "echelle_p95": 1.0185,
+        "triangles": 5676
+      }
+    },
+    "cap-right": {
+      "mesh": "CAP_RIGHT_PRINT",
+      "material": "MAT_CAP_PRINT_RIGHT",
+      "label": "Côté droit",
+      "texture_cm": [
+        10.0,
+        7.0
+      ],
+      "recommended_texture_px": [
+        1181,
+        827
+      ],
+      "image_top": "côté sommet",
+      "s_top_cm": 7.6,
+      "s_bottom_cm": 0.6,
+      "s_reference": "base de la calotte, le long du méridien",
+      "center_azimuth_deg": 270.0,
+      "isotropie": {
+        "methode": "écarts pondérés par l'aire ; anisotropie = σmax/σmin du jacobien UV(cm) → surface(cm)",
+        "anisotropie_p50": 1.0169,
+        "anisotropie_p95": 1.0601,
+        "echelle_p05": 0.9807,
+        "echelle_p50": 1.0039,
+        "echelle_p95": 1.0185,
+        "triangles": 5677
+      }
+    },
+    "cap-back": {
+      "mesh": "CAP_BACK_PRINT",
+      "material": "MAT_CAP_PRINT_BACK",
+      "label": "Arrière",
+      "texture_cm": [
+        10.0,
+        5.5
+      ],
+      "recommended_texture_px": [
+        1181,
+        650
+      ],
+      "image_top": "côté sommet",
+      "s_top_cm": 11.1,
+      "s_bottom_cm": 5.6,
+      "s_reference": "base de la calotte, le long du méridien",
+      "center_azimuth_deg": 180.0,
+      "isotropie": {
+        "methode": "écarts pondérés par l'aire ; anisotropie = σmax/σmin du jacobien UV(cm) → surface(cm)",
+        "anisotropie_p50": 1.018,
+        "anisotropie_p95": 1.0398,
+        "echelle_p05": 1.0018,
+        "echelle_p50": 1.0179,
+        "echelle_p95": 1.0271,
+        "triangles": 5300
+      }
+    },
+    "visor": {
+      "mesh": "CAP_VISOR_PRINT",
+      "material": "MAT_CAP_PRINT_VISOR",
+      "label": "Visière",
+      "texture_cm": [
+        16.0,
+        6.0
+      ],
+      "recommended_texture_px": [
+        1890,
+        709
+      ],
+      "image_top": "bord intérieur (côté calotte)",
+      "s_top_cm": 0.6,
+      "s_bottom_cm": 6.6,
+      "s_reference": "bord intérieur de la visière",
+      "center_azimuth_deg": 0.0,
+      "isotropie": {
+        "methode": "écarts pondérés par l'aire ; anisotropie = σmax/σmin du jacobien UV(cm) → surface(cm)",
+        "anisotropie_p50": 1.0137,
+        "anisotropie_p95": 1.0218,
+        "echelle_p05": 0.9951,
+        "echelle_p50": 1.007,
+        "echelle_p95": 1.0149,
+        "triangles": 6112
+      }
+    }
+  },
+  "colors": [
+    {
+      "name": "Noir",
+      "id": "black",
+      "hex": "#1B1B1D"
+    },
+    {
+      "name": "Blanc",
+      "id": "white",
+      "hex": "#F2F1EC"
+    },
+    {
+      "name": "Gris",
+      "id": "grey",
+      "hex": "#8E9093"
+    },
+    {
+      "name": "Bleu marine",
+      "id": "navy",
+      "hex": "#1E2740"
+    },
+    {
+      "name": "Rouge",
+      "id": "red",
+      "hex": "#A8232B"
+    },
+    {
+      "name": "Kaki",
+      "id": "khaki",
+      "hex": "#5B5E3C"
+    },
+    {
+      "name": "Beige",
+      "id": "beige",
+      "hex": "#CDB892"
+    },
+    {
+      "name": "Orange Elembo",
+      "id": "orange",
+      "hex": "#FF5A12"
+    }
+  ],
+  "fabric_materials": [
+    "CAP_FABRIC",
+    "CAP_BUTTON",
+    "CAP_LINING",
+    "CAP_BINDING",
+    "CAP_SWEATBAND",
+    "CAP_VISOR",
+    "CAP_UNDERVISOR",
+    "CAP_STRAP"
+  ],
+  "materials": {
+    "CAP_FABRIC": "calotte (atlas de coutures, surpiqûres et œillets en multiplicateur)",
+    "CAP_BUTTON": "bouton du sommet",
+    "CAP_LINING": "doublure intérieure",
+    "CAP_BINDING": "biais du bord et de l'ouverture arrière",
+    "CAP_SWEATBAND": "bandeau intérieur",
+    "CAP_VISOR": "dessus et tranche de la visière (surpiqûres)",
+    "CAP_UNDERVISOR": "dessous de visière",
+    "CAP_STRAP": "patte de fermeture et pressions",
+    "MAT_CAP_PRINT_FRONT": "impression transparente — Panneau avant",
+    "MAT_CAP_PRINT_LEFT": "impression transparente — Côté gauche",
+    "MAT_CAP_PRINT_RIGHT": "impression transparente — Côté droit",
+    "MAT_CAP_PRINT_BACK": "impression transparente — Arrière",
+    "MAT_CAP_PRINT_VISOR": "impression transparente — Visière"
+  },
+  "triangles": {
+    "CAP_CROWN": 29040,
+    "CAP_LINING": 9840,
+    "CAP_BINDING": 3840,
+    "CAP_SWEATBAND": 2884,
+    "CAP_BUTTON": 960,
+    "CAP_VISOR_TOP": 4400,
+    "CAP_VISOR_BOTTOM": 4400,
+    "CAP_VISOR_EDGE": 1800,
+    "CAP_STRAP": 1152,
+    "CAP_SNAPS": 1568,
+    "CAP_FRONT_PRINT": 5834,
+    "CAP_LEFT_PRINT": 5676,
+    "CAP_RIGHT_PRINT": 5678,
+    "CAP_BACK_PRINT": 5300,
+    "CAP_VISOR_PRINT": 6112
+  },
+  "total_triangles": 88484,
+  "glb_kib": 2700
+}

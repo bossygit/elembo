@@ -31,7 +31,7 @@ import { Bag, Trash } from '../site/Icons';
 
 function zonesPersonnalisees(projet: ProjetSauvegarde): string {
   const zones = [...new Set(projet.config.elements.filter((el) => el.visible !== false).map((el) => el.side))];
-  return zones.length ? zones.map((side) => SIDE_LABELS[side]).join(' · ') : 'T-shirt uni';
+  return zones.length ? zones.map((side) => SIDE_LABELS[side]).join(' · ') : 'Modèle uni';
 }
 
 function couleurNom(projet: ProjetSauvegarde): string {

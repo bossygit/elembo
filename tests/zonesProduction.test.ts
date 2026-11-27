@@ -26,7 +26,16 @@ describe('profils de production — source unique', () => {
   it('le fichier production/profils.json est valide', () => {
     expect(validerProfils()).toEqual([]);
     expect(profilsJson.parDefaut).toBe(PROFIL_PAR_DEFAUT.id);
-    expect(PROFILS.map((p) => p.id)).toEqual(['dtf', 'flex', 'dtg', 'sublimation', 'sublimation-mug', 'sublimation-mug-tour']);
+    expect(PROFILS.map((p) => p.id)).toEqual([
+      'dtf',
+      'flex',
+      'dtg',
+      'sublimation',
+      'sublimation-mug',
+      'sublimation-mug-tour',
+      'broderie-casquette',
+      'transfert-casquette',
+    ]);
     // Les procédés réellement vendus restent distingués des procédés à valider.
     expect(dtf.statut).toBe('disponible');
     expect(flex.statut).toBe('a-valider');
@@ -47,8 +56,10 @@ describe('profils de production — source unique', () => {
   });
 
   it('propose les cinq zones, même quand un procédé n’en autorise que deux', () => {
-    // Les cinq zones du T-shirt (le pourtour `wrap` est celui du mug, hors procédés textiles).
-    const zonesTshirt = SIDES.filter((side) => side !== 'wrap');
+    // Les cinq zones du T-shirt (le pourtour `wrap` du mug et les zones de la casquette
+    // relèvent d'autres procédés).
+    const zonesTshirt = SIDES.filter((side) => ['front', 'back', 'left-sleeve', 'right-sleeve', 'collar'].includes(side));
+    expect(zonesTshirt).toHaveLength(5);
     expect(zonesProposees(dtf)).toEqual(zonesTshirt);
     expect(zonesProposees(dtg)).toEqual(zonesTshirt);
   });

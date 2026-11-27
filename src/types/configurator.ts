@@ -8,12 +8,37 @@
 /**
  * Zone d'impression du produit. Le nom historique `Side` est conservé (il est utilisé
  * partout) ; un T-shirt Elembo en expose cinq, un produit plus simple seulement avant/dos,
- * un mug une seule : son pourtour (`wrap`).
+ * un mug une seule : son pourtour (`wrap`). La casquette a ses zones propres (panneau
+ * avant, côtés, arrière, visière) : leurs gabarits et leurs fichiers ne sont pas ceux du
+ * T-shirt.
  */
-export type Side = 'front' | 'back' | 'left-sleeve' | 'right-sleeve' | 'collar' | 'wrap';
+export type Side =
+  | 'front'
+  | 'back'
+  | 'left-sleeve'
+  | 'right-sleeve'
+  | 'collar'
+  | 'wrap'
+  | 'cap-front'
+  | 'cap-left'
+  | 'cap-right'
+  | 'cap-back'
+  | 'visor';
 
 /** Ordre d'affichage et de production des zones. */
-export const SIDES: Side[] = ['front', 'back', 'left-sleeve', 'right-sleeve', 'collar', 'wrap'];
+export const SIDES: Side[] = [
+  'front',
+  'back',
+  'left-sleeve',
+  'right-sleeve',
+  'collar',
+  'wrap',
+  'cap-front',
+  'cap-left',
+  'cap-right',
+  'cap-back',
+  'visor',
+];
 
 export const SIDE_LABELS: Record<Side, string> = {
   front: 'Face avant',
@@ -22,6 +47,11 @@ export const SIDE_LABELS: Record<Side, string> = {
   'right-sleeve': 'Manche droite',
   collar: 'Intérieur du col',
   wrap: 'Pourtour du mug',
+  'cap-front': 'Panneau avant',
+  'cap-left': 'Côté gauche',
+  'cap-right': 'Côté droit',
+  'cap-back': 'Arrière de la casquette',
+  visor: 'Visière',
 };
 
 /** Libellé court (navigation, pastilles). */
@@ -32,6 +62,11 @@ export const SIDE_SHORT: Record<Side, string> = {
   'right-sleeve': 'Manche D.',
   collar: 'Col',
   wrap: 'Pourtour',
+  'cap-front': 'Avant',
+  'cap-left': 'Côté G.',
+  'cap-right': 'Côté D.',
+  'cap-back': 'Arrière',
+  visor: 'Visière',
 };
 
 /** Nom du fichier de production d'une zone (sans la référence de commande). */
@@ -42,6 +77,11 @@ export const SIDE_FILE: Record<Side, string> = {
   'right-sleeve': 'right-sleeve.png',
   collar: 'collar.png',
   wrap: 'wrap.png',
+  'cap-front': 'cap-front.png',
+  'cap-left': 'cap-left.png',
+  'cap-right': 'cap-right.png',
+  'cap-back': 'cap-back.png',
+  visor: 'visor.png',
 };
 
 export function isSide(value: unknown): value is Side {

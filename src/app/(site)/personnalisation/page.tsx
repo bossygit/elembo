@@ -10,7 +10,7 @@ import { statutPrixProduit } from '../../../lib/tarifs/grille';
 export const metadata: Metadata = {
   title: 'Atelier de personnalisation',
   description:
-    'Composez votre T-shirt ou votre mug Elembo en 3D : zones d’impression, couleur, textes et images. Aperçu temps réel, procédé de production réel, fabrication à Brazzaville.',
+    'Composez votre T-shirt, votre casquette ou votre mug Elembo en 3D : zones d’impression, couleur, textes et images. Aperçu temps réel, procédé de production réel, fabrication à Brazzaville.',
 };
 
 export default function PersonnalisationPage() {
@@ -27,7 +27,7 @@ export default function PersonnalisationPage() {
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-creme/65">
-            <span><strong className="text-creme">T-shirt</strong> · 5 zones · <strong className="text-creme">Mug</strong> · pourtour</span>
+            <span><strong className="text-creme">T-shirt</strong> · <strong className="text-creme">Casquette</strong> · 5 zones · <strong className="text-creme">Mug</strong> · pourtour</span>
             <span aria-hidden className="hidden text-orange sm:inline">✦</span>
             <span><strong className="text-creme">Aperçu 3D</strong> temps réel</span>
             <span aria-hidden className="hidden text-orange sm:inline">✦</span>

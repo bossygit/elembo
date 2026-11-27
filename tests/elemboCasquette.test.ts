@@ -1,6 +1,6 @@
 // Casquette Elembo dans l'atelier 3D : conformité du GLB (surfaces d'impression, UV, matériaux),
 // zones des procédés réellement posées sur le tissu, procédés propres à la casquette, bascule de
-// produit dans le store, broderie commandable et transfert encore bloqué, fiche boutique et
+// produit dans le store, broderie et transfert commandables, fiche boutique et
 // fichier de production.
 
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -225,10 +225,10 @@ describe('casquette Elembo : procédés de production', () => {
     expect(empechementsCommande(broderie, ZONES_CASQUETTE)).toEqual([]);
   });
 
-  it('le transfert DTF sur casquette reste bloqué tant que l’atelier ne l’a pas validé', () => {
+  it('le transfert DTF est commandable sur les cinq zones (validé le 27/11/2026)', () => {
     const transfert = profilParId('transfert-casquette', casquette);
-    expect(zoneCommandable(transfert, 'cap-front')).toBe(false);
-    expect(empechementsCommande(transfert, ['cap-front']).length).toBeGreaterThan(0);
+    for (const side of ZONES_CASQUETTE) expect(zoneCommandable(transfert, side), side).toBe(true);
+    expect(empechementsCommande(transfert, ZONES_CASQUETTE)).toEqual([]);
   });
 });
 

@@ -2,10 +2,12 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import Configurator from '../../../components/configurator/Configurator';
+import { TarifsProvider } from '../../../components/tarifs/TarifsProvider';
 import { ArrowRight } from '../../../components/site/Icons';
 import { Etiquette } from '../../../components/site/ui';
 import { paiementEnLigneOuvert } from '../../../lib/commerce/catalogue';
-import { statutPrixProduit } from '../../../lib/tarifs/grille';
+import { produitFacturable, tarifProduit } from '../../../lib/tarifs/tarifs';
+import { tarifsAffichage } from '../../../server/tarifs/affichage';
 
 export const metadata: Metadata = {
   title: 'Atelier de personnalisation',
@@ -13,8 +15,12 @@ export const metadata: Metadata = {
     'Composez votre T-shirt, votre casquette ou votre mug Elembo en 3D : zones d’impression, couleur, textes et images. Aperçu temps réel, procédé de production réel, fabrication à Brazzaville.',
 };
 
-export default function PersonnalisationPage() {
-  const paiementOuvert = paiementEnLigneOuvert(statutPrixProduit('tshirt-basic'));
+export default async function PersonnalisationPage() {
+  // Prix et frais de livraison de l'admin, transmis à l'atelier (page régénérée à chaque
+  // modification de prix : étiquette `tarifs`).
+  const tarifs = await tarifsAffichage();
+  const tshirt = tarifProduit(tarifs, 'tshirt-basic');
+  const paiementOuvert = produitFacturable(tshirt) || paiementEnLigneOuvert('provisoire');
 
   return (
     <>
@@ -53,7 +59,9 @@ export default function PersonnalisationPage() {
         </div>
       </section>
 
-      <Configurator />
+      <TarifsProvider tarifs={tarifs}>
+        <Configurator />
+      </TarifsProvider>
     </>
   );
 }

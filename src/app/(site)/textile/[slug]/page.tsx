@@ -6,7 +6,8 @@ import { notFound } from 'next/navigation';
 import { ArrowRight, Check } from '@/components/site/Icons';
 import PrintIllustration from '@/components/site/PrintIllustration';
 import { BoutonLien, Etiquette } from '@/components/site/ui';
-import { PRODUITS_VITRINE } from '@/lib/commerce/catalogue';
+import { PRODUITS_VITRINE, vitrineAvecTarifs } from '@/lib/commerce/catalogue';
+import { tarifsAffichage } from '@/server/tarifs/affichage';
 import { asset } from '@/lib/site/asset';
 
 type Contexte = { params: Promise<{ slug: string }> };
@@ -31,9 +32,11 @@ export async function generateMetadata({ params }: Contexte): Promise<Metadata> 
 
 export default async function PageProduitTextile({ params }: Contexte) {
   const { slug } = await params;
-  const p = produit(slug);
-  if (!p || !p.fiche) notFound();
-  const fiche = p.fiche;
+  const brut = produit(slug);
+  if (!brut || !brut.fiche) notFound();
+  // Prix fixé dans l'admin : page régénérée dès qu'un prix change (étiquette `tarifs`).
+  const [p] = vitrineAvecTarifs(await tarifsAffichage(), [brut]);
+  const fiche = brut.fiche;
   const lienDevis = `/devis?famille=TEXTILE&produit=${encodeURIComponent(p.id)}`;
   // L'atelier s'ouvre sur le produit de la fiche (T-shirt, casquette…), pas sur le produit par défaut.
   const lienAtelier = fiche.produit3DId

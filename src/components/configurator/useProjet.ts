@@ -28,6 +28,8 @@ import type { ProjetSauvegarde } from '../../lib/projects/project-storage';
 import type { DesignElement } from '../../types/configurator';
 import { apercuProjet } from '../../lib/projects/preview';
 import { useElementImages } from './useElementImages';
+import { tarifProduit } from '../../lib/tarifs/tarifs';
+import { useTarifs } from '../tarifs/TarifsProvider';
 
 export type MessageProjet = { ton: 'ok' | 'erreur'; texte: string } | null;
 
@@ -74,6 +76,12 @@ export function useProjet() {
   useEffect(() => {
     imagesRef.current = images;
   }, [images]);
+  // Prix courant (admin) conservé avec le projet pour l'affichage du panier.
+  const tarifs = useTarifs();
+  const tarifsRef = useRef(tarifs);
+  useEffect(() => {
+    tarifsRef.current = tarifs;
+  }, [tarifs]);
 
   const [pret, setPret] = useState(false);
   const [message, setMessage] = useState<MessageProjet>(null);
@@ -126,7 +134,7 @@ export function useProjet() {
         creeLe: creeLe.current,
         modifieLe: maintenant(),
         config: state.serialize(),
-        prixFcfa: product?.priceFcfa ?? null,
+        prixFcfa: tarifProduit(tarifsRef.current, state.productId)?.prixFcfa ?? null,
       };
       ecrireBrouillon(projet);
     }, 900);
@@ -155,7 +163,7 @@ export function useProjet() {
         modifieLe: maintenant(),
         config,
         ...(apercu ? { apercu } : {}),
-        prixFcfa: product.priceFcfa ?? null,
+        prixFcfa: tarifProduit(tarifsRef.current, product.id)?.prixFcfa ?? null,
       };
     },
     [],

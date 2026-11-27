@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Studio from '../../../components/Studio';
+import { TarifsProvider } from '../../../components/tarifs/TarifsProvider';
+import { tarifsAffichage } from '../../../server/tarifs/affichage';
 
 export const metadata: Metadata = {
   title: 'Elembo — Studio 2D (photo de mockup)',
@@ -8,7 +10,9 @@ export const metadata: Metadata = {
     'Composez votre visuel sur une photo de produit : t-shirt, casquette ou tableau, avec zone d’impression, rotation et contrôle de la qualité. Par Smart Vision Congo.',
 };
 
-export default function StudioPage() {
+export default async function StudioPage() {
+  // Frais de livraison de l'admin (étiquette `tarifs`) ; le barème des tableaux reste dans la grille.
+  const tarifs = await tarifsAffichage();
   return (
     <main className="flex-1">
       <section className="border-b border-neutral-200 bg-[#FEFCF6]">
@@ -36,7 +40,9 @@ export default function StudioPage() {
         </div>
       </section>
 
-      <Studio />
+      <TarifsProvider tarifs={tarifs}>
+        <Studio />
+      </TarifsProvider>
 
       <section className="border-t border-neutral-200 bg-neutral-50">
         <div className="mx-auto w-full max-w-5xl px-4 py-10">

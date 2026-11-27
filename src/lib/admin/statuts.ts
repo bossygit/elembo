@@ -183,6 +183,7 @@ export function estModePaiement(valeur: unknown): valeur is ModePaiement {
 
 export const FAMILLES = [
   { id: 'TEXTILE', label: 'Textile' },
+  { id: 'OBJETS', label: 'Objets' },
   { id: 'TABLEAUX', label: 'Tableaux' },
   { id: 'IMPRESSION', label: 'Impression' },
   { id: 'SERVICES', label: 'Services' },

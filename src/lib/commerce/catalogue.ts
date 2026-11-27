@@ -1,7 +1,9 @@
 /**
  * Catalogue de la VITRINE — une vue commerciale, pas une seconde source de prix.
  *
- * Les montants viennent toujours de `tarifs/grille.json` (via `src/lib/tarifs/grille.ts`).
+ * Les prix des produits du configurateur (T-shirts, casquette, mug) viennent de l'ADMIN : les
+ * entrées portent un `tarifId`, et les pages recalculent leur prix avec les tarifs courants
+ * (`vitrineAvecTarifs`). Le barème des tableaux reste dans `tarifs/grille.json`.
  * La règle qui compte : un prix `test` ou `provisoire` n'est **jamais** affiché comme un prix
  * public. On affiche « Prix sur demande » et on oriente vers le devis. C'est ce qui empêche un
  * tarif de travail de devenir, par omission, le prix de vente.
@@ -13,12 +15,8 @@
 import { CAP_PRODUCT_ID, CATALOG } from '../products/catalog';
 import { lienWhatsApp, MESSAGES_WHATSAPP } from '../site/marque';
 import { FORMATS, prixUnitaireFcfa } from '../products/tableaux';
-import {
-  prixProduit,
-  statutPrixProduit,
-  statutPrixTableaux,
-  type StatutPrix,
-} from '../tarifs/grille';
+import { statutPrixTableaux, type StatutPrix } from '../tarifs/grille';
+import { tarifProduit, tarifsDepuisGrille, type Tarifs } from '../tarifs/tarifs';
 
 export type FamilleId = 'textile' | 'objets' | 'tableaux' | 'impression' | 'services';
 
@@ -120,10 +118,22 @@ export type ProduitVitrine = {
   gamme?: Gamme;
   /** Fiche commerciale détaillée pour les produits textile. */
   fiche?: FicheTextile;
+  /** Produit dont le prix est fixé dans l'admin (même identifiant que la table `produits`). */
+  tarifId?: string;
 };
 
-const tshirtRaglan = CATALOG.find((p) => p.id === 'tshirt-basic');
-const tshirtColRond = CATALOG.find((p) => p.id === 'tshirt-alt');
+/**
+ * Prix affiché d'un produit selon les tarifs courants. Un produit désactivé ou indisponible
+ * dans l'admin, ou dont le prix n'est pas validé, est « sur demande ».
+ */
+export function prixDuTarif(tarifs: Tarifs, id: string): PrixVitrine {
+  const t = tarifProduit(tarifs, id);
+  if (!t) return prixVitrine(null, 'provisoire');
+  return prixVitrine(t.vendable ? t.prixFcfa : null, t.statutPrix);
+}
+
+/** Valeur de départ (grille du dépôt) ; les pages la remplacent par `vitrineAvecTarifs`. */
+const prixDepart = (id: string) => prixDuTarif(tarifsDepuisGrille(), id);
 const casquette = CATALOG.find((p) => p.id === CAP_PRODUCT_ID);
 const tableauPetit = FORMATS[0];
 
@@ -140,7 +150,8 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
     image: { src: '/mockups/tshirt-studio.jpg', alt: 'T-shirt blanc personnalisable, photographié en studio' },
     href: '/textile/tshirt-basic',
     cta: 'Voir la fiche produit',
-    prix: prixVitrine(tshirtRaglan ? prixProduit(tshirtRaglan.id) : null, statutPrixProduit('tshirt-basic')),
+    tarifId: 'tshirt-basic',
+    prix: prixDepart('tshirt-basic'),
     fiche: {
       variantes: ['Coupe unisexe', 'Manches courtes raglan'],
       tailles: ['S', 'M', 'L', 'XL', '2XL', '3XL'],
@@ -171,7 +182,8 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
     image: { src: '/mockups/tshirt-cintre.jpg', alt: 'T-shirt col rond blanc sur cintre' },
     href: '/textile/tshirt-alt',
     cta: 'Voir la fiche produit',
-    prix: prixVitrine(tshirtColRond ? prixProduit(tshirtColRond.id) : null, statutPrixProduit('tshirt-alt')),
+    tarifId: 'tshirt-alt',
+    prix: prixDepart('tshirt-alt'),
     fiche: {
       variantes: ['Col rond', 'Coupe unisexe'],
       tailles: ['S', 'M', 'L', 'XL', '2XL', '3XL'],
@@ -338,7 +350,8 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
     },
     href: `/textile/${CAP_PRODUCT_ID}`,
     cta: 'Voir la fiche produit',
-    prix: prixVitrine(null, 'provisoire'),
+    tarifId: CAP_PRODUCT_ID,
+    prix: prixDepart(CAP_PRODUCT_ID),
     badge: 'Nouveau',
     fiche: {
       variantes: ['6 panneaux structurée', 'Visière pré-courbée', 'Fermeture snapback'],
@@ -391,7 +404,8 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
     // Ouvre l'atelier 3D directement sur le mug (même identifiant dans le configurateur).
     href: '/personnalisation?produit=mug-personnalise',
     cta: 'Personnaliser en 3D',
-    prix: prixVitrine(null, 'provisoire'),
+    tarifId: 'mug-personnalise',
+    prix: prixDepart('mug-personnalise'),
     badge: 'Nouveau',
   },
   {
@@ -560,3 +574,8 @@ export const SERVICES_ENTREPRISE = [
     exemples: ['Restaurants', 'Écoles', 'Commerces'],
   },
 ];
+
+/** Vitrine aux tarifs courants : seules les entrées `tarifId` changent de prix. */
+export function vitrineAvecTarifs(tarifs: Tarifs, produits: ProduitVitrine[] = PRODUITS_VITRINE): ProduitVitrine[] {
+  return produits.map((p) => (p.tarifId ? { ...p, prix: prixDuTarif(tarifs, p.tarifId) } : p));
+}

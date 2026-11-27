@@ -10,6 +10,7 @@ import { ErreurConfig, lireConfig } from './config';
 import { creerClientMock } from './mock-mtn';
 import { creerClientMomo } from './mtn';
 import { creerGestionnaire, type Gestionnaire } from './service';
+import { tarifsServeur } from '@/server/tarifs/base';
 import {
   StoreFichier,
   StoreMemoire,
@@ -72,7 +73,8 @@ async function construire(): Promise<Gestionnaire> {
           callbackUrl: config.callbackUrl,
         });
 
-  return creerGestionnaire({ config, client, store });
+  // Prix et frais de livraison : relus dans l'admin à chaque paiement (jamais mis en cache).
+  return creerGestionnaire({ config, client, store, chargerTarifs: tarifsServeur });
 }
 
 async function ouvrirStore(stockage: ReturnType<typeof lireConfig>['stockage']): Promise<JournalTransactions> {

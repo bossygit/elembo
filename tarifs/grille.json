@@ -1,12 +1,14 @@
 {
   "version": 1,
   "statut": "T-shirts et livraison à 100 FCFA validés par l'exploitant pour la période de présentation (paiement MoMo ouvert) ; tableaux encore PROVISOIRES",
-  "maj": "2026-11-10",
+  "maj": "2026-11-27",
   "devise": "XAF",
-  "note": "SOURCE UNIQUE DES PRIX. L'application (export statique) lit ce fichier à la compilation, le service de paiement le lit à son démarrage : une seule valeur à corriger, et le montant affiché est forcément celui que le service recalcule. Un fichier vide de sens ici = commande refusée, jamais un montant inventé.",
+  "note": "PRIX DES PRODUITS ET FRAIS DE LIVRAISON : la source de vérité est le TABLEAU DE BORD (Supabase, table « produits » et paramètre « livraison ») ; le site et le paiement les lisent à l'exécution. Les sections « produits » et « livraison » de ce fichier ne servent qu'au développement local et aux tests (Supabase non configuré) et reprennent les valeurs de départ. Le barème des TABLEAUX reste ici (source unique, lu par le site et le paiement). Un prix vide de sens = commande refusée, jamais un montant inventé.",
   "produits": [
     { "id": "tshirt-basic", "nom": "T-Shirt raglan", "prixFcfa": 100, "statutPrix": "valide" },
-    { "id": "tshirt-alt", "nom": "T-Shirt col rond", "prixFcfa": 100, "statutPrix": "valide" }
+    { "id": "tshirt-alt", "nom": "T-Shirt col rond", "prixFcfa": 100, "statutPrix": "valide" },
+    { "id": "casquette-personnalisee", "nom": "Casquette Elembo", "prixFcfa": 2000, "statutPrix": "valide" },
+    { "id": "mug-personnalise", "nom": "Mug Elembo 330 ml", "prixFcfa": null, "statutPrix": "provisoire" }
   ],
   "livraison": {
     "statutPrix": "valide",

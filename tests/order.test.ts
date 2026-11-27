@@ -11,6 +11,7 @@ import {
   placementCm,
   productionSheetText,
   totalQuantity,
+  optionsLivraison,
 } from '../src/lib/order/order';
 import type { SizeLine } from '../src/lib/order/order';
 import { CATALOG, getPrintArea, getProductById } from '../src/lib/products/catalog';
@@ -18,6 +19,7 @@ import { compositionSize } from '../src/lib/canvas/design-canvas';
 import type { Measurer } from '../src/lib/canvas/design-canvas';
 import type { ImageElement, TextElement } from '../src/types/configurator';
 import { DEFAULT_FONT_ID } from '../src/lib/fonts';
+import { tarifProduit, tarifsDepuisGrille } from '../src/lib/tarifs/tarifs';
 
 const mesureur: Measurer = (text, font) => {
   const taille = Number(/(\d+(?:\.\d+)?)px/.exec(font)?.[1] ?? 16);
@@ -282,17 +284,29 @@ describe('fiche de production', () => {
 });
 
 describe('le catalogue permet de commander', () => {
-  it('chaque produit vendable a un prix unitaire en FCFA', () => {
-    // Les produits « sur devis » (mug) n'ont volontairement pas de prix : voir coherenceCatalogues.
-    for (const p of CATALOG.filter((produit) => produit.venteEnLigne !== false)) {
-      expect(typeof p.priceFcfa, `prix manquant pour ${p.id}`).toBe('number');
-      expect(p.priceFcfa).toBeGreaterThan(0);
+  // Prix de repli (grille) : en production, les tarifs de l'admin sont passés aux mêmes fonctions.
+  const tarifs = tarifsDepuisGrille();
+
+  it('chaque produit au prix validé a un prix unitaire en FCFA', () => {
+    for (const p of CATALOG.filter((produit) => tarifProduit(tarifs, produit.id)?.statutPrix === 'valide')) {
+      const prix = tarifProduit(tarifs, p.id)?.prixFcfa;
+      expect(typeof prix, `prix manquant pour ${p.id}`).toBe('number');
+      expect(prix).toBeGreaterThan(0);
     }
   });
 
   it('une pièce du produit par défaut donne un total validable', () => {
-    const t = orderTotals({ lines: [{ size: 'M', quantity: 1 }], unitPriceFcfa: product.priceFcfa ?? null, city: 'brazzaville' });
+    const prix = tarifProduit(tarifs, product.id)?.prixFcfa ?? null;
+    const livraisons = optionsLivraison(tarifs);
+    const t = orderTotals({ lines: [{ size: 'M', quantity: 1 }], unitPriceFcfa: prix, city: 'brazzaville', delivery: livraisons });
     expect(t.blockedBy).toEqual([]);
-    expect(t.totalFcfa).toBe((product.priceFcfa ?? 0) + deliveryOption('brazzaville').feeFcfa!);
+    expect(t.totalFcfa).toBe((prix ?? 0) + deliveryOption('brazzaville', livraisons).feeFcfa!);
+  });
+
+  it('applique les frais de livraison fournis (admin) plutôt que ceux de la grille', () => {
+    const livraisons = [{ city: 'brazzaville', label: 'Brazzaville', feeFcfa: 1500, maxDays: 3 }];
+    const t = orderTotals({ lines: [{ size: 'M', quantity: 2 }], unitPriceFcfa: 2000, city: 'brazzaville', delivery: livraisons });
+    expect(t.totalFcfa).toBe(2 * 2000 + 1500);
   });
 });
+

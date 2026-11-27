@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 
 import Studio from '../../../components/Studio';
+import { TarifsProvider } from '../../../components/tarifs/TarifsProvider';
+import { tarifsAffichage } from '../../../server/tarifs/affichage';
 import { Etiquette } from '../../../components/site/ui';
 
 export const metadata: Metadata = {
@@ -9,7 +11,9 @@ export const metadata: Metadata = {
     'Personnalisez un tableau canvas : cinq formats, toile seule ou montée sur châssis, contrôle de la résolution de votre photo. Impression à Brazzaville.',
 };
 
-export default function TableauPage() {
+export default async function TableauPage() {
+  // Frais de livraison de l'admin (étiquette `tarifs`) ; le barème des tableaux reste dans la grille.
+  const tarifs = await tarifsAffichage();
   return (
     <>
       <section className="border-b border-filet">
@@ -28,7 +32,9 @@ export default function TableauPage() {
         </div>
       </section>
 
-      <Studio initialProductId="tableau" />
+      <TarifsProvider tarifs={tarifs}>
+        <Studio initialProductId="tableau" />
+      </TarifsProvider>
     </>
   );
 }

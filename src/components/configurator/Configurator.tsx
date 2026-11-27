@@ -31,6 +31,8 @@ import UploadDesign from './UploadDesign';
 import ZoneEditor from './ZoneEditor';
 import ZoneRail from './ZoneRail';
 import { useProjet } from './useProjet';
+import { tarifProduit } from '../../lib/tarifs/tarifs';
+import { useTarifs } from '../tarifs/TarifsProvider';
 
 // La 3D n'est jamais rendue côté serveur (WebGL, window) : import dynamique sans SSR.
 // Le reste de la page est interactif immédiatement : le GLB ne bloque pas l'interface.
@@ -97,6 +99,7 @@ export default function Configurator() {
     assetStoreDisponible,
     () => false,
   );
+  const tarifs = useTarifs();
   const projet = useProjet();
 
   const product = getProductById(productId);
@@ -104,7 +107,7 @@ export default function Configurator() {
   const zones = productSides(product);
   const faces = facesToProduce({ elements });
   const nbZonesPersonnalisees = faces.length;
-  const prix = product?.priceFcfa ?? null;
+  const prix = tarifProduit(tarifs, productId)?.prixFcfa ?? null;
   const couleurNom = product?.colors.find((c) => c.hex.toLowerCase() === color.toLowerCase())?.name ?? color;
 
   // Depuis le panier, « Commander » renvoie vers /personnalisation#commande : on ouvre

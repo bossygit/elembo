@@ -17,6 +17,7 @@ export type EntiteAuditee =
   | 'produit'
   | 'variante'
   | 'categorie'
+  | 'parametre'
   | 'client'
   | 'devis'
   | 'production'

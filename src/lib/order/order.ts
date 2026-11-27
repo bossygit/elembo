@@ -15,7 +15,7 @@ import type { PrintArea, Product } from '../products/catalog';
 import { getPrintArea, productSides } from '../products/catalog';
 import { profilParId } from '../products/production';
 import type { ProfilProduction } from '../products/production';
-import { GRILLE, villesLivraison } from '../tarifs/grille';
+import { tarifsDepuisGrille, type Tarifs } from '../tarifs/tarifs';
 import { compositionSize, elementRect, elementsOfSide, printAreaRect, productionTextureSize } from '../canvas/design-canvas';
 import type { Measurer, CanvasSpace } from '../canvas/design-canvas';
 import { resolveFont } from '../fonts';
@@ -23,15 +23,15 @@ import { resolveFont } from '../fonts';
 /* -------------------------------------------------------------- livraison ------ */
 
 /**
- * Villes desservies — lues dans la SOURCE UNIQUE des prix (`tarifs/grille.json`), comme le
- * service de paiement. `fraisFcfa: null` reste possible pour une ville dont le tarif n'est pas
- * encore arbitré : la commande est alors bloquée au lieu d'être facturée au hasard.
+ * Villes desservies et frais de livraison — fixés dans l'ADMIN (paramètre `livraison`) et lus
+ * par le serveur, comme le paiement : voir src/lib/tarifs/tarifs.ts. `feeFcfa: null` reste
+ * possible pour une ville dont le tarif n'est pas encore arbitré : la commande est alors
+ * bloquée au lieu d'être facturée au hasard.
  *
- * Les tarifs affichés sont PROVISOIRES : 100 FCFA pour les deux villes, décidé le 06/10/2026
- * pour les essais de paiement réel entre collègues. Les tarifs arbitrés à rétablir ensuite sont
- * Brazzaville 1 000 FCFA et Pointe-Noire 2 000 FCFA — à corriger dans `tarifs/grille.json`.
+ * Les fonctions prennent la liste des options en paramètre ; sans elle, la grille du dépôt
+ * (`DELIVERY`) sert de repli — tests et développement local uniquement.
  */
-export type DeliveryCity = 'brazzaville' | 'pointe-noire';
+export type DeliveryCity = string;
 
 export type DeliveryOption = {
   city: DeliveryCity;
@@ -42,23 +42,33 @@ export type DeliveryOption = {
   maxDays: number;
 };
 
-export const DELIVERY: DeliveryOption[] = villesLivraison().map((v) => ({
-  city: v.id as DeliveryCity,
-  label: v.nom,
-  feeFcfa: v.fraisFcfa,
-  maxDays: GRILLE.livraison.delaiMaxJours,
-}));
+/** Options de livraison des tarifs courants. */
+export function optionsLivraison(tarifs: Tarifs): DeliveryOption[] {
+  return tarifs.livraison.villes.map((v) => ({
+    city: v.id,
+    label: v.nom,
+    feeFcfa: v.fraisFcfa,
+    maxDays: tarifs.livraison.delaiMaxJours,
+  }));
+}
 
-export function deliveryOption(city: DeliveryCity): DeliveryOption {
-  return DELIVERY.find((d) => d.city === city) ?? DELIVERY[0];
+/** Options de la grille du dépôt : repli des tests et du développement local. */
+export const DELIVERY: DeliveryOption[] = optionsLivraison(tarifsDepuisGrille());
+
+export function deliveryOption(city: DeliveryCity, options: DeliveryOption[] = DELIVERY): DeliveryOption {
+  return options.find((d) => d.city === city) ?? options[0];
 }
 
 /**
  * Délai de livraison estimé : il varie avec la quantité, mais **jamais plus de 3 jours**
  * (engagement validé). Le palier est volontairement simple et lisible pour le client.
  */
-export function deliveryDays(quantity: number, city: DeliveryCity = 'brazzaville'): number {
-  const max = deliveryOption(city).maxDays;
+export function deliveryDays(
+  quantity: number,
+  city: DeliveryCity = 'brazzaville',
+  options: DeliveryOption[] = DELIVERY,
+): number {
+  const max = deliveryOption(city, options).maxDays;
   const q = Math.max(1, Math.floor(quantity));
   const jours = q <= 5 ? 1 : q <= 20 ? 2 : 3;
   return Math.min(jours, max);
@@ -92,14 +102,17 @@ export function orderTotals(params: {
   lines: SizeLine[];
   unitPriceFcfa: number | null;
   city: DeliveryCity;
+  /** Options de livraison des tarifs courants (défaut : grille du dépôt). */
+  delivery?: DeliveryOption[];
 }): OrderTotals {
   const quantity = totalQuantity(params.lines);
-  const shipping = deliveryOption(params.city).feeFcfa;
+  const option = deliveryOption(params.city, params.delivery);
+  const shipping = option ? option.feeFcfa : null;
   const blockedBy: string[] = [];
 
   if (quantity <= 0) blockedBy.push('aucune quantité saisie');
   if (params.unitPriceFcfa === null) blockedBy.push('prix unitaire du produit non défini dans le catalogue');
-  if (shipping === null) blockedBy.push(`frais de livraison à confirmer pour ${deliveryOption(params.city).label}`);
+  if (shipping === null) blockedBy.push(`frais de livraison à confirmer pour ${option?.label ?? params.city}`);
 
   const subtotal = params.unitPriceFcfa === null ? null : params.unitPriceFcfa * quantity;
   const total = subtotal === null || shipping === null ? null : subtotal + shipping;
@@ -296,6 +309,8 @@ export type OrderDraft = {
   color: string;
   lines: SizeLine[];
   city: DeliveryCity;
+  /** Options de livraison des tarifs courants (défaut : grille du dépôt). */
+  delivery?: DeliveryOption[];
   /** Prix unitaire TTC en FCFA, hors livraison. */
   unitPriceFcfa: number | null;
   elements: DesignElement[];
@@ -313,7 +328,12 @@ export function facesToProduce(order: Pick<OrderDraft, 'elements'>): Side[] {
 
 export function buildProductionSheet(order: OrderDraft, date = new Date()): ProductionSheet {
   const faces: ProductionFace[] = [];
-  const totals = orderTotals({ lines: order.lines, unitPriceFcfa: order.unitPriceFcfa, city: order.city });
+  const totals = orderTotals({
+    lines: order.lines,
+    unitPriceFcfa: order.unitPriceFcfa,
+    city: order.city,
+    delivery: order.delivery,
+  });
   const profil: ProfilProduction = profilParId(order.profileId, order.product);
 
   for (const side of facesToProduce(order)) {
@@ -348,9 +368,9 @@ export function buildProductionSheet(order: OrderDraft, date = new Date()): Prod
     profil: { id: profil.id, nom: profil.nom, dpi: profil.dpi },
     tailleEtQuantite: { lignes: order.lines, total: totals.quantity },
     livraison: {
-      ville: deliveryOption(order.city).label,
+      ville: deliveryOption(order.city, order.delivery).label,
       fraisFcfa: totals.shippingFcfa,
-      delaiJours: deliveryDays(totals.quantity, order.city),
+      delaiJours: deliveryDays(totals.quantity, order.city, order.delivery),
     },
     paiement: { moyen: 'MTN Mobile Money (MoMo)', devise: 'FCFA', montantFcfa: totals.totalFcfa },
     faces,

@@ -24,7 +24,6 @@
 //             tissu est portée par ses matériaux (FABRIC, FABRIC_RIB). La zone réellement
 //             imprimable dépend du procédé choisi (src/lib/products/production.ts).
 
-import { prixProduit } from '../tarifs/grille';
 import type { Side } from '../../types/configurator';
 import { SIDES } from '../../types/configurator';
 import { profilParId, profilsDuProduit } from './production';
@@ -123,17 +122,11 @@ export type Product = {
   tailles?: boolean;
   /** Encre brillante (mug émaillé) : la finition du GLB est conservée, pas matifiée. */
   impressionBrillante?: boolean;
-  /**
-   * `false` : produit composable dans l'atelier mais pas encore vendu en ligne (pas de prix
-   * dans tarifs/grille.json) — commande sur devis ou WhatsApp, jamais par MoMo.
-   */
-  venteEnLigne?: boolean;
   colors: ColorOption[];
-  /**
-   * Prix unitaire TTC en FCFA, hors livraison. Laisser vide tant qu'il n'est pas arbitré :
-   * le tunnel de commande refuse alors de valider plutôt que d'afficher un montant inventé.
+  /*
+   * PRIX : jamais dans le catalogue. Le prix de vente et son statut sont dans l'admin (table
+   * `produits`, même identifiant), servis par src/server/tarifs — voir src/lib/tarifs/tarifs.ts.
    */
-  priceFcfa?: number | null;
   /** Zones fixes ('uv', 'decal'). Pour 'zones', elles sont calculées selon le procédé. */
   printAreas: Partial<Record<Side, PrintArea>>;
 };
@@ -271,8 +264,6 @@ export const CATALOG: Product[] = [
     technique: 'zones',
     zones: ELEMBO_TSHIRT_ZONES,
     fabricMaterials: ['FABRIC', 'FABRIC_RIB'],
-    // PRIX : source unique tarifs/grille.json (prix de test validé par l'exploitant).
-    priceFcfa: prixProduit('tshirt-basic'),
     // Couleurs du modèle (mêmes valeurs que les extras du GLB).
     colors: [
       { name: 'Blanc', hex: '#F4F3EF' },
@@ -288,8 +279,8 @@ export const CATALOG: Product[] = [
   },
   {
     // Même identifiant que la fiche vitrine (src/lib/commerce/catalogue.ts) : le lien de la
-    // boutique ouvre l'atelier sur ce produit. Aucun prix dans tarifs/grille.json → « Prix sur
-    // demande » et paiement en ligne fermé, sans montant inventé.
+    // boutique ouvre l'atelier sur ce produit. Son prix est fixé dans l'admin ; tant qu'il n'est
+    // pas validé : « Prix sur demande » et paiement en ligne fermé, sans montant inventé.
     id: MUG_PRODUCT_ID,
     name: 'Mug Elembo 330 ml',
     modelUrl: `${MODEL_DIR}/elembo-mug/elembo-mug.glb`,
@@ -297,11 +288,9 @@ export const CATALOG: Product[] = [
     support: 'mug',
     tailles: false,
     impressionBrillante: true,
-    venteEnLigne: false,
     zones: ELEMBO_MUG_ZONES,
     // Toute la céramique prend la couleur choisie ; l'impression (MAT_MUG_PRINT) jamais.
     fabricMaterials: ['MAT_MUG_CERAMIC', 'MAT_MUG_INTERIOR', 'MAT_MUG_HANDLE', 'MAT_MUG_BOTTOM'],
-    priceFcfa: prixProduit(MUG_PRODUCT_ID),
     // Couleurs du modèle (assets/3d/elembo-mug/zones.json).
     colors: [
       { name: 'Blanc', hex: '#F4F1EA' },
@@ -317,15 +306,13 @@ export const CATALOG: Product[] = [
   },
   {
     // Même identifiant que la fiche vitrine (src/lib/commerce/catalogue.ts). Taille unique
-    // réglable (patte snapback) : commande en quantité seule. Aucun prix dans
-    // tarifs/grille.json → devis ou WhatsApp, jamais MoMo, tant que l'atelier n'a pas validé.
+    // réglable (patte snapback) : commande en quantité seule. Prix fixé dans l'admin.
     id: CAP_PRODUCT_ID,
     name: 'Casquette Elembo',
     modelUrl: `${MODEL_DIR}/elembo-casquette/elembo-casquette.glb`,
     technique: 'zones',
     support: 'casquette',
     tailles: false,
-    venteEnLigne: false,
     zones: ELEMBO_CAP_ZONES,
     // Toute la casquette prend la couleur choisie (calotte, visière, doublure, patte) ; les
     // surfaces d'impression (MAT_CAP_PRINT_*) jamais.
@@ -339,7 +326,6 @@ export const CATALOG: Product[] = [
       'CAP_UNDERVISOR',
       'CAP_STRAP',
     ],
-    priceFcfa: prixProduit(CAP_PRODUCT_ID),
     // Couleurs du modèle (assets/3d/elembo-casquette/zones.json).
     colors: [
       { name: 'Noir', hex: '#1B1B1D' },
@@ -361,7 +347,6 @@ export const CATALOG: Product[] = [
     modelUrl: `${MODEL_DIR}/tshirt-alt/tshirt.glb`,
     technique: 'decal',
     unitToCm: 100, // 1 unité = 1 mètre (65,3 × 70,2 cm mesurés sur le maillage)
-    priceFcfa: prixProduit('tshirt-alt'), // même prix de test que le raglan (voir tarifs/grille.json)
     colors: [
       { name: 'Blanc', hex: '#FFFFFF' },
       { name: 'Noir', hex: '#1A1A1A' },

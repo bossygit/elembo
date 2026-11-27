@@ -26,6 +26,7 @@ import { useConfiguratorStore } from '../src/stores/configurator-store';
 import { PRODUITS_VITRINE } from '../src/lib/commerce/catalogue';
 import { buildProductionSheet, productionSheetText } from '../src/lib/order/order';
 import type { Measurer } from '../src/lib/canvas/design-canvas';
+import { tarifProduit, tarifsDepuisGrille } from '../src/lib/tarifs/tarifs';
 
 const parseur = (await import('../scripts/glb-zones.mjs')) as unknown as {
   readGlb: (path: string) => { json: GlbJson; bin: Buffer };
@@ -101,7 +102,8 @@ describe('mug Elembo : GLB réel et catalogue', () => {
     expect(productSides(mug)).toEqual(['wrap']);
     expect(mug.tailles).toBe(false);
     expect(mug.support).toBe('mug');
-    expect(mug.venteEnLigne).toBe(false);
+    // Prix non arbitré : aucun montant dans la grille de repli (l'admin le fixera).
+    expect(tarifProduit(tarifsDepuisGrille(), MUG_PRODUCT_ID)?.prixFcfa).toBeNull();
   });
 });
 

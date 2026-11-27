@@ -20,10 +20,19 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { CATALOGUE, FORMATS_TABLEAU, PALIERS_TABLEAU, PRODUIT_TABLEAU, STATUT_PRIX_TABLEAUX, VILLES, produit } from './catalogue';
+import { FORMATS_TABLEAU, PALIERS_TABLEAU, STATUT_PRIX_TABLEAUX } from './catalogue';
 import { ErreurConfig, type Config } from './config';
 import { ErreurTelephone, masquerMsisdn, normaliserMsisdn } from './msisdn';
-import { ErreurCommande, calculerMontant, type Ligne, type LigneTableau, type Montant } from './pricing';
+import {
+  ErreurCommande,
+  calculerMontant,
+  verifierFacturable,
+  verifierMontantAttendu,
+  type Ligne,
+  type LigneTableau,
+  type Montant,
+} from './pricing';
+import { tarifsDepuisGrille, type Tarifs } from '@/lib/tarifs/tarifs';
 import { ErreurMomo, motifMtn, type ClientMomo } from './mtn';
 import { MOTIF_REFERENCE, referenceValide } from './reference';
 import { ErreurStockage, type JournalTransactions } from './store';
@@ -38,6 +47,11 @@ export type Dependances = {
   store: JournalTransactions;
   /** Horloge injectable (tests). */
   maintenant?: () => Date;
+  /**
+   * Tarifs courants (prix des produits, frais de livraison), relus à CHAQUE paiement. En
+   * production : l'admin (src/server/tarifs/base.ts). Par défaut : la grille du dépôt.
+   */
+  chargerTarifs?: () => Promise<Tarifs>;
   journal?: (ligne: string) => void;
 };
 
@@ -55,6 +69,8 @@ export type PayloadPayer = {
   /** Coordonnées commerciales : facultatives pour ne pas bloquer l'ancien tunnel. */
   nom?: string;
   email?: string;
+  /** Total affiché au client : jamais facturé, sert à refuser si le prix a changé entre-temps. */
+  montantAttenduFcfa?: number;
 };
 
 function texte(valeur: unknown): string {
@@ -68,27 +84,6 @@ function texte(valeur: unknown): string {
  * appeler `POST /api/momo/payer` directement. La règle doit donc vivre ici, avant tout appel à
  * MTN. `MOMO_ALLOW_TEST_PRICES=1` est la seule dérogation, explicite et côté serveur.
  */
-function verifierPrixFacturable(corps: PayloadPayer, autoriserPrixTest: boolean): void {
-  if (autoriserPrixTest) return;
-  const produitId = texte(corps.produitId);
-
-  if (produitId === PRODUIT_TABLEAU) {
-    if (STATUT_PRIX_TABLEAUX !== 'valide') {
-      throw new ErreurCommande(
-        'Le barème des tableaux n’est pas encore validé commercialement : paiement en ligne fermé, demandez un devis.',
-      );
-    }
-    return;
-  }
-
-  const p = produit(produitId);
-  if (p && p.statutPrix !== 'valide') {
-    throw new ErreurCommande(
-      `Le prix de « ${p.nom} » n’est pas validé commercialement : paiement en ligne fermé, demandez un devis.`,
-    );
-  }
-}
-
 /** Résumé lisible de la commande, conservé avec la transaction (traçabilité atelier). */
 function detailCommande(montant: Montant): string | undefined {
   if (!montant.lignesTableaux?.length) return undefined;
@@ -100,10 +95,14 @@ function detailCommande(montant: Montant): string | undefined {
     .join(' + ');
 }
 
+/** Les tarifs courants n'ont pas pu être lus : on refuse plutôt que d'encaisser au hasard. */
+export class ErreurTarifsIndisponibles extends Error {}
+
 export type Gestionnaire = {
   sante(): Promise<Reponse>;
   tarifs(): Promise<Reponse>;
-  payer(payload: unknown): Promise<Reponse>;
+  /** `tarifs` : tarifs déjà lus par l'appelant (même lecture pour la commande et le paiement). */
+  payer(payload: unknown, options?: { tarifs?: Tarifs }): Promise<Reponse>;
   callback(payload: unknown, referenceDuChemin?: string | null): Promise<Reponse>;
   statut(referenceId: string): Promise<Reponse>;
   /** Rattrapage des transactions restées PENDING (callback MTN indisponible ou client parti). */
@@ -115,6 +114,16 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
   const journal = deps.journal ?? ((ligne: string) => console.log(ligne));
   const maintenant = deps.maintenant ?? (() => new Date());
   const chargeLe = maintenant().toISOString();
+  const chargerTarifs = deps.chargerTarifs ?? (async () => tarifsDepuisGrille());
+
+  async function tarifsCourants(fournis?: Tarifs): Promise<Tarifs> {
+    if (fournis) return fournis;
+    try {
+      return await chargerTarifs();
+    } catch (erreur) {
+      throw new ErreurTarifsIndisponibles((erreur as Error)?.message ?? 'lecture impossible');
+    }
+  }
 
   /** Traduction d'une exception en réponse HTTP — jamais de détail interne pour le client. */
   async function executer(action: () => Promise<Reponse>): Promise<Reponse> {
@@ -127,6 +136,13 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
       if (erreur instanceof ErreurConfig) {
         journal(`configuration incomplète : ${erreur.message}`);
         return { statut: 500, corps: { erreur: 'Configuration du service incomplète.', detail: erreur.message } };
+      }
+      if (erreur instanceof ErreurTarifsIndisponibles) {
+        journal(`tarifs illisibles : ${erreur.message}`);
+        return {
+          statut: 503,
+          corps: { erreur: 'Tarifs momentanément indisponibles : aucun paiement n’a été demandé. Réessayez dans un instant.' },
+        };
       }
       if (erreur instanceof ErreurStockage) {
         journal(`stockage en erreur : ${erreur.message}`);
@@ -239,35 +255,45 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
     },
 
     async tarifs() {
-      return executer(async () => ({
-        statut: 200,
-        corps: {
-          env: config.env,
-          devise: config.devise,
-          chargeLe,
-          produits: CATALOGUE.map((p) => ({ id: p.id, nom: p.nom, prixFcfa: p.prixFcfa, statutPrix: p.statutPrix })),
-          villes: VILLES.map((v) => ({
-            id: v.id,
-            nom: v.nom,
-            fraisFcfa: v.fraisFcfa,
-            delaiMaxJours: v.delaiMaxJours,
-          })),
-          tableaux: {
-            formats: FORMATS_TABLEAU.map((f) => ({
-              id: f.id,
-              libelle: f.libelle,
-              largeurCm: f.largeurCm,
-              hauteurCm: f.hauteurCm,
-              prixToileSeuleFcfa: f.prixToileSeuleFcfa,
-              prixChassisFcfa: f.prixChassisFcfa,
+      return executer(async () => {
+        const tarifs = await tarifsCourants();
+        return {
+          statut: 200,
+          corps: {
+            env: config.env,
+            devise: config.devise,
+            chargeLe,
+            source: tarifs.source,
+            produits: tarifs.produits.map((p) => ({
+              id: p.id,
+              nom: p.nom,
+              prixFcfa: p.prixFcfa,
+              statutPrix: p.statutPrix,
+              vendable: p.vendable,
             })),
-            paliers: PALIERS_TABLEAU.map((p) => ({ aPartirDe: p.aPartirDe, remisePct: p.remisePct })),
+            villes: tarifs.livraison.villes.map((v) => ({
+              id: v.id,
+              nom: v.nom,
+              fraisFcfa: v.fraisFcfa,
+              delaiMaxJours: tarifs.livraison.delaiMaxJours,
+            })),
+            tableaux: {
+              formats: FORMATS_TABLEAU.map((f) => ({
+                id: f.id,
+                libelle: f.libelle,
+                largeurCm: f.largeurCm,
+                hauteurCm: f.hauteurCm,
+                prixToileSeuleFcfa: f.prixToileSeuleFcfa,
+                prixChassisFcfa: f.prixChassisFcfa,
+              })),
+              paliers: PALIERS_TABLEAU.map((p) => ({ aPartirDe: p.aPartirDe, remisePct: p.remisePct })),
+            },
           },
-        },
-      }));
+        };
+      });
     },
 
-    async payer(payload) {
+    async payer(payload, options) {
       return executer(async () => {
         const corps = (payload ?? {}) as PayloadPayer;
 
@@ -283,12 +309,18 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
         // La validation vient AVANT le contrôle de doublon : sur une requête mal formée, le
         // client doit lire la vraie raison (produit inconnu, quantité invalide) et non un
         // « paiement déjà en cours » qui masquerait l'erreur de saisie.
-        const montant = calculerMontant({
-          produitId: texte(corps.produitId),
-          lignes: corps.lignes ?? [],
-          tableaux: corps.tableaux ?? [],
-          villeId: texte(corps.villeId),
-        });
+        const tarifs = await tarifsCourants(options?.tarifs);
+        const montant = calculerMontant(
+          {
+            produitId: texte(corps.produitId),
+            lignes: corps.lignes ?? [],
+            tableaux: corps.tableaux ?? [],
+            villeId: texte(corps.villeId),
+          },
+          tarifs,
+        );
+        // Prix modifié dans l'admin depuis l'affichage : refus avant tout débit.
+        verifierMontantAttendu(corps.montantAttenduFcfa, montant);
 
         // Prévention des doubles commandes. Le navigateur peut réémettre exactement la même
         // commande (double clic, réponse perdue, rafraîchissement) : c'est ici que ça s'arrête.
@@ -314,7 +346,10 @@ export function creerGestionnaire(deps: Dependances): Gestionnaire {
 
         // Prix non validé : refus AVANT tout appel à MTN. Le bouton masqué ne suffit pas,
         // l'API est publique et peut être appelée directement.
-        verifierPrixFacturable(corps, config.autoriserPrixTest);
+        verifierFacturable(texte(corps.produitId), tarifs, {
+          autoriserPrixTest: config.autoriserPrixTest,
+          statutTableaux: STATUT_PRIX_TABLEAUX,
+        });
 
         const msisdn = normaliserMsisdn(texte(corps.telephone), config.env);
         const montantEnvoye = config.devise === 'XAF' ? String(montant.montantFcfa) : config.montantSandbox;

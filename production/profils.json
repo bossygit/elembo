@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "maj": "2026-11-26",
+  "maj": "2026-11-27",
   "note": "SOURCE UNIQUE DES CAPACITÉS DE PRODUCTION. L'atelier 3D laisse composer sur les cinq zones du vêtement ; ce fichier dit ce qui est RÉELLEMENT imprimable, avec quel procédé et à quelle taille. Statuts : « disponible » = commandable ; « a-valider » = prévu mais non confirmé par l'atelier (composition et aperçu possibles, commande bloquée) ; « indisponible » = non proposé. Ne passer une zone ou un procédé à « disponible » qu'après validation par l'atelier ou le prestataire. Repères : « col » = creux du col sur l'axe médian, « epaule » = tête de manche, « haut » = bord haut de la zone. hautCm = distance entre ce repère et le haut de la zone imprimable.",
   "parDefaut": "dtf",
   "notesSupports": "Chaque procédé s'applique à un type de support (champ « supports », « textile » par défaut). Le procédé proposé d'emblée pour un support est donné par « parDefautParSupport ».",
@@ -129,15 +129,15 @@
       "nom": "Broderie",
       "supports": ["casquette"],
       "description": "Visuel brodé sur la casquette montée (cadre à casquette) : relief, très résistant. Éviter les dégradés et les textes de moins de 5 mm.",
-      "statut": "a-valider",
-      "note": "Brodeuse avec cadre à casquette et coût de digitalisation à confirmer avec l'atelier.",
+      "statut": "disponible",
+      "note": "Validé par l'exploitant le 27/11/2026. Le fichier PNG (300 dpi) est digitalisé par l'atelier avant broderie.",
       "dpi": 300,
       "zones": {
-        "cap-front": { "statut": "a-valider", "largeurCm": 11, "hauteurCm": 5.5, "repere": "haut", "hautCm": 1.4, "note": "Panneau avant : 11 × 5,5 cm, bas du visuel à 1,5 cm de la visière — à valider avec l'atelier." },
-        "cap-left": { "statut": "a-valider", "largeurCm": 6, "hauteurCm": 3.5, "repere": "haut", "hautCm": 2.1, "note": "Côté gauche : 6 × 3,5 cm, à 2 cm du bord — à valider avec l'atelier." },
-        "cap-right": { "statut": "a-valider", "largeurCm": 6, "hauteurCm": 3.5, "repere": "haut", "hautCm": 2.1, "note": "Côté droit : 6 × 3,5 cm, à 2 cm du bord — à valider avec l'atelier." },
-        "cap-back": { "statut": "a-valider", "largeurCm": 7, "hauteurCm": 3, "repere": "haut", "hautCm": 1.8, "note": "Arrière : 7 × 3 cm, 1 cm au-dessus de l'ouverture — à valider avec l'atelier." },
-        "visor": { "statut": "a-valider", "largeurCm": 9, "hauteurCm": 3, "repere": "haut", "hautCm": 1.4, "note": "Dessus de visière : 9 × 3 cm — à valider avec l'atelier." }
+        "cap-front": { "statut": "disponible", "largeurCm": 11, "hauteurCm": 5.5, "repere": "haut", "hautCm": 1.4, "note": "Panneau avant : 11 × 5,5 cm, bas du visuel à 1,5 cm de la visière." },
+        "cap-left": { "statut": "disponible", "largeurCm": 6, "hauteurCm": 3.5, "repere": "haut", "hautCm": 2.1, "note": "Côté gauche : 6 × 3,5 cm, à 2 cm du bord." },
+        "cap-right": { "statut": "disponible", "largeurCm": 6, "hauteurCm": 3.5, "repere": "haut", "hautCm": 2.1, "note": "Côté droit : 6 × 3,5 cm, à 2 cm du bord." },
+        "cap-back": { "statut": "disponible", "largeurCm": 7, "hauteurCm": 3, "repere": "haut", "hautCm": 1.8, "note": "Arrière : 7 × 3 cm, 1 cm au-dessus de l'ouverture." },
+        "visor": { "statut": "disponible", "largeurCm": 9, "hauteurCm": 3, "repere": "haut", "hautCm": 1.4, "note": "Dessus de visière : 9 × 3 cm." }
       }
     },
     {

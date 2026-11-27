@@ -343,7 +343,7 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
     surtitre: 'Textile · Accessoire',
     description:
       'Une casquette 6 panneaux à visière courbe : votre logo brodé sur le devant, un détail sur le côté, un mot sur la visière.',
-    points: ['Aperçu 3D avant commande', '5 zones : avant, côtés, arrière, visière', 'Taille unique réglable', 'Commande sur devis ou WhatsApp'],
+    points: ['Aperçu 3D avant commande', '5 zones brodées : avant, côtés, arrière, visière', 'Taille unique réglable', 'Paiement MTN MoMo'],
     image: {
       src: '/mockups/casquette-elembo-3d.jpg',
       alt: 'Casquette Elembo noire à personnaliser, rendu du modèle 3D de l’atelier',
@@ -365,7 +365,7 @@ export const PRODUITS_VITRINE: ProduitVitrine[] = [
       configurable3D: true,
       produit3DId: CAP_PRODUCT_ID,
       avertissement:
-        'La broderie et le transfert sur casquette sont en cours de validation par l’atelier : vous pouvez composer votre casquette en 3D, la commande se fait sur devis ou sur WhatsApp. Tailles de zone indicatives (broderie).',
+        'Commande en ligne en broderie. Le transfert DTF (visuels photo, dégradés) est en cours de validation par l’atelier : pour ce procédé, la commande se fait sur devis ou sur WhatsApp.',
     },
   },
   {

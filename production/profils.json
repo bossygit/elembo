@@ -91,17 +91,17 @@
       "nom": "Sublimation — face visible",
       "supports": ["mug"],
       "description": "Encre de sublimation transférée à chaud sur un mug céramique à revêtement polyester : visuel centré à l'opposé de l'anse.",
-      "statut": "a-valider",
-      "note": "Presse à mug et mugs à revêtement sublimable à confirmer avec l'atelier.",
+      "statut": "disponible",
+      "note": "Validé par l'exploitant le 27/11/2026.",
       "dpi": 300,
       "zones": {
         "wrap": {
-          "statut": "a-valider",
+          "statut": "disponible",
           "largeurCm": 20,
           "hauteurCm": 7.2,
           "repere": "haut",
           "hautCm": 0.4,
-          "note": "Face visible du mug (20 × 7,2 cm, marges de 4 mm) : à valider avec l'atelier."
+          "note": "Face visible du mug (20 × 7,2 cm, marges de 4 mm)."
         }
       }
     },
@@ -110,17 +110,17 @@
       "nom": "Sublimation — tour complet",
       "supports": ["mug"],
       "description": "Visuel sur tout le pourtour du mug, en laissant libre la zone de l'anse.",
-      "statut": "a-valider",
-      "note": "Presse à mug et mugs à revêtement sublimable à confirmer avec l'atelier.",
+      "statut": "disponible",
+      "note": "Validé par l'exploitant le 27/11/2026.",
       "dpi": 300,
       "zones": {
         "wrap": {
-          "statut": "a-valider",
+          "statut": "disponible",
           "largeurCm": 23.8,
           "hauteurCm": 7.2,
           "repere": "haut",
           "hautCm": 0.4,
-          "note": "Tour complet hors zone de l'anse (23,8 × 7,2 cm) : à valider avec l'atelier."
+          "note": "Tour complet hors zone de l'anse (23,8 × 7,2 cm)."
         }
       }
     },

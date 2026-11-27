@@ -1,7 +1,8 @@
 import { supabaseAdmin } from '@/server/supabase/client';
-import { PRODUIT_TABLEAU, STATUT_PRIX_TABLEAUX, produit } from '@/server/momo/catalogue';
+import { PRODUIT_TABLEAU, STATUT_PRIX_TABLEAUX } from '@/server/momo/catalogue';
 import { normaliserMsisdn } from '@/server/momo/msisdn';
-import { calculerMontant, normaliserLignes } from '@/server/momo/pricing';
+import { calculerMontant, normaliserLignes, verifierFacturable, verifierMontantAttendu } from '@/server/momo/pricing';
+import { tarifProduit, type Tarifs } from '@/lib/tarifs/tarifs';
 import { referenceValide } from '@/server/momo/reference';
 import type { ModePaiement } from '@/server/commandes/repository';
 import { commandeParReference } from '@/server/commandes/repository';
@@ -45,6 +46,7 @@ type PayloadDirect = {
   email?: unknown;
   couleur?: unknown;
   zones?: unknown;
+  montantAttenduFcfa?: unknown;
 };
 
 function texte(valeur: unknown): string {
@@ -83,29 +85,11 @@ type LigneDirecte = {
   options: Record<string, unknown>;
 };
 
-function verifierPrixFacturable(produitId: string): void {
-  if (process.env.MOMO_ALLOW_TEST_PRICES === '1' || process.env.MOMO_MOCK === '1') return;
-  if (produitId === PRODUIT_TABLEAU) {
-    if (STATUT_PRIX_TABLEAUX !== 'valide') {
-      throw new ErreurCommandeDirecte(
-        'Le barème des tableaux n’est pas validé commercialement : paiement en ligne fermé, demandez un devis.',
-      );
-    }
-    return;
-  }
-  const fiche = produit(produitId);
-  if (fiche && fiche.statutPrix !== 'valide') {
-    throw new ErreurCommandeDirecte(
-      `Le prix de « ${fiche.nom} » n’est pas validé commercialement : paiement en ligne fermé, demandez un devis.`,
-    );
-  }
-}
-
 /**
  * Crée la commande directe à partir du payload de paiement. Le montant est recalculé ici,
  * exactement comme dans le service MTN : le navigateur ne fixe jamais le prix.
  */
-export async function preparerCommandeDirecte(payload: unknown): Promise<void> {
+export async function preparerCommandeDirecte(payload: unknown, tarifs: Tarifs): Promise<void> {
   if (!commandesSupabaseConfigurees()) return;
 
   const corps = (payload ?? {}) as PayloadDirect;
@@ -120,18 +104,30 @@ export async function preparerCommandeDirecte(payload: unknown): Promise<void> {
   if (!produitId || !villeId || !telephone) {
     throw new ErreurCommandeDirecte('Produit, ville ou téléphone manquant.');
   }
-  verifierPrixFacturable(produitId);
+  try {
+    verifierFacturable(produitId, tarifs, {
+      autoriserPrixTest: process.env.MOMO_ALLOW_TEST_PRICES === '1' || process.env.MOMO_MOCK === '1',
+      statutTableaux: STATUT_PRIX_TABLEAUX,
+    });
+  } catch (erreur) {
+    throw new ErreurCommandeDirecte((erreur as Error).message);
+  }
   const couleur = couleurSure(corps.couleur);
   const zones = zonesSures(corps.zones);
 
   let montant;
   try {
-    montant = calculerMontant({
-      produitId,
-      lignes: Array.isArray(corps.lignes) ? corps.lignes as { taille: string; quantite: number }[] : [],
-      tableaux: Array.isArray(corps.tableaux) ? corps.tableaux as { formatId: string; support: string; quantite: number }[] : [],
-      villeId,
-    });
+    montant = calculerMontant(
+      {
+        produitId,
+        lignes: Array.isArray(corps.lignes) ? corps.lignes as { taille: string; quantite: number }[] : [],
+        tableaux: Array.isArray(corps.tableaux) ? corps.tableaux as { formatId: string; support: string; quantite: number }[] : [],
+        villeId,
+      },
+      tarifs,
+    );
+    // Prix modifié dans l'admin depuis l'affichage : aucune commande n'est créée.
+    verifierMontantAttendu(corps.montantAttenduFcfa, montant);
   } catch (erreur) {
     throw new ErreurCommandeDirecte(
       erreur instanceof Error ? erreur.message : 'Commande non chiffrable.',
@@ -153,7 +149,7 @@ export async function preparerCommandeDirecte(payload: unknown): Promise<void> {
       },
     }));
   } else {
-    const fiche = produit(produitId);
+    const fiche = tarifProduit(tarifs, produitId);
     const prixUnitaire = fiche?.prixFcfa;
     if (prixUnitaire == null) {
       throw new ErreurCommandeDirecte(`Prix unitaire absent pour « ${produitId} ».`);

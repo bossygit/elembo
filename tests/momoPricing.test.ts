@@ -40,7 +40,8 @@ describe('montant recalculé côté serveur', () => {
   it('refuse un produit, une ville ou une taille inconnus', () => {
     expect(() => calculerMontant({ produitId: 'mug', lignes: [{ taille: 'M', quantite: 1 }], villeId: 'brazzaville' })).toThrow(/Produit inconnu/);
     expect(() => calculerMontant({ produitId: 'tshirt-basic', lignes: [{ taille: 'M', quantite: 1 }], villeId: 'dolisie' })).toThrow(/Ville inconnue/);
-    expect(() => calculerMontant({ produitId: 'tshirt-basic', lignes: [{ taille: 'XXL', quantite: 1 }], villeId: 'brazzaville' })).toThrow(/Taille inconnue/);
+    expect(() => calculerMontant({ produitId: 'tshirt-basic', lignes: [{ taille: 'XXXL', quantite: 1 }], villeId: 'brazzaville' })).toThrow(/Taille inconnue/);
+    expect(() => calculerMontant({ produitId: 'tshirt-basic', lignes: [{ taille: '4XL', quantite: 1 }], villeId: 'brazzaville' })).toThrow(/Taille inconnue/);
   });
 
   it('refuse une commande sans pièce ou avec des quantités absurdes', () => {

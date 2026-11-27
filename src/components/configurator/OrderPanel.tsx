@@ -23,11 +23,11 @@ import {
   profilParId,
 } from '../../lib/products/production';
 import { paiementEnLigneOuvert } from '../../lib/commerce/catalogue';
-import { statutPrixProduit } from '../../lib/tarifs/grille';
+import { tarifProduit } from '../../lib/tarifs/tarifs';
+import { useTarifs } from '../tarifs/TarifsProvider';
 import { compositionSize, drawComposition, elementsOfSide } from '../../lib/canvas/design-canvas';
 import { downloadBlob, renderPrintPng } from '../../lib/canvas/export';
 import {
-  DELIVERY,
   SIZE_ORDER,
   TAILLE_UNIQUE,
   buildProductionSheet,
@@ -36,6 +36,7 @@ import {
   facesToProduce,
   formatFcfa,
   makeReference,
+  optionsLivraison,
   orderTotals,
   productionSheetText,
 } from '../../lib/order/order';
@@ -150,8 +151,13 @@ export default function OrderPanel() {
 
   const product = getProductById(productId);
   const profil = profilParId(profileId, product);
-  const prixUnitaire = product?.priceFcfa ?? null;
-  const paiementOuvert = paiementEnLigneOuvert(statutPrixProduit(productId));
+  // Prix et frais : tarifs courants de l'admin, servis par la page (jamais figés au déploiement).
+  const tarifs = useTarifs();
+  const tarif = tarifProduit(tarifs, productId);
+  const prixUnitaire = tarif?.prixFcfa ?? null;
+  const livraisons = optionsLivraison(tarifs);
+  // Un produit désactivé ou indisponible dans l'admin n'est jamais payable en ligne.
+  const paiementOuvert = paiementEnLigneOuvert(tarif?.vendable ? tarif.statutPrix : 'provisoire');
   const images = useElementImages(elements);
 
   // Un vêtement se commande par tailles ; un mug (ou un objet) en quantité seule.
@@ -166,7 +172,7 @@ export default function OrderPanel() {
     quantity: quantite(taille),
   }));
 
-  const totals = orderTotals({ lines: lignes, unitPriceFcfa: prixUnitaire, city: ville });
+  const totals = orderTotals({ lines: lignes, unitPriceFcfa: prixUnitaire, city: ville, delivery: livraisons });
 
   const faces = product ? facesToProduce({ elements }) : [];
   // Zones personnalisées que le procédé retenu ne sait pas produire : la commande est
@@ -190,6 +196,7 @@ export default function OrderPanel() {
       color,
       lines: lignes,
       city: ville,
+      delivery: livraisons,
       unitPriceFcfa: prixUnitaire,
       elements,
       measure,
@@ -263,6 +270,7 @@ export default function OrderPanel() {
         // Informatif pour l'atelier (dossier de production) : n'entre pas dans le prix.
         couleur: product.colors.find((c) => c.hex.toLowerCase() === color.toLowerCase())?.name ?? color,
         zones: faces.map((side) => SIDE_LABELS[side]),
+        montantAttenduFcfa: totals.totalFcfa ?? undefined,
       });
       setPaiement(demande);
       setSuivi('attente');
@@ -320,9 +328,9 @@ export default function OrderPanel() {
               prixUnitaireFcfa: prixUnitaire,
               sousTotalFcfa: totals.itemsSubtotalFcfa,
               livraison: {
-                ville: deliveryOption(ville).label,
+                ville: deliveryOption(ville, livraisons).label,
                 fraisFcfa: totals.shippingFcfa,
-                delaiJours: deliveryDays(totals.quantity, ville),
+                delaiJours: deliveryDays(totals.quantity, ville, livraisons),
               },
               totalFcfa: totals.totalFcfa,
               financialTransactionId: resultat.paiement.financialTransactionId,
@@ -348,7 +356,7 @@ export default function OrderPanel() {
   }
 
   if (!product) return null;
-  const delai = deliveryDays(totals.quantity, ville);
+  const delai = deliveryDays(totals.quantity, ville, livraisons);
 
   return (
     <div className="flex flex-col gap-4">
@@ -397,7 +405,7 @@ export default function OrderPanel() {
           onChange={(e) => setVille(e.target.value as DeliveryCity)}
           className="mt-1 w-full rounded-xl border border-encre/25 bg-white px-3 py-2.5 text-base text-encre focus:border-encre"
         >
-          {DELIVERY.map((d) => (
+          {livraisons.map((d) => (
             <option key={d.city} value={d.city}>
               {d.label} — {formatFcfa(d.feeFcfa)}
             </option>

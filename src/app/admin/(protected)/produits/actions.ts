@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, updateTag } from 'next/cache';
 
 import { entierChamp, estUuid, texteChamp, texteOuNull } from '@/lib/admin/format';
 import { peut } from '@/lib/admin/permissions';
@@ -26,6 +26,7 @@ import {
   type TypeMouvement,
 } from '@/server/admin/produits';
 import { echec, succes } from '@/server/admin/retour';
+import { TAG_TARIFS } from '@/server/tarifs/affichage';
 
 const LISTE = '/admin/produits';
 const fiche = (id: string, ancre?: string) => `/admin/produits/${id}${ancre ? `#${ancre}` : ''}`;
@@ -108,6 +109,8 @@ export async function creerProduitAction(formData: FormData): Promise<void> {
     echec(LISTE, erreur);
   }
   revalidatePath(LISTE);
+  // Prix, statut et disponibilité pilotent la boutique et l'atelier : pages régénérées.
+  updateTag(TAG_TARIFS);
   succes(fiche(id), 'cree');
 }
 
@@ -126,6 +129,7 @@ export async function modifierProduitAction(formData: FormData): Promise<void> {
   }
   revalidatePath(LISTE);
   revalidatePath(fiche(id));
+  updateTag(TAG_TARIFS);
   succes(fiche(id), 'modifie');
 }
 
@@ -151,6 +155,7 @@ export async function basculerProduitAction(formData: FormData): Promise<void> {
   }
   revalidatePath(LISTE);
   revalidatePath(fiche(id));
+  updateTag(TAG_TARIFS);
   succes(retour, champ);
 }
 

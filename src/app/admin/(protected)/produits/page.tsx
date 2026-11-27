@@ -39,9 +39,14 @@ export default async function PageProduits({
         titre="Produits"
         description="Un produit n’est vendable en ligne que s’il est actif, disponible et que son prix est validé."
         actions={
-          <Link href="/admin/produits/categories" className={bouton('secondaire', 'sm')}>
-            Catégories
-          </Link>
+          <>
+            <Link href="/admin/produits/livraison" className={bouton('secondaire', 'sm')}>
+              Frais de livraison
+            </Link>
+            <Link href="/admin/produits/categories" className={bouton('secondaire', 'sm')}>
+              Catégories
+            </Link>
+          </>
         }
       />
       <Flash ok={params.ok} erreur={params.erreur} messages={{ actif: 'Activation mise à jour.', disponible: 'Disponibilité mise à jour.' }} />

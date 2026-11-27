@@ -1,4 +1,6 @@
 import { executer, lireJson, preflight } from '@/server/momo/http';
+import { tarifsServeur } from '@/server/tarifs/base';
+import type { Tarifs } from '@/lib/tarifs/tarifs';
 import {
   ErreurCommandeDirecte,
   commandesSupabaseConfigurees,
@@ -37,13 +39,26 @@ function reponseErreur(erreur: unknown): Response {
 export async function POST(demande: Request) {
   const corps = await lireJson(demande);
 
+  // Une seule lecture des tarifs de l'admin pour toute la requête : la commande enregistrée et
+  // le montant demandé à MTN reposent exactement sur les mêmes prix.
+  let tarifs: Tarifs;
   try {
-    await preparerCommandeDirecte(corps);
+    tarifs = await tarifsServeur();
+  } catch (erreur) {
+    console.error('Tarifs illisibles (paiement) :', (erreur as Error).message);
+    return Response.json(
+      { erreur: 'Tarifs momentanément indisponibles : aucun paiement n’a été demandé. Réessayez dans un instant.' },
+      { status: 503, headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
+
+  try {
+    await preparerCommandeDirecte(corps, tarifs);
   } catch (erreur) {
     return reponseErreur(erreur);
   }
 
-  const reponse = await executer(demande, (service) => service.payer(corps));
+  const reponse = await executer(demande, (service) => service.payer(corps, { tarifs }));
 
   if (commandesSupabaseConfigurees() && reponse.ok) {
     try {

@@ -6,7 +6,8 @@ import ProductCard from '../../../components/site/ProductCard';
 import { SectionGammes } from '../../../components/site/Univers';
 import { BoutonLien, Etiquette } from '../../../components/site/ui';
 import { BoutonWhatsApp } from '../../../components/site/WhatsApp';
-import { PRODUITS_VITRINE, SUPPORTS_IMPRESSION } from '../../../lib/commerce/catalogue';
+import { SUPPORTS_IMPRESSION, vitrineAvecTarifs } from '../../../lib/commerce/catalogue';
+import { tarifsAffichage } from '../../../server/tarifs/affichage';
 
 export const metadata: Metadata = {
   title: 'Boutique',
@@ -14,7 +15,9 @@ export const metadata: Metadata = {
     'Mugs, t-shirts, tableaux photo, coffrets cadeaux et textiles d’événement à personnaliser. Prix en FCFA, paiement MTN MoMo, commande assistée sur WhatsApp.',
 };
 
-export default function BoutiquePage() {
+export default async function BoutiquePage() {
+  // Prix fixés dans l'admin : page régénérée dès qu'un prix change (étiquette `tarifs`).
+  const PRODUITS_VITRINE = vitrineAvecTarifs(await tarifsAffichage());
   const objets = PRODUITS_VITRINE.filter((p) => p.famille === 'objets');
   const textiles = PRODUITS_VITRINE.filter((p) => p.famille === 'textile');
   const tableaux = PRODUITS_VITRINE.filter((p) => p.famille === 'tableaux');

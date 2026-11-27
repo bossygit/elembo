@@ -243,6 +243,11 @@ export default async function PageProduit({
                     Le coût est figé sur chaque commande au moment de sa création.
                   </p>
                 ) : null}
+                <p className="text-xs text-neutral-500 sm:col-span-3">
+                  Ce prix est celui du site et du paiement MoMo : il s’applique dès l’enregistrement, sans
+                  redéploiement. Le paiement en ligne n’est ouvert que pour un prix <strong>validé</strong>, sur un
+                  produit actif et disponible. Les prix de variante ne sont pas encore appliqués au paiement.
+                </p>
               </fieldset>
               {modifier ? (
                 <div className="sm:col-span-2">

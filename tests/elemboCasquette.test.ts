@@ -28,6 +28,7 @@ import { useConfiguratorStore } from '../src/stores/configurator-store';
 import { PRODUITS_VITRINE } from '../src/lib/commerce/catalogue';
 import { buildProductionSheet, productionSheetText } from '../src/lib/order/order';
 import type { Measurer } from '../src/lib/canvas/design-canvas';
+import { tarifProduit, tarifsDepuisGrille } from '../src/lib/tarifs/tarifs';
 import type { Side } from '../src/types/configurator';
 import { SIDE_FILE } from '../src/types/configurator';
 
@@ -111,12 +112,14 @@ describe('casquette Elembo : GLB réel et catalogue', () => {
     expect(validateProduct(casquette)).toEqual({ ok: true, errors: [] });
   });
 
-  it('expose cinq zones propres, se commande en quantité seule et hors vente en ligne', () => {
+  it('expose cinq zones propres et se commande en quantité seule (taille unique)', () => {
     expect(productSides(casquette)).toEqual(ZONES_CASQUETTE);
     expect(casquette.support).toBe('casquette');
     expect(casquette.tailles).toBe(false);
-    expect(casquette.venteEnLigne).toBe(false);
-    expect(casquette.priceFcfa ?? null).toBeNull();
+  });
+
+  it('a un tarif de repli à 2 000 FCFA validé (en production, le prix vient de l’admin)', () => {
+    expect(tarifProduit(tarifsDepuisGrille(), CAP_PRODUCT_ID)).toMatchObject({ prixFcfa: 2000, statutPrix: 'valide' });
   });
 
   it('chaque surface d’impression existe, avec UV0 (visuel), UV1 (sergé) et un matériau transparent propre', () => {

@@ -18,6 +18,8 @@ import {
 import { devisConfigure } from '@/lib/devis/configuration';
 import { asset } from '@/lib/site/asset';
 import { MESSAGES_WHATSAPP } from '@/lib/site/marque';
+import { vitrineAvecTarifs } from '@/lib/commerce/catalogue';
+import { tarifsAffichage } from '@/server/tarifs/affichage';
 
 type Contexte = { params: Promise<{ slug: string }> };
 
@@ -37,7 +39,8 @@ export default async function PageUniversDetail({ params }: Contexte) {
   const univers = universParId(slug);
   if (!univers) notFound();
 
-  const produits = produitsDeUnivers(univers);
+  // Prix fixés dans l'admin : page régénérée dès qu'un prix change (étiquette `tarifs`).
+  const produits = vitrineAvecTarifs(await tarifsAffichage(), produitsDeUnivers(univers));
   const collections = collectionsDeUnivers(univers);
   const estEvenement = univers.id === 'evenements';
   const autres = UNIVERS.filter((u) => u.id !== univers.id);

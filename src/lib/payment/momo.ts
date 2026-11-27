@@ -34,6 +34,11 @@ export type DemandePaiement = {
   /** Couleur du support choisie (nom lisible) et zones imprimées : informatif, pour l'atelier. */
   couleur?: string;
   zones?: string[];
+  /**
+   * Total AFFICHÉ au client. Jamais facturé : le serveur recalcule et refuse si les prix ont
+   * changé dans l'admin depuis l'affichage (le client n'est jamais débité d'un autre montant).
+   */
+  montantAttenduFcfa?: number;
 };
 
 export class ErreurPaiement extends Error {

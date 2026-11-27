@@ -15,13 +15,13 @@ import { CATALOG, PLACEHOLDER_PRODUCT } from '../src/lib/products/catalog';
 import { DELIVERY } from '../src/lib/order/order';
 import { FORMATS, PALIERS, formatParId, prixUnitaireFcfa } from '../src/lib/products/tableaux';
 import { GRILLE } from '../src/lib/tarifs/grille';
+import { tarifProduit, tarifsDepuisGrille } from '../src/lib/tarifs/tarifs';
 import { CATALOGUE, FORMATS_TABLEAU, PALIERS_TABLEAU, VILLES } from '../momo-service/src/catalogue';
 
-/** Produits réellement commandables : le produit de démonstration (uv/placeholder) n'en fait pas partie. */
-// Produits vendus en ligne : ceux du configurateur, hors placeholder et hors produits déclarés
-// « sur devis » (`venteEnLigne: false`, vérifiés à part ci-dessous).
-const produitsVendables = CATALOG.filter((p) => p.id !== PLACEHOLDER_PRODUCT.id && p.venteEnLigne !== false);
-const produitsSurDevis = CATALOG.filter((p) => p.venteEnLigne === false);
+/** Produits du configurateur 3D (le produit de démonstration n'en fait pas partie). */
+const produits3D = CATALOG.filter((p) => p.id !== PLACEHOLDER_PRODUCT.id);
+/** Tarifs de repli (grille du dépôt) : en production, l'admin fait foi (src/lib/tarifs/tarifs.ts). */
+const tarifsGrille = tarifsDepuisGrille();
 
 /** Grille de référence VALIDÉE provisoirement (elle devra être révisée après chiffrage réel). */
 const GRILLE_ATTENDUE: Record<string, { toileSeule: number; chassis: number }> = {
@@ -61,37 +61,25 @@ describe('source unique des prix (tarifs/grille.json)', () => {
   });
 });
 
-describe('prix du catalogue — navigateur et service identiques', () => {
-  it('chaque produit vendable existe côté serveur avec le même prix', () => {
-    for (const produit of produitsVendables) {
-      const serveur = CATALOGUE.find((p) => p.id === produit.id);
-      expect(serveur, `produit absent du catalogue serveur : ${produit.id}`).toBeDefined();
-      expect(serveur?.prixFcfa, `prix divergent pour ${produit.id}`).toBe(produit.priceFcfa);
+describe('prix des produits — grille de repli et ancien service identiques', () => {
+  it('chaque produit du configurateur a une ligne dans la grille de repli (le prix réel est dans l’admin)', () => {
+    for (const produit of produits3D) {
+      expect(tarifProduit(tarifsGrille, produit.id), `produit absent de la grille : ${produit.id}`).toBeDefined();
     }
   });
 
-  it('le prix affiché vient bien de la grille (aucune recopie cachée)', () => {
-    for (const produit of produitsVendables) {
-      const dansLaGrille = GRILLE.produits.find((p) => p.id === produit.id);
-      expect(dansLaGrille, `produit absent de la grille : ${produit.id}`).toBeDefined();
-      expect(produit.priceFcfa, `prix désynchronisé de la grille : ${produit.id}`).toBe(
-        dansLaGrille!.prixFcfa,
-      );
+  it('un prix validé est chiffré ; un prix non arbitré manque (null), il n’est jamais inventé', () => {
+    for (const t of tarifsGrille.produits) {
+      if (t.statutPrix === 'valide') expect(t.prixFcfa, `prix validé sans montant : ${t.id}`).toBeTypeOf('number');
+      if (t.prixFcfa !== null) expect(t.prixFcfa, `prix nul ou négatif : ${t.id}`).toBeGreaterThan(0);
     }
   });
 
-  it('aucun produit vendable n’est sans prix (un montant non arbitré doit manquer, pas être inventé)', () => {
-    for (const produit of produitsVendables) {
-      expect(produit.priceFcfa, `prix manquant pour ${produit.id}`).toBeTypeOf('number');
-      expect(produit.priceFcfa ?? 0).toBeGreaterThan(0);
-    }
-  });
-
-  it('un produit sur devis n’a ni prix ni existence côté serveur : aucun paiement possible', () => {
-    expect(produitsSurDevis.length).toBeGreaterThan(0);
-    for (const produit of produitsSurDevis) {
-      expect(produit.priceFcfa, `prix inattendu pour ${produit.id}`).toBeNull();
-      expect(CATALOGUE.some((p) => p.id === produit.id), `${produit.id} connu du service de paiement`).toBe(false);
+  it('l’ancien service autonome (momo-service) applique les mêmes prix que la grille', () => {
+    for (const t of tarifsGrille.produits) {
+      const serveur = CATALOGUE.find((p) => p.id === t.id);
+      expect(serveur, `produit absent de momo-service : ${t.id}`).toBeDefined();
+      expect(serveur?.prixFcfa ?? null, `prix divergent pour ${t.id}`).toBe(t.prixFcfa);
     }
   });
 
@@ -104,9 +92,9 @@ describe('prix du catalogue — navigateur et service identiques', () => {
     }
   });
 
-  it('le serveur ne connaît pas de produit ou de ville hors application', () => {
-    const idsApp = new Set(produitsVendables.map((p) => p.id));
-    for (const p of CATALOGUE) expect(idsApp.has(p.id), `produit serveur inconnu de l’application : ${p.id}`).toBe(true);
+  it('le serveur ne connaît pas de produit ou de ville hors grille', () => {
+    const ids = new Set(tarifsGrille.produits.map((p) => p.id));
+    for (const p of CATALOGUE) expect(ids.has(p.id), `produit serveur inconnu de la grille : ${p.id}`).toBe(true);
 
     const villesApp = new Set<string>(DELIVERY.map((v) => v.city));
     for (const v of VILLES) expect(villesApp.has(v.id), `ville serveur inconnue de l’application : ${v.id}`).toBe(true);

@@ -23,7 +23,8 @@ import {
 import type { TableauBord, TableauFormatId, TableauOrientation, TableauSupport } from '../lib/products/tableaux';
 import type { Zone } from '../lib/products/studio';
 import type { FitMode } from '../lib/printArea';
-import { DELIVERY, formatFcfa, makeReference } from '../lib/order/order';
+import { formatFcfa, makeReference, optionsLivraison } from '../lib/order/order';
+import { useTarifs } from './tarifs/TarifsProvider';
 import type { DeliveryCity } from '../lib/order/order';
 import { demanderPaiement, suivrePaiement, telephonePlausible } from '../lib/payment/momo';
 import { envoyerDossier, type FichierAEnvoyer } from '../lib/payment/dossier';
@@ -80,11 +81,14 @@ export default function TableauPanel({
   // Référence de commande STABLE pour un contenu donné : un double clic (ou un renvoi du
   // navigateur) réémet la même commande, que le service refuse comme doublon. Sans cela,
   // chaque clic créerait une commande distincte — donc un second débit possible.
+  const tarifs = useTarifs();
   const reference = useMemo(
     () => makeReference(),
     [formatId, support, bord, quantite, ville],
   );
-  const livraison = DELIVERY.find((d) => d.city === ville)?.feeFcfa ?? null;
+  // Frais de livraison : tarifs courants de l'admin (le barème des tableaux reste dans la grille).
+  const livraisons = optionsLivraison(tarifs);
+  const livraison = livraisons.find((d) => d.city === ville)?.feeFcfa ?? null;
   const total = livraison === null ? null : devis.sousTotalFcfa + livraison;
   const numeroOk = telephonePlausible(telephone);
   const conseil = design ? conseilFormat(design.width, design.height) : null;
@@ -139,7 +143,7 @@ export default function TableauPanel({
       const texte = ficheTexte([fiche], [
         `COMMANDE ${reference}`,
         `Tableau ${format.label} — ${libelleSupport(support)} — ${libelleBord(bord)}`,
-        `Livraison : ${DELIVERY.find((d) => d.city === ville)?.label ?? ville}`,
+        `Livraison : ${livraisons.find((d) => d.city === ville)?.label ?? ville}`,
       ]);
       const fichierFiche = new Blob([texte], { type: 'text/plain;charset=utf-8' });
       const nomFiche = `${reference}-FICHE-PRODUCTION.txt`;
@@ -169,6 +173,7 @@ export default function TableauPanel({
         tableaux: [{ formatId, support, quantite }],
         villeId: ville,
         telephone,
+        montantAttenduFcfa: total,
       });
       setPaiement(demande);
       setSuivi('attente');
@@ -362,7 +367,7 @@ export default function TableauPanel({
             onChange={(e) => setVille(e.target.value as DeliveryCity)}
             className="mt-1 w-full rounded-lg border border-encre/25 bg-white px-2 py-1.5 text-sm text-encre"
           >
-            {DELIVERY.map((d) => (
+            {livraisons.map((d) => (
               <option key={d.city} value={d.city}>
                 {d.label} — {formatFcfa(d.feeFcfa)}
               </option>
@@ -407,7 +412,7 @@ export default function TableauPanel({
           <dd>{formatFcfa(devis.sousTotalFcfa)}</dd>
         </div>
         <div className="flex justify-between">
-          <dt>Livraison {DELIVERY.find((d) => d.city === ville)?.label}</dt>
+          <dt>Livraison {livraisons.find((d) => d.city === ville)?.label}</dt>
           <dd>{formatFcfa(livraison)}</dd>
         </div>
         <div className="mt-1 flex justify-between border-t border-encre/15 pt-1 font-semibold text-encre">

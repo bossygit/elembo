@@ -36,6 +36,7 @@ import {
   spaceScale,
   elementRect,
   printAreaRect,
+  tailleTexteAjustee,
 } from '../lib/canvas/design-canvas';
 import type { Measurer } from '../lib/canvas/design-canvas';
 import { DEFAULT_FONT_ID, fontByName, fontById, resolveFont } from '../lib/fonts';
@@ -319,6 +320,12 @@ export const useConfiguratorStore = create<ConfiguratorState>()((set, get) => ({
       z: nextZ(state.elements, patch?.side ?? state.side),
       visible: true,
     };
+    // Sans taille imposée, le texte par défaut est ramené à la taille de la zone (une zone de
+    // casquette ou de T-shirt est bien plus petite que sa texture).
+    if (patch?.fontSize === undefined) {
+      const area = getPrintArea(getProductById(state.productId), element.side, state.profileId);
+      if (area) element.fontSize = tailleTexteAjustee(element, area, compositionSize(area), state.measure);
+    }
     set({ ...pushHistory(state, 'add'), elements: [...state.elements, clampFor(state, element)], selectedId: id });
     return id;
   },

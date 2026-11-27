@@ -14,10 +14,23 @@ import {
   zonesProposees,
 } from '../src/lib/products/production';
 import { productionTextureSize } from '../src/lib/canvas/design-canvas';
+import type { ProfilProduction } from '../src/lib/products/production';
 import { SIDES } from '../src/types/configurator';
 
 const product = getProductById(DEFAULT_PRODUCT_ID)!;
 const dtf = profilParId('dtf');
+/**
+ * Procédé fictif : le DTF avec une manche encore « à valider ». Toutes les zones réelles du DTF
+ * sont validées depuis le 27/11/2026 ; ce double garde le contrôle du mécanisme (une zone non
+ * validée dans un procédé disponible bloque la commande, avec son motif).
+ */
+const dtfMancheAValider: ProfilProduction = {
+  ...dtf,
+  zones: {
+    ...dtf.zones,
+    'left-sleeve': { ...dtf.zones['left-sleeve']!, statut: 'a-valider', note: 'Pressage sur manche à valider avec l’atelier.' },
+  },
+};
 const flex = profilParId('flex');
 const dtg = profilParId('dtg');
 const sublimation = profilParId('sublimation');
@@ -66,14 +79,17 @@ describe('profils de production — source unique', () => {
 });
 
 describe('statut effectif d’une zone', () => {
-  it('DTF : avant et dos imprimables, manches et col à valider', () => {
-    expect(statutZone(dtf, 'front')).toBe('disponible');
-    expect(statutZone(dtf, 'back')).toBe('disponible');
-    expect(statutZone(dtf, 'left-sleeve')).toBe('a-valider');
-    expect(statutZone(dtf, 'right-sleeve')).toBe('a-valider');
-    expect(statutZone(dtf, 'collar')).toBe('a-valider');
-    expect(zoneCommandable(dtf, 'front')).toBe(true);
-    expect(zoneCommandable(dtf, 'left-sleeve')).toBe(false);
+  it('DTF : les cinq zones sont imprimables (manches et col validés le 27/11/2026)', () => {
+    for (const side of ['front', 'back', 'left-sleeve', 'right-sleeve', 'collar'] as const) {
+      expect(statutZone(dtf, side), side).toBe('disponible');
+      expect(zoneCommandable(dtf, side), side).toBe(true);
+    }
+  });
+
+  it('une zone « à valider » dans un procédé disponible n’est pas commandable', () => {
+    expect(statutZone(dtfMancheAValider, 'left-sleeve')).toBe('a-valider');
+    expect(zoneCommandable(dtfMancheAValider, 'left-sleeve')).toBe(false);
+    expect(zoneCommandable(dtfMancheAValider, 'front')).toBe(true);
   });
 
   it('un procédé « à valider » rend toutes ses zones non commandables', () => {
@@ -88,19 +104,19 @@ describe('statut effectif d’une zone', () => {
 
   it('explique chaque zone bloquée avec un motif lisible', () => {
     expect(motifZone(dtf, 'front')).toBeNull();
-    expect(motifZone(dtf, 'left-sleeve')).toContain('Pressage sur manche');
+    expect(motifZone(dtfMancheAValider, 'left-sleeve')).toContain('Pressage sur manche');
     expect(motifZone(dtg, 'front')).toContain('Impression directe (DTG)');
     expect(LIBELLE_STATUT['a-valider']).toContain('valider');
   });
 });
 
 describe('commande : ne jamais promettre une capacité non vérifiée', () => {
-  it('autorise une commande DTF sur les zones réellement disponibles', () => {
-    expect(empechementsCommande(dtf, ['front', 'back'])).toEqual([]);
+  it('autorise une commande DTF sur les cinq zones', () => {
+    expect(empechementsCommande(dtf, ['front', 'back', 'left-sleeve', 'right-sleeve', 'collar'])).toEqual([]);
   });
 
-  it('bloque une manche DTF non validée par l’atelier', () => {
-    const motifs = empechementsCommande(dtf, ['front', 'left-sleeve']);
+  it('bloque une manche non validée par l’atelier', () => {
+    const motifs = empechementsCommande(dtfMancheAValider, ['front', 'left-sleeve']);
     expect(motifs).toHaveLength(1);
     expect(motifs[0]).toContain('Manche gauche');
     expect(motifs[0]).toContain('Pressage sur manche');

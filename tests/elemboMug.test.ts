@@ -144,10 +144,11 @@ describe('mug Elembo : procédés de production', () => {
     expect(area.x + area.w).toBeLessThanOrEqual(0.965);
   });
 
-  it('commande bloquée tant que l’atelier n’a pas validé la sublimation sur mug', () => {
-    const profil = profilParDefautDuProduit(mug);
-    expect(zoneCommandable(profil, 'wrap')).toBe(false);
-    expect(empechementsCommande(profil, ['wrap']).length).toBeGreaterThan(0);
+  it('la sublimation (face visible et tour complet) est commandable (validée le 27/11/2026)', () => {
+    for (const profil of profilsDuProduit(mug)) {
+      expect(zoneCommandable(profil, 'wrap'), profil.id).toBe(true);
+      expect(empechementsCommande(profil, ['wrap'])).toEqual([]);
+    }
   });
 });
 

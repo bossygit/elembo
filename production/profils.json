@@ -16,28 +16,28 @@
         "front": { "statut": "disponible", "largeurCm": 21, "hauteurCm": 30, "repere": "col", "hautCm": 7 },
         "back": { "statut": "disponible", "largeurCm": 25, "hauteurCm": 32.4, "repere": "col", "hautCm": 7 },
         "left-sleeve": {
-          "statut": "a-valider",
+          "statut": "disponible",
           "largeurCm": 9,
           "hauteurCm": 9,
           "repere": "epaule",
           "hautCm": 6,
-          "note": "Pressage sur manche à valider avec l'atelier (taille du plateau de presse)."
+          "note": "Manche : 9 × 9 cm, à 6 cm de la tête de manche (validé le 27/11/2026)."
         },
         "right-sleeve": {
-          "statut": "a-valider",
+          "statut": "disponible",
           "largeurCm": 9,
           "hauteurCm": 9,
           "repere": "epaule",
           "hautCm": 6,
-          "note": "Pressage sur manche à valider avec l'atelier (taille du plateau de presse)."
+          "note": "Manche : 9 × 9 cm, à 6 cm de la tête de manche (validé le 27/11/2026)."
         },
         "collar": {
-          "statut": "a-valider",
+          "statut": "disponible",
           "largeurCm": 8,
           "hauteurCm": 4.5,
           "repere": "haut",
           "hautCm": 1,
-          "note": "Étiquette imprimée à l'intérieur du col : à valider avec l'atelier."
+          "note": "Étiquette imprimée à l'intérieur du col, 8 × 4,5 cm (validé le 27/11/2026)."
         }
       }
     },

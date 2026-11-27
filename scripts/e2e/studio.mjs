@@ -405,9 +405,10 @@ try {
       apercus: document.querySelectorAll('[data-testid^="apercu-"]').length,
     }))()`,
   );
+  // Manches et col sont validés en DTF depuis le 27/11/2026 : aucune zone ne bloque plus la commande.
   verifier(
-    'la commande est bloquée pour les zones non validées (manches, col)',
-    commandeEtat.texte.includes('Pressage sur manche') && commandeEtat.payer === true,
+    'aucune zone DTF ne bloque la commande (manches et col validés)',
+    !commandeEtat.texte.includes('Pressage sur manche') && !commandeEtat.texte.includes('À valider par l’atelier'),
   );
   verifier('l’aperçu de commande montre les cinq zones', commandeEtat.apercus === 5, `${commandeEtat.apercus} aperçus`);
 

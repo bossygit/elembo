@@ -264,6 +264,33 @@ export function elementOverflow(
   return { over: factor < 0.999, factor };
 }
 
+/**
+ * Taille de police d'un texte qu'on vient d'ajouter : la taille demandée, réduite si besoin
+ * pour que le bloc occupe au plus `remplissage` de la largeur (et de la hauteur) utile de la
+ * zone. La taille de police s'exprime dans la largeur de la TEXTURE, souvent bien plus
+ * grande que la zone imprimable (T-shirt : 63 cm pour 21 cm ; visière : 16 cm pour 9 cm) :
+ * sans cet ajustement, le texte par défaut déborde et serait rogné à l'impression.
+ * Ne grossit jamais un texte.
+ */
+export function tailleTexteAjustee(
+  el: TextElement,
+  area: PrintArea | null,
+  space: number | CanvasSpace,
+  measure: Measurer = roughMeasurer,
+  remplissage = 0.85,
+  margin = ELEMENT_LIMITS.margin,
+): number {
+  if (!area) return el.fontSize;
+  const zone = printAreaRect(area, space);
+  const rect = elementRect(el, area, space, measure);
+  const box = rotatedBox(rect.w, rect.h, el.rotation);
+  const largeurUtile = zone.w * (1 - 2 * margin) * remplissage;
+  const hauteurUtile = zone.h * (1 - 2 * margin) * remplissage;
+  const k = Math.min(1, largeurUtile / box.w, hauteurUtile / box.h);
+  if (k >= 1) return el.fontSize;
+  return clamp(Math.floor(el.fontSize * k), TEXT_LIMITS.fontSizeMin, el.fontSize);
+}
+
 /** Éléments d'une face, du calque le plus bas au plus haut. */
 export function elementsOfSide(elements: DesignElement[], side: Side): DesignElement[] {
   return elements.filter((el) => el.side === side).sort((a, b) => a.z - b.z);

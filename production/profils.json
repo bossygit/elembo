@@ -45,14 +45,14 @@
       "id": "flex",
       "nom": "Flex / vinyle découpé",
       "description": "Vinyle textile découpé au plotter puis pressé : aplats de couleur, textes, logos simples.",
-      "statut": "a-valider",
-      "note": "Équipement et dimensions de découpe à confirmer par l'atelier.",
+      "statut": "disponible",
+      "note": "Validé par l'exploitant le 27/11/2026. Col non proposé (étiquette intérieure : DTF).",
       "dpi": 300,
       "zones": {
-        "front": { "statut": "a-valider", "largeurCm": 28, "hauteurCm": 35, "repere": "col", "hautCm": 7 },
-        "back": { "statut": "a-valider", "largeurCm": 28, "hauteurCm": 35, "repere": "col", "hautCm": 7 },
-        "left-sleeve": { "statut": "a-valider", "largeurCm": 9, "hauteurCm": 9, "repere": "epaule", "hautCm": 6 },
-        "right-sleeve": { "statut": "a-valider", "largeurCm": 9, "hauteurCm": 9, "repere": "epaule", "hautCm": 6 },
+        "front": { "statut": "disponible", "largeurCm": 28, "hauteurCm": 35, "repere": "col", "hautCm": 7 },
+        "back": { "statut": "disponible", "largeurCm": 28, "hauteurCm": 35, "repere": "col", "hautCm": 7 },
+        "left-sleeve": { "statut": "disponible", "largeurCm": 9, "hauteurCm": 9, "repere": "epaule", "hautCm": 6 },
+        "right-sleeve": { "statut": "disponible", "largeurCm": 9, "hauteurCm": 9, "repere": "epaule", "hautCm": 6 },
         "collar": { "statut": "indisponible", "largeurCm": 8, "hauteurCm": 4.5, "repere": "haut", "hautCm": 1 }
       }
     },
